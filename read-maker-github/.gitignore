@@ -1,0 +1,12 @@
+# dependencies
+node_modules/
+tests/node_modules/
+
+# test artifacts (generated EPUB samples)
+tests/*.epub
+*.epub
+
+# logs / OS cruft
+npm-debug.log*
+.DS_Store
+Thumbs.db

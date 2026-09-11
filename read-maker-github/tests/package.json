@@ -1,0 +1,13 @@
+{
+  "name": "read-maker-tests",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Headless test suites for Read Maker (pure logic; canvas/pdf.js/mammoth paths are browser-only).",
+  "scripts": {
+    "test": "node run.js"
+  },
+  "devDependencies": {
+    "jsdom": "^30.0.0",
+    "jszip": "^3.10.1"
+  }
+}

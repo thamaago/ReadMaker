@@ -1,0 +1,3012 @@
+<!DOCTYPE html>
+<!--
+  Read Maker — host-side EPUB converter for CrossPoint Reader (e-ink).
+  Runs entirely in the browser. MIT-style; provided as-is.
+  Third-party components:
+    - JSZip 3.10.1 (bundled, MIT) — https://stuk.github.io/jszip/
+    - pdf.js (loaded on demand for PDF, Apache-2.0) — https://mozilla.github.io/pdf.js/
+    - mammoth.js (loaded on demand for DOCX, BSD-2-Clause) — https://github.com/mwilliamson/mammoth.js
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Read Maker — EPUB untuk CrossPoint Reader</title>
+<script src="./jszip.min.js"></script>
+<style>
+  :root{
+    --paper:#ECEAE3;      /* warm light grey paper */
+    --panel:#F6F5F0;      /* raised surface */
+    --ink:#1B1A17;        /* near-black ink */
+    --ink-soft:#57544C;   /* secondary text */
+    --ink-faint:#8A867B;  /* captions */
+    --rule:#CBC7BB;       /* hairlines */
+    --rule-soft:#DDD9CF;
+    --proof:#A83232;      /* proofreader's red — single bold accent */
+    --proof-ink:#7E2020;
+    --ok:#2F6B3A;
+    --focus:#1B1A17;
+    --serif: Georgia, "Iowan Old Style", Palatino, "Palatino Linotype", "Book Antiqua", serif;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:var(--sans);
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+    padding:0 20px 64px;
+  }
+  .eyebrow{
+    font-family:var(--mono);
+    font-size:11px;
+    letter-spacing:.22em;
+    text-transform:uppercase;
+    color:var(--ink-faint);
+  }
+  a{color:var(--proof-ink)}
+
+  /* ---- Header / masthead ---- */
+  header.mast{
+    max-width:1080px;margin:0 auto;
+    padding:34px 0 22px;
+    border-bottom:2px solid var(--ink);
+  }
+  .mast-row{display:flex;align-items:baseline;justify-content:space-between;gap:16px;flex-wrap:wrap}
+  .mast h1{
+    font-family:var(--serif);
+    font-weight:600;
+    font-size:clamp(30px,5vw,46px);
+    line-height:1.02;
+    margin:6px 0 0;
+    letter-spacing:-.01em;
+  }
+  .mast h1 .arrow{color:var(--proof)}
+  .mast .sub{color:var(--ink-soft);font-size:14px;max-width:52ch;margin:10px 0 0}
+  .mast .tag{
+    font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--ink-soft);white-space:nowrap;
+    border:1px solid var(--rule);border-radius:2px;padding:6px 9px;background:var(--panel);
+  }
+
+  /* ---- Layout ---- */
+  main{max-width:1080px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:34px;padding-top:28px}
+  @media (max-width:760px){ main{grid-template-columns:1fr;gap:26px} body{padding:0 16px 56px} }
+
+  .col-label{display:flex;align-items:center;gap:10px;margin:0 0 14px}
+  .col-label .n{font-family:var(--mono);font-size:11px;color:var(--proof);font-weight:700}
+  .col-label .line{flex:1;height:1px;background:var(--rule)}
+
+  /* ---- Drop zone ---- */
+  .drop{
+    border:1.5px dashed var(--rule);
+    border-radius:4px;background:var(--panel);
+    padding:26px 20px;text-align:center;cursor:pointer;transition:border-color .12s,background .12s;
+  }
+  .drop:hover,.drop:focus-visible{border-color:var(--ink);outline:none}
+  .drop.drag{border-color:var(--proof);background:#F1EDE6}
+  .drop .big{font-family:var(--serif);font-size:19px;margin:2px 0 6px}
+  .drop .hint{font-size:12.5px;color:var(--ink-soft)}
+  .drop .formats{font-family:var(--mono);font-size:11px;color:var(--ink-faint);margin-top:12px;letter-spacing:.06em}
+  .drop input[type=file]{display:none}
+
+  .filecard{
+    display:none;margin-top:14px;border:1px solid var(--rule);border-radius:3px;
+    background:var(--panel);padding:12px 14px;
+  }
+  .filecard.show{display:block}
+  .filecard .fname{font-family:var(--mono);font-size:13px;word-break:break-all}
+  .filecard .fmeta{font-size:12px;color:var(--ink-soft);margin-top:3px;display:flex;gap:14px;flex-wrap:wrap}
+  .filecard .fmeta b{color:var(--ink);font-weight:600}
+
+  /* URL / paste source */
+  .orbar{display:flex;align-items:center;gap:12px;margin:18px 0 12px;color:var(--ink-faint);font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase}
+  .orbar::before,.orbar::after{content:"";flex:1;height:1px;background:var(--rule)}
+  .urlrow{display:flex;gap:8px}
+  .urlrow input{flex:1;font-family:var(--sans);font-size:15px;color:var(--ink);background:#fff;border:1px solid var(--rule);border-radius:3px;padding:9px 11px}
+  .urlrow input:focus{outline:2px solid var(--focus);outline-offset:1px;border-color:var(--ink)}
+  button.mini{font-family:var(--sans);font-weight:600;font-size:13px;color:var(--ink);background:var(--panel);border:1px solid var(--ink);border-radius:3px;padding:0 14px;cursor:pointer;white-space:nowrap}
+  button.mini:hover{background:var(--ink);color:var(--paper)}
+  button.mini:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+  button.mini:disabled{border-color:var(--rule);color:var(--ink-faint);background:var(--panel);cursor:not-allowed}
+  details.paste{margin-top:12px}
+  details.paste summary{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft);cursor:pointer}
+  .pastebody{margin-top:10px;display:flex;flex-direction:column;gap:8px}
+  .pastebody input,.pastebody textarea{font-family:var(--sans);font-size:14px;color:var(--ink);background:#fff;border:1px solid var(--rule);border-radius:3px;padding:8px 10px;width:100%}
+  .pastebody textarea{font-family:var(--mono);font-size:12px;resize:vertical}
+  .pastebody input:focus,.pastebody textarea:focus{outline:2px solid var(--focus);outline-offset:1px;border-color:var(--ink)}
+  .pastebody button.mini{align-self:flex-start;padding:8px 14px}
+
+  /* ---- Fields ---- */
+  fieldset{border:none;margin:0;padding:0}
+  .field{margin:0 0 14px}
+  .field label{display:block;font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-soft);margin:0 0 6px}
+  .field input[type=text], .field select{
+    width:100%;font-family:var(--sans);font-size:15px;color:var(--ink);
+    background:#fff;border:1px solid var(--rule);border-radius:3px;padding:9px 11px;
+  }
+  .field input:focus,.field select:focus{outline:2px solid var(--focus);outline-offset:1px;border-color:var(--ink)}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  @media (max-width:420px){ .two{grid-template-columns:1fr} }
+  .help{font-size:12px;color:var(--ink-faint);margin-top:5px}
+
+  /* ---- Galley (signature element): chapter stack = spine order ---- */
+  .galley{border:1px solid var(--rule);border-radius:4px;background:var(--panel);min-height:220px}
+  .galley .empty{padding:40px 22px;text-align:center;color:var(--ink-faint)}
+  .galley .empty .mk{font-family:var(--serif);font-size:40px;color:var(--rule);line-height:1}
+  .galley .empty p{font-size:13px;margin:14px 0 0}
+  .galley ol{list-style:none;margin:0;padding:0}
+  .galley li{
+    display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:12px;
+    padding:11px 16px;border-bottom:1px solid var(--rule-soft);
+  }
+  .galley li:last-child{border-bottom:none}
+  .galley li .slug{font-family:var(--mono);font-size:11px;color:var(--proof);font-weight:700;min-width:26px}
+  .galley li .title{font-family:var(--serif);font-size:15px;color:var(--ink);line-height:1.25;word-break:break-word}
+  .galley li .words{font-family:var(--mono);font-size:11px;color:var(--ink-faint);white-space:nowrap}
+  .galley .foot{padding:10px 16px;font-family:var(--mono);font-size:11px;color:var(--ink-soft);letter-spacing:.06em;border-top:1px solid var(--rule);display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+
+  /* ---- Actions ---- */
+  .actions{margin-top:18px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+  button.go{
+    font-family:var(--sans);font-weight:600;font-size:15px;color:#fff;background:var(--proof);
+    border:none;border-radius:3px;padding:12px 22px;cursor:pointer;transition:background .12s,transform .04s;
+    letter-spacing:.01em;
+  }
+  button.go:hover{background:var(--proof-ink)}
+  button.go:active{transform:translateY(1px)}
+  button.go:disabled{background:var(--rule);color:var(--ink-faint);cursor:not-allowed}
+  button.go:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+  button.go.alt{background:var(--ink)} button.go.alt:hover{background:#000}
+  .status{font-family:var(--mono);font-size:12px;color:var(--ink-soft)}
+  .status.ok{color:var(--ok)}
+  .status.err{color:var(--proof)}
+
+  /* ---- Log ---- */
+  details.log{margin-top:16px;border:1px solid var(--rule);border-radius:3px;background:#fff}
+  details.log summary{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-soft);padding:9px 12px;cursor:pointer}
+  details.log pre{margin:0;padding:0 12px 12px;font-family:var(--mono);font-size:12px;color:var(--ink-soft);white-space:pre-wrap;word-break:break-word;max-height:220px;overflow:auto}
+
+  footer{max-width:1080px;margin:40px auto 0;padding-top:18px;border-top:1px solid var(--rule);color:var(--ink-faint);font-size:12px;line-height:1.6}
+  footer code{font-family:var(--mono);background:var(--panel);padding:1px 5px;border-radius:2px;color:var(--ink-soft)}
+
+  @media (prefers-reduced-motion:reduce){ *{transition:none!important} }
+
+  .langtoggle{display:inline-flex;border:1px solid var(--rule);border-radius:3px;overflow:hidden}
+  .langtoggle button{font-family:var(--mono);font-size:11px;letter-spacing:.08em;padding:6px 10px;background:var(--panel);color:var(--ink-soft);border:none;cursor:pointer}
+  .langtoggle button[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+  .langtoggle button:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+  .steps{max-width:1080px;margin:20px auto 0;display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  @media (max-width:640px){ .steps{grid-template-columns:1fr;gap:10px} }
+  .step{display:flex;gap:11px;align-items:flex-start;background:var(--panel);border:1px solid var(--rule-soft);border-radius:4px;padding:12px 14px}
+  .step .k{font-family:var(--mono);font-size:12px;font-weight:700;color:var(--proof);flex:none;width:20px}
+  .step .t{font-size:13px;line-height:1.35}
+  .step .t b{font-family:var(--serif);font-weight:600;display:block;font-size:14px;margin-bottom:2px}
+  .card{margin-top:16px;border:1px solid var(--ink);border-radius:4px;background:var(--panel);padding:16px 18px;display:none}
+  .card.show{display:block}
+  .card h3{font-family:var(--serif);font-weight:600;font-size:17px;margin:0 0 4px}
+  .card .done{font-family:var(--mono);font-size:12px;color:var(--ok);margin-bottom:12px;word-break:break-all}
+  .card .method{display:flex;gap:11px;padding:9px 0;border-top:1px solid var(--rule-soft)}
+  .card .method .k{font-family:var(--mono);font-size:11px;font-weight:700;color:var(--proof);flex:none;width:18px}
+  .card .method .t{font-size:13.5px;line-height:1.4}
+  .card .method .t b{font-weight:600}
+  .card .sendrow{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;align-items:center}
+  .card .sendrow input{flex:1;min-width:140px;font-family:var(--mono);font-size:13px;color:var(--ink);background:#fff;border:1px solid var(--rule);border-radius:3px;padding:7px 9px}
+  .card .sendrow input:focus{outline:2px solid var(--focus);outline-offset:1px;border-color:var(--ink)}
+  .card .sendstatus{font-family:var(--mono);font-size:11px;color:var(--ink-soft);margin-top:6px;min-height:14px}
+  .card .sendstatus.ok{color:var(--ok)} .card .sendstatus.err{color:var(--proof)}
+  .card .bar{height:4px;background:var(--rule-soft);border-radius:2px;overflow:hidden;margin-top:6px;display:none}
+  .card .bar.show{display:block}
+  .card .bar i{display:block;height:100%;width:0%;background:var(--proof);transition:width .15s}
+</style>
+</head>
+<body>
+
+<header class="mast">
+  <div class="mast-row">
+    <div>
+      <div class="eyebrow" data-i18n="brand">untuk CrossPoint Reader &middot; alat gratis</div>
+      <h1 data-i18n-html="h1">Read Maker <span class="arrow">&rarr;</span> EPUB</h1>
+      <p class="sub" data-i18n="sub">Pilih sebuah berkas atau tempel tautan artikel, lalu dapatkan buku EPUB rapi yang siap dibaca di perangkatmu. Semua diproses di peramban — tidak ada yang diunggah ke mana pun.</p>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:10px">
+      <div class="langtoggle" role="group" aria-label="Bahasa">
+        <button type="button" data-lang="id" aria-pressed="true">ID</button>
+        <button type="button" data-lang="en" aria-pressed="false">EN</button>
+      </div>
+      <div class="tag" data-i18n="tagOffline">tanpa internet &middot; EPUB</div>
+    </div>
+  </div>
+</header>
+
+<div class="steps">
+  <div class="step"><span class="k">1</span><span class="t"><b data-i18n="how1t">Masukkan tulisan</b><span data-i18n="how1d">Word, teks, Markdown, artikel web, dan lainnya.</span></span></div>
+  <div class="step"><span class="k">2</span><span class="t"><b data-i18n="how2t">Periksa judul &amp; bab</b><span data-i18n="how2d">Judul dan penulis terisi otomatis; ubah bila perlu.</span></span></div>
+  <div class="step"><span class="k">3</span><span class="t"><b data-i18n="how3t">Buat &amp; salin ke perangkat</b><span data-i18n="how3d">Unduh EPUB, lalu salin ke e-reader-mu.</span></span></div>
+</div>
+
+<main>
+  <section>
+    <div class="col-label"><span class="n">1</span><span class="eyebrow" data-i18n="s1">Pilih sumber</span><span class="line"></span></div>
+
+    <div id="drop" class="drop" tabindex="0" role="button" aria-label="Pilih berkas untuk dikonversi" title="TXT, MD, RTF, HTML, FB2, ODT, DOCX, PDF, MOBI, AZW3, CBZ">
+      <div class="big" data-i18n="dropBig">Letakkan berkas di sini</div>
+      <div class="hint" data-i18n="dropHint">atau klik untuk memilih</div>
+      <div class="formats" data-i18n="dropFormats">Word, teks, Markdown, ODT, HTML, FB2</div>
+      <input id="file" type="file" multiple accept=".txt,.md,.markdown,.text,.rtf,.html,.htm,.xhtml,.fb2,.odt,.docx,.pdf,.mobi,.azw,.azw3,.prc,.cbz" />
+    </div>
+
+    <div id="filecard" class="filecard">
+      <div class="fname" id="fname">&mdash;</div>
+      <div class="fmeta">
+        <span><span data-i18n="mFormat">format</span> <b id="fformat">&mdash;</b></span>
+        <span><span data-i18n="mSize">ukuran</span> <b id="fsize">&mdash;</b></span>
+        <span><span data-i18n="mParsed">bab</span> <b id="fblocks">&mdash;</b></span>
+      </div>
+    </div>
+
+    <div class="orbar"><span data-i18n="orWeb">atau dari sebuah tautan</span></div>
+    <div class="urlrow">
+      <input id="url" type="url" data-i18n-ph="urlPh" placeholder="Tempel alamat artikel (https://…)" autocomplete="off" />
+      <button id="fetchBtn" class="mini" data-i18n="fetchBtn">Ambil artikel</button>
+    </div>
+    <div class="help" data-i18n="fetchHelp">Mengambil isi artikel, membuang menu dan iklan, menyisakan teksnya. Sebagian situs memblokir permintaan — jika gagal, pakai "Tempel HTML" di bawah.</div>
+
+    <details class="paste">
+      <summary data-i18n="pasteSummary">Situs menolak? Tempel HTML halaman</summary>
+      <div class="pastebody">
+        <p class="help" style="margin-top:0" data-i18n="pasteHelp">Buka artikelnya, salin HTML halaman, lalu tempel di sini. Tetap berhasil walau permintaan langsung diblokir.</p>
+        <input id="pasteUrl" type="url" data-i18n-ph="pasteUrlPh" placeholder="Alamat asli (opsional, memperbaiki tautan gambar)" autocomplete="off" />
+        <textarea id="pasteHtml" data-i18n-ph="pasteHtmlPh" placeholder="Tempel HTML halaman di sini…" rows="5"></textarea>
+        <button id="pasteBtn" class="mini" data-i18n="pasteBtn">Gunakan HTML ini</button>
+      </div>
+    </details>
+
+    <div style="height:26px"></div>
+    <div class="col-label"><span class="n">2</span><span class="eyebrow" data-i18n="s2">Periksa detail</span><span class="line"></span></div>
+    <fieldset>
+      <div class="field">
+        <label for="title" data-i18n="lblTitle">Judul</label>
+        <input id="title" type="text" placeholder="Tanpa judul" autocomplete="off" />
+      </div>
+      <div class="field">
+        <label for="author" data-i18n="lblAuthor">Penulis</label>
+        <input id="author" type="text" placeholder="Tidak diketahui" autocomplete="off" />
+      </div>
+      <div class="field">
+        <label for="split" data-i18n="lblSplit">Pemisahan bab</label>
+        <select id="split">
+          <option value="auto" data-i18n="splitAuto">Otomatis (deteksi judul)</option>
+          <option value="toc" data-i18n="splitToc">Ikuti daftar isi buku</option>
+          <option value="h1" data-i18n="splitH1">Tiap judul besar</option>
+          <option value="h1h2" data-i18n="splitH1H2">Tiap judul &amp; sub-judul</option>
+          <option value="single" data-i18n="splitSingle">Jangan dipisah</option>
+        </select>
+        <div class="help" data-i18n="splitHelp">"Otomatis" juga mengenali baris seperti "Bab", "Chapter", atau "Bagian" pada teks biasa.</div>
+      </div>
+
+      <details class="paste" style="margin-top:6px">
+        <summary data-i18n="adv">Opsi lanjutan</summary>
+        <div class="pastebody">
+          <div class="field" style="margin-top:6px">
+            <label for="fwProfile" data-i18n="lblFw">Perangkat lunak e-reader</label>
+            <select id="fwProfile">
+              <option value="universal" selected data-i18n="fwUniversal">Semua (aman untuk OS bawaan &amp; firmware lain)</option>
+              <option value="crosspoint" data-i18n="fwCrossPoint">CrossPoint (paling ramping)</option>
+            </select>
+            <div class="help" data-i18n="fwHelp">&ldquo;Semua&rdquo; menambahkan aturan gaya yang diabaikan CrossPoint tetapi membantu OS bawaan Xteink dan firmware lain menskalakan gambar serta memperbesar judul bab.</div>
+          </div>
+          <div class="field">
+            <label for="lang" data-i18n="lblLang">Kode bahasa</label>
+            <input id="lang" type="text" placeholder="id / en" autocomplete="off" />
+            <div class="help" data-i18n-html="langHelp">Contoh: <code>id</code> (Indonesia), <code>en</code> (Inggris), <code>ar</code> (Arab).</div>
+          </div>
+          <div class="col-label" style="margin-top:12px"><span class="eyebrow" data-i18n="ocrHead">PDF hasil pindai</span><span class="line"></span></div>
+          <div class="two">
+            <div class="field">
+              <label for="ocrOn" data-i18n="lblOcr">Baca teks dari gambar (OCR)</label>
+              <select id="ocrOn">
+                <option value="off" selected data-i18n="ocrOff">Mati</option>
+                <option value="on" data-i18n="ocrOnOpt">Aktif</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="ocrLang" data-i18n="lblOcrLang">Bahasa teks</label>
+              <select id="ocrLang">
+                <option value="ind" selected>Indonesia</option>
+                <option value="eng">English</option>
+                <option value="ind+eng">Indonesia + English</option>
+                <option value="ara">&#1575;&#1604;&#1593;&#1585;&#1576;&#1610;&#1577; (Arabic)</option>
+                <option value="chi_sim">&#31616;&#20307;&#20013;&#25991; (Chinese, simplified)</option>
+                <option value="chi_tra">&#32321;&#39636;&#20013;&#25991; (Chinese, traditional)</option>
+                <option value="jpn">&#26085;&#26412;&#35486; (Japanese)</option>
+                <option value="kor">&#54620;&#44397;&#50612; (Korean)</option>
+                <option value="rus">&#1056;&#1091;&#1089;&#1089;&#1082;&#1080;&#1081; (Russian)</option>
+                <option value="deu">Deutsch</option>
+                <option value="fra">Fran&ccedil;ais</option>
+                <option value="spa">Espa&ntilde;ol</option>
+              </select>
+            </div>
+          </div>
+          <div class="help" data-i18n="ocrHelp">Hanya dipakai bila PDF tidak punya teks yang bisa disalin. Prosesnya lambat dan butuh koneksi sekali untuk memuat mesin OCR; hasilnya bisa mengandung salah baca.</div>
+
+          <div class="col-label" style="margin-top:12px"><span class="eyebrow" data-i18n="imgHead">Gambar &middot; untuk layar e-ink</span><span class="line"></span></div>
+          <div class="two">
+            <div class="field">
+              <label for="einkOn" data-i18n="lblEink">Pemrosesan</label>
+              <select id="einkOn">
+                <option value="on" selected data-i18n="einkOnOpt">Aktif (disarankan)</option>
+                <option value="off" data-i18n="einkOffOpt">Mati (biarkan asli)</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="einkLevels" data-i18n="lblTones">Tingkat warna</label>
+              <select id="einkLevels">
+                <option value="2" data-i18n="tone2">2 &middot; hitam-putih</option>
+                <option value="4" selected data-i18n="tone4">4 &middot; abu-abu</option>
+                <option value="16" data-i18n="tone16">16 &middot; abu halus</option>
+              </select>
+            </div>
+          </div>
+          <div class="two">
+            <div class="field">
+              <label for="einkDither" data-i18n="lblDither">Penghalusan</label>
+              <select id="einkDither">
+                <option value="fs" selected data-i18n="ditherFs">Terbaik (Floyd&ndash;Steinberg)</option>
+                <option value="bayer" data-i18n="ditherBayer">Pola teratur</option>
+                <option value="none" data-i18n="ditherNone">Tanpa</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="einkSize" data-i18n="lblFit">Ukuran layar</label>
+              <select id="einkSize">
+                <option value="480x800" selected>X4 / X4 Pro &middot; 480 &times; 800</option>
+                <option value="528x792">X3 &middot; 528 &times; 792</option>
+                <option value="400x600">papermono &middot; 400 &times; 600</option>
+                <option value="540x960">Sticky / 540 &times; 960 (16 abu)</option>
+                <option value="none" data-i18n="fitNone">Jangan ubah ukuran</option>
+              </select>
+            </div>
+          </div>
+          <div class="help" data-i18n="imgHelp">Berlaku untuk gambar di dalam buku (mis. sampul FB2/ODT). "4 · abu-abu" cocok dengan layar device; pilih "2 · hitam-putih" untuk layar mono.</div>
+        </div>
+      </details>
+    </fieldset>
+  </section>
+
+  <section>
+    <div class="col-label"><span class="n">3</span><span class="eyebrow" data-i18n="s3">Buat &amp; unduh</span><span class="line"></span></div>
+
+    <div class="galley" id="galley">
+      <div class="empty" id="galleyEmpty">
+        <div class="mk">&para;</div>
+        <p><b data-i18n="emptyT">Daftar bab muncul di sini.</b><br /><span data-i18n="emptyD">Urutannya = urutan baca di dalam buku.</span></p>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button id="build" class="go" disabled data-i18n="buildBtn">Buat EPUB</button>
+      <button id="buildXtc" class="go alt" style="display:none" data-i18n="btnXtc">Ekspor .xtc</button>
+      <span id="status" class="status" data-i18n="stWaiting">Menunggu berkas.</span>
+    </div>
+
+    <div class="card" id="deviceCard">
+      <h3 data-i18n="devHead">Cara memasukkan ke perangkat</h3>
+      <div class="done" id="deviceDone">&mdash;</div>
+      <div class="method"><span class="k">A</span><span class="t"><b data-i18n="devM1t">Lewat kartu SD.</b> <span data-i18n="devM1d">Salin berkas .epub ke kartu SD e-reader (folder mana pun), pasang kembali, lalu buka dari daftar berkas.</span></span></div>
+      <div class="method"><span class="k">B</span><span class="t"><b data-i18n="devM2t">Lewat Wi-Fi.</b> <span data-i18n="devM2d">Aktifkan berbagi Wi-Fi di e-reader, buka halaman webnya di peramban, lalu unggah berkas .epub di halaman Files.</span></span></div>
+      <div class="method"><span class="k">C</span><span class="t"><b data-i18n="devM3t">Kirim langsung dari sini.</b> <span data-i18n="devM3d">Jika perangkat dan komputer/HP ini berada di Wi-Fi yang sama, masukkan alamat IP e-reader untuk mengunggah tanpa berpindah aplikasi.</span>
+        <div class="sendrow">
+          <input id="deviceIp" type="text" value="crosspoint.local" data-i18n-ph="ipPh" placeholder="crosspoint.local atau alamat IP" autocomplete="off" />
+          <input id="devicePath" type="text" style="max-width:120px" data-i18n-ph="sendFolderLbl" placeholder="Folder tujuan" autocomplete="off" />
+          <button id="scanQrBtn" class="mini" type="button" data-i18n="scanQr" title="Pindai kode QR dari layar perangkat">QR</button>
+          <button id="sendBtn" class="mini" data-i18n="sendBtn">Kirim</button>
+        </div>
+        <div class="bar" id="sendBar"><i id="sendBarFill"></i></div>
+        <div class="sendstatus" id="sendStatus"></div>
+        <div class="help" data-i18n="sendHint">Biasanya cukup biarkan <code>crosspoint.local</code>. Kalau tak berhasil, buka layar berbagi Wi-Fi di perangkat dan pindai kode QR-nya, atau ketik alamat IP yang tertera di sana.</div>
+      </span></div>
+    </div>
+
+    <details class="paste" style="margin-top:16px">
+      <summary data-i18n="sleepHead">Buat gambar layar tidur (wallpaper) &middot; CrossPoint</summary>
+      <div class="pastebody">
+        <p class="help" style="margin-top:0" data-i18n="sleepHelp">Ubah foto menjadi berkas BMP yang dipakai perangkat saat layar tidur. Salin hasilnya ke akar kartu SD. Ukuran layar dan tingkat warna mengikuti &ldquo;Opsi lanjutan&rdquo;.</p>
+        <div class="two">
+          <div class="field">
+            <label for="sleepMode" data-i18n="lblSleepMode">Jenis</label>
+            <select id="sleepMode">
+              <option value="full" selected data-i18n="sleepFull">Latar penuh (sleep.bmp)</option>
+              <option value="overlay" data-i18n="sleepOverlay">Tempelan transparan (sleep-overlay.bmp)</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="sleepFile" data-i18n="lblSleepFile">Gambar</label>
+            <input id="sleepFile" type="file" accept="image/*" />
+          </div>
+        </div>
+      </div>
+    </details>
+
+    <details class="paste" style="margin-top:10px">
+      <summary data-i18n="dictHead">Buat kamus untuk perangkat &middot; CrossPoint / SUMI</summary>
+      <div class="pastebody">
+        <p class="help" style="margin-top:0" data-i18n="dictHelp">Ubah daftar kata menjadi kamus StarDict yang bisa dipakai perangkat saat menekan lama sebuah kata. Format tiap baris: <code>kata[TAB]definisi</code> (atau <code>kata:definisi</code>). Salin folder <code>dictionaries/</code> hasil unduhan ke akar kartu SD.</p>
+        <div class="two">
+          <div class="field">
+            <label for="dictName" data-i18n="lblDictName">Nama kamus</label>
+            <input id="dictName" type="text" data-i18n-ph="dictNamePh" placeholder="mis. Inggris-Indonesia" autocomplete="off" />
+          </div>
+          <div class="field">
+            <label for="dictHtml" data-i18n="lblDictFmt">Format definisi</label>
+            <select id="dictHtml">
+              <option value="plain" selected data-i18n="dictPlain">Teks biasa</option>
+              <option value="html" data-i18n="dictHtmlOpt">HTML (tebal/miring)</option>
+            </select>
+          </div>
+        </div>
+        <div class="field">
+          <label for="dictFile" data-i18n="lblDictFile">Berkas daftar kata (.txt / .tsv / .csv)</label>
+          <input id="dictFile" type="file" accept=".txt,.tsv,.csv,.tab,.dsl" />
+        </div>
+      </div>
+    </details>
+
+    <input id="qrFile" type="file" accept="image/*" capture="environment" style="display:none" />
+
+    <details class="log">
+      <summary data-i18n="logSummary">Catatan proses</summary>
+      <pre id="log"></pre>
+    </details>
+  </section>
+</main>
+
+<footer>
+  <span data-i18n="credits" style="display:block;margin-top:8px;color:var(--ink-faint);font-size:11px"></span>
+  <span data-i18n="footer">Mengubah teks, Markdown, RTF, HTML, FictionBook (FB2), OpenDocument (ODT), Word (DOCX), dan artikel web menjadi EPUB yang menyesuaikan layar. Gambar disiapkan untuk layar e-ink. Alat ini tidak mengubah firmware perangkat.</span>
+</footer>
+
+<script>
+/* ---- lightweight i18n (ID default, EN toggle). Static UI + key statuses. ---- */
+var T = {
+  id: {
+    brand:"untuk CrossPoint Reader · alat gratis",
+    h1:'Read Maker <span class="arrow">&rarr;</span> EPUB',
+    sub:"Pilih sebuah berkas atau tempel tautan artikel, lalu dapatkan buku EPUB rapi yang siap dibaca di perangkatmu. Semua diproses di peramban — tidak ada yang diunggah ke mana pun.",
+    tagOffline:"tanpa internet · EPUB",
+    how1t:"Masukkan tulisan", how1d:"Word, teks, Markdown, artikel web, dan lainnya.",
+    how2t:"Periksa judul & bab", how2d:"Judul dan penulis terisi otomatis; ubah bila perlu.",
+    how3t:"Buat & salin ke perangkat", how3d:"Unduh EPUB, lalu salin ke e-reader-mu.",
+    s1:"Pilih sumber",
+    dropBig:"Letakkan berkas di sini", dropHint:"atau klik untuk memilih \u2014 bisa beberapa berkas sekaligus", dropFormats:"Word, PDF, Kindle, komik CBZ, teks, dll.",
+    mFormat:"format", mSize:"ukuran", mParsed:"bab",
+    orWeb:"atau dari sebuah tautan", urlPh:"Tempel alamat artikel (https://…)", fetchBtn:"Ambil artikel",
+    fetchHelp:'Mengambil isi artikel, membuang menu dan iklan, menyisakan teksnya. Sebagian situs memblokir permintaan — jika gagal, pakai "Tempel HTML" di bawah.',
+    pasteSummary:"Situs menolak? Tempel HTML halaman",
+    pasteHelp:"Buka artikelnya, salin HTML halaman, lalu tempel di sini. Tetap berhasil walau permintaan langsung diblokir.",
+    pasteUrlPh:"Alamat asli (opsional, memperbaiki tautan gambar)", pasteHtmlPh:"Tempel HTML halaman di sini…", pasteBtn:"Gunakan HTML ini",
+    s2:"Periksa detail", lblTitle:"Judul", lblAuthor:"Penulis", lblSplit:"Pemisahan bab",
+    splitAuto:"Otomatis (deteksi judul)", splitToc:"Ikuti daftar isi buku", splitH1:"Tiap judul besar", splitH1H2:"Tiap judul & sub-judul", splitSingle:"Jangan dipisah",
+    splitHelp:'"Otomatis" memakai daftar isi bawaan buku bila ada, dan mengenali baris seperti "Bab" atau "Chapter" pada teks biasa.',
+    adv:"Opsi lanjutan", lblLang:"Kode bahasa", lblFw:"Perangkat lunak e-reader", fwUniversal:"Semua (aman untuk OS bawaan & firmware lain)", fwCrossPoint:"CrossPoint (paling ramping)", fwHelp:"\u201cSemua\u201d menambahkan aturan gaya yang diabaikan CrossPoint tetapi membantu OS bawaan Xteink dan firmware lain menskalakan gambar serta memperbesar judul bab.",
+    langHelp:"Contoh: <code>id</code> (Indonesia), <code>en</code> (Inggris), <code>ar</code> (Arab).",
+    imgHead:"Gambar · untuk layar e-ink", lblEink:"Pemrosesan", einkOnOpt:"Aktif (disarankan)", einkOffOpt:"Mati (biarkan asli)",
+    lblTones:"Tingkat warna", tone2:"2 · hitam-putih", tone4:"4 · abu-abu", tone16:"16 · abu halus",
+    lblDither:"Penghalusan", ditherFs:"Terbaik (Floyd–Steinberg)", ditherBayer:"Pola teratur", ditherNone:"Tanpa",
+    lblFit:"Ukuran layar", fitNone:"Jangan ubah ukuran",
+    imgHelp:'Berlaku untuk gambar di dalam buku (mis. sampul FB2/ODT). "4 · abu-abu" cocok dengan layar device; pilih "2 · hitam-putih" untuk layar mono.',
+    s3:"Buat & unduh", emptyT:"Daftar bab muncul di sini.", emptyD:"Urutannya = urutan baca di dalam buku.",
+    buildBtn:"Buat EPUB", stWaiting:"Menunggu berkas.", logSummary:"Catatan proses",
+    devHead:"Cara memasukkan ke perangkat",
+    devM1t:"Lewat kartu SD.", devM1d:"Salin berkas .epub ke kartu SD e-reader (folder mana pun), pasang kembali, lalu buka dari daftar berkas.",
+    devM2t:"Lewat Wi-Fi.", devM2d:"Aktifkan berbagi Wi-Fi di e-reader, buka halaman webnya di peramban, lalu unggah berkas .epub di halaman Files.",
+    devM3t:"Kirim langsung dari sini.", devM3d:"Jika perangkat dan komputer/HP ini berada di Wi-Fi yang sama, masukkan alamat IP e-reader untuk mengunggah tanpa berpindah aplikasi.",
+    ipPh:"crosspoint.local atau alamat IP", scanQr:"QR", sendHint:"Biasanya cukup biarkan crosspoint.local. Kalau tak berhasil, buka layar berbagi Wi-Fi di perangkat lalu pindai kode QR-nya, atau ketik alamat IP yang tertera di sana.", qrReading:"Membaca kode QR\u2026", qrFound:"Alamat terisi:", qrNone:"Kode QR tidak terbaca. Coba foto lebih dekat/terang.", errQrLoad:"Pembaca QR gagal dimuat. Periksa koneksi internet.", sendBtn:"Kirim", sendBtnSending:"Mengirim…",
+    sendOk:"Terkirim ke perangkat.", sendErrIp:"Masukkan alamat IP dulu.",
+    sendErrNet:"Tidak bisa terhubung. Pastikan perangkat menyala, Wi-Fi berbagi aktif, dan HP/komputer ini berada di jaringan Wi-Fi yang sama.",
+    sendErrExists:"Berkas dengan nama itu sudah ada di perangkat.", sendErrOther:"Pengiriman gagal:",
+    errRtf:"Berkas ini sepertinya bukan RTF yang sah.",
+    errFb2:"Berkas FB2 ini rusak (XML tidak valid).",
+    errOdtBad:"Berkas ODT tidak sah (content.xml tidak ditemukan).",
+    errOdtXml:"Isi berkas ODT rusak (XML tidak valid).",
+    errUnsupported:"Format belum didukung:",
+    errEmpty:"Tidak ada teks yang bisa dibaca di berkas ini.",
+    errEpubInput:"Berkas ini sudah berformat EPUB, jadi tidak perlu dikonversi. Salin saja langsung ke perangkat.",
+    errHttp:"Situs menolak permintaan (kode",
+    errTimeout:"Situs terlalu lama merespons.",
+    sendBtnCancel:"Batal", sendCancelled:"Pengiriman dibatalkan.",
+    sendErrTimeout:"Perangkat tidak merespons (batas waktu habis). Coba lagi, atau pakai cara kartu SD.",
+    sendErrMixed:"Halaman ini dibuka lewat HTTPS, sedangkan e-reader memakai HTTP biasa, jadi peramban memblokir pengiriman. Buka berkas index.html langsung dari komputermu, atau pakai cara kartu SD / Wi-Fi manual.",
+    sendFolderLbl:"Folder tujuan",
+    blockedT:"Situs memblokir permintaan langsung.",
+    blockedD:"Buka artikelnya, salin HTML halaman, lalu pakai \u201cTempel HTML\u201d.",
+    footer:"Mengubah teks, Markdown, RTF, HTML, FictionBook (FB2), OpenDocument (ODT), Word (DOCX), PDF (berteks), Kindle (MOBI/AZW3), komik (CBZ), dan artikel web menjadi EPUB yang menyesuaikan layar. Gambar disiapkan untuk layar e-ink. Alat ini tidak mengubah firmware perangkat.",
+    stReady:"Siap dibuat.", stParsing:"Membaca berkas…", stBuilding:"Membuat EPUB…", stImages:"Memproses gambar…",
+    stFetching:"Mengambil…", stBlocked:"Diblokir situs (kemungkinan CORS). Pakai \u201cTempel HTML\u201d.", stPasteFirst:"Tempel HTML dulu.",
+    stSaved:"Tersimpan:", devDone:"Berhasil dibuat:", errPrefix:"Gagal:", warnLarge:"Berkas besar (>{n} MB) — proses mungkin lambat, dan pada perangkat RAM kecil (X3/X4) bisa gagal dibuka.", btnXtc:"Ekspor .xtc (native)", stXtc:"Membuat .xtc…", credits:"Memakai JSZip (MIT); PDF via pdf.js (Apache-2.0), DOCX via mammoth.js (BSD) dimuat saat diperlukan.", errScanned:"PDF ini sepertinya hasil pemindaian (tanpa teks yang bisa disalin). Aktifkan OCR di \u201cOpsi lanjutan\u201d untuk membacanya.", errMobi:"Berkas Kindle ini tidak bisa dibaca. Mungkin ber-DRM (terkunci) atau rusak; berkas ber-DRM tidak didukung.", errHuff:"Berkas Kindle ini memakai kompresi HUFF/CDIC yang belum didukung. Coba konversi dulu lewat Calibre.", errCbz:"Tidak ada gambar di dalam berkas CBZ ini.", errCbr:"Berkas CBR memakai format RAR yang belum didukung. Ubah dulu ke CBZ (mis. lewat Calibre), lalu coba lagi.", pageLabel:"Halaman", chapterLabel:"Bab", batchFiles:"berkas dalam antrean", batchWaiting:"menunggu", batchWorking:"memproses", batchDone:"selesai", batchFailed:"gagal", batchReady:"Siap. Semua berkas akan dijadikan satu berkas ZIP.", batchNone:"Tidak ada berkas yang berhasil dikonversi.", ocrHead:"PDF hasil pindai", lblOcr:"Baca teks dari gambar (OCR)", ocrOff:"Mati", ocrOnOpt:"Aktif", lblOcrLang:"Bahasa teks", ocrHelp:"Hanya dipakai bila PDF tidak punya teks yang bisa disalin. Prosesnya lambat dan butuh koneksi sekali untuk memuat mesin OCR; hasilnya bisa mengandung salah baca.", stOcr:"Membaca teks dari gambar\u2026", errOcrLoad:"Mesin OCR gagal dimuat. Periksa koneksi internet.", errOcrEmpty:"OCR tidak menemukan teks yang bisa dibaca pada PDF ini.", sleepHead:"Buat gambar layar tidur (wallpaper) \u00b7 CrossPoint", sleepHelp:"Ubah foto menjadi berkas BMP yang dipakai perangkat saat layar tidur. Salin hasilnya ke akar kartu SD. Ukuran layar dan tingkat warna mengikuti \u201cOpsi lanjutan\u201d.", lblSleepMode:"Jenis", sleepFull:"Latar penuh (sleep.bmp)", sleepOverlay:"Tempelan transparan (sleep-overlay.bmp)", lblSleepFile:"Gambar", stSleep:"Membuat gambar layar tidur\u2026", dictHead:"Buat kamus untuk perangkat \u00b7 CrossPoint / SUMI", dictHelp:"Ubah daftar kata menjadi kamus StarDict yang bisa dipakai perangkat saat menekan lama sebuah kata. Salin folder dictionaries/ hasil unduhan ke akar kartu SD.", lblDictName:"Nama kamus", dictNamePh:"mis. Inggris-Indonesia", lblDictFmt:"Format definisi", dictPlain:"Teks biasa", dictHtmlOpt:"HTML (tebal/miring)", lblDictFile:"Berkas daftar kata (.txt / .tsv / .csv)", stDict:"Membuat kamus\u2026", errDictEmpty:"Daftar kata kosong atau formatnya tidak dikenali (pakai kata[TAB]definisi)."
+  },
+  en: {
+    brand:"for CrossPoint Reader · free tool",
+    h1:'Read Maker <span class="arrow">&rarr;</span> EPUB',
+    sub:"Choose a file or paste an article link, and get a clean EPUB ready to read on your device. Everything runs in your browser — nothing is uploaded anywhere.",
+    tagOffline:"offline · EPUB",
+    how1t:"Add your writing", how1d:"Word, text, Markdown, web articles and more.",
+    how2t:"Check title & chapters", how2d:"Title and author are filled in automatically; edit if needed.",
+    how3t:"Create & copy to device", how3d:"Download the EPUB, then copy it to your e-reader.",
+    s1:"Choose a source",
+    dropBig:"Drop your file here", dropHint:"or click to choose \u2014 several files at once is fine", dropFormats:"Word, PDF, Kindle, CBZ comics, text, etc.",
+    mFormat:"format", mSize:"size", mParsed:"chapters",
+    orWeb:"or from a link", urlPh:"Paste an article address (https://…)", fetchBtn:"Fetch article",
+    fetchHelp:'Pulls the article, strips menus and ads, keeps the text. Some sites block requests — if it fails, use "Paste HTML" below.',
+    pasteSummary:"Blocked by the site? Paste the page HTML",
+    pasteHelp:"Open the article, copy the page HTML, and paste it here. Works even when a direct request is blocked.",
+    pasteUrlPh:"Original address (optional, fixes image links)", pasteHtmlPh:"Paste the page HTML here…", pasteBtn:"Use this HTML",
+    s2:"Check the details", lblTitle:"Title", lblAuthor:"Author", lblSplit:"Split chapters",
+    splitAuto:"Automatic (detect headings)", splitToc:"Follow the book's contents", splitH1:"On every big heading", splitH1H2:"On heading & sub-heading", splitSingle:"Don't split",
+    splitHelp:'"Automatic" uses the book\'s own contents when it has one, and recognises lines like "Chapter" or "Bab" in plain text.',
+    adv:"Advanced options", lblLang:"Language code", lblFw:"E-reader software", fwUniversal:"Any (safe on stock OS and other firmware)", fwCrossPoint:"CrossPoint (leanest)", fwHelp:"\u201cAny\u201d adds style rules CrossPoint ignores but which help the stock Xteink OS and other firmware scale images and size chapter headings.",
+    langHelp:"e.g. <code>en</code> (English), <code>id</code> (Indonesian), <code>ar</code> (Arabic).",
+    imgHead:"Images · for e-ink screens", lblEink:"Processing", einkOnOpt:"On (recommended)", einkOffOpt:"Off (keep original)",
+    lblTones:"Tones", tone2:"2 · black & white", tone4:"4 · greyscale", tone16:"16 · fine grey",
+    lblDither:"Smoothing", ditherFs:"Best (Floyd–Steinberg)", ditherBayer:"Ordered", ditherNone:"None",
+    lblFit:"Screen size", fitNone:"Don't resize",
+    imgHelp:'Applies to images inside the book (e.g. FB2/ODT covers). "4 · greyscale" matches the device screen; pick "2 · black & white" for mono screens.',
+    s3:"Create & download", emptyT:"Your chapters appear here.", emptyD:"Their order is the reading order in the book.",
+    buildBtn:"Create EPUB", stWaiting:"Waiting for a file.", logSummary:"Conversion log",
+    devHead:"How to put it on your device",
+    devM1t:"Via SD card.", devM1d:"Copy the .epub to the e-reader's SD card (any folder), reinsert it, then open it from the file list.",
+    devM2t:"Via Wi-Fi.", devM2d:"Turn on Wi-Fi sharing on the e-reader, open its web page in a browser, then upload the .epub on the Files page.",
+    devM3t:"Send it directly from here.", devM3d:"If this device and your e-reader are on the same Wi-Fi, enter the reader's IP address to upload without switching apps.",
+    ipPh:"crosspoint.local or IP address", scanQr:"QR", sendHint:"Usually just leave crosspoint.local. If it does not work, open the Wi-Fi sharing screen on the device and scan its QR code, or type the IP shown there.", qrReading:"Reading the QR code\u2026", qrFound:"Address filled in:", qrNone:"Could not read the QR code. Try a closer/brighter photo.", errQrLoad:"The QR reader could not be loaded. Check your connection.", sendBtn:"Send", sendBtnSending:"Sending…",
+    sendOk:"Sent to the device.", sendErrIp:"Enter an IP address first.",
+    sendErrNet:"Could not connect. Make sure the device is on, Wi-Fi sharing is enabled, and this device is on the same Wi-Fi network.",
+    sendErrExists:"A file with that name already exists on the device.", sendErrOther:"Send failed:",
+    errRtf:"This does not look like a valid RTF file.",
+    errFb2:"This FB2 file is damaged (invalid XML).",
+    errOdtBad:"Not a valid ODT file (content.xml is missing).",
+    errOdtXml:"The ODT contents are damaged (invalid XML).",
+    errUnsupported:"Format not supported yet:",
+    errEmpty:"No readable text was found in this file.",
+    errEpubInput:"This file is already an EPUB, so it doesn't need converting. Just copy it straight to your device.",
+    errHttp:"The site refused the request (code",
+    errTimeout:"The site took too long to respond.",
+    sendBtnCancel:"Cancel", sendCancelled:"Sending cancelled.",
+    sendErrTimeout:"The device did not respond in time. Try again, or use the SD-card method.",
+    sendErrMixed:"This page is served over HTTPS while the e-reader uses plain HTTP, so the browser blocks the upload. Open index.html locally from your computer instead, or use the SD-card / manual Wi-Fi method.",
+    sendFolderLbl:"Destination folder",
+    blockedT:"The site blocked a direct request.",
+    blockedD:"Open the article, copy its page HTML, and use \u201cPaste page HTML\u201d.",
+    footer:"Converts text, Markdown, RTF, HTML, FictionBook (FB2), OpenDocument (ODT), Word (DOCX), text-based PDF, Kindle (MOBI/AZW3), comics (CBZ) and web articles into reflowable EPUB. Images are prepared for e-ink screens. This tool does not modify device firmware.",
+    stReady:"Ready to build.", stBuilding:"Building EPUB…", stParsing:"Reading file…", stImages:"Processing images…",
+    stFetching:"Fetching…", stBlocked:"Blocked by the site (likely CORS). Use \u201cPaste HTML\u201d.", stPasteFirst:"Paste some HTML first.",
+    stSaved:"Saved:", devDone:"Created:", errPrefix:"Failed:", warnLarge:"Large file (>{n} MB) — this may be slow, and may fail to open on low-RAM devices (X3/X4).", btnXtc:"Export .xtc (native)", stXtc:"Building .xtc…", credits:"Uses JSZip (MIT); PDF via pdf.js (Apache-2.0) and DOCX via mammoth.js (BSD) loaded on demand.", errScanned:"This PDF looks scanned (no selectable text). Turn on OCR under \u201cAdvanced options\u201d to read it.", errMobi:"This Kindle file can't be read. It may be DRM-protected (locked) or corrupt; DRM files are not supported.", errHuff:"This Kindle file uses HUFF/CDIC compression, which isn't supported yet. Try converting it with Calibre first.", errCbz:"No images were found inside this CBZ.", errCbr:"CBR uses the RAR format, which isn't supported directly. Convert it to CBZ first (e.g. with Calibre), then try again.", pageLabel:"Page", chapterLabel:"Chapter", batchFiles:"files queued", batchWaiting:"waiting", batchWorking:"working", batchDone:"done", batchFailed:"failed", batchReady:"Ready. All files will be delivered as one ZIP.", batchNone:"No file could be converted.", ocrHead:"Scanned PDFs", lblOcr:"Read text from images (OCR)", ocrOff:"Off", ocrOnOpt:"On", lblOcrLang:"Text language", ocrHelp:"Only used when a PDF has no selectable text. It is slow and needs a connection once to load the OCR engine; results may contain misreadings.", stOcr:"Reading text from images\u2026", errOcrLoad:"The OCR engine could not be loaded. Check your connection.", errOcrEmpty:"OCR found no readable text in this PDF.", sleepHead:"Make a sleep-screen image (wallpaper) \u00b7 CrossPoint", sleepHelp:"Turn a photo into the BMP the device shows while asleep. Copy the result to the root of the SD card. Screen size and tone count follow \u201cAdvanced options\u201d.", lblSleepMode:"Type", sleepFull:"Full wallpaper (sleep.bmp)", sleepOverlay:"Transparent overlay (sleep-overlay.bmp)", lblSleepFile:"Image", stSleep:"Making the sleep screen\u2026", dictHead:"Make a device dictionary \u00b7 CrossPoint / SUMI", dictHelp:"Turn a word list into a StarDict dictionary the device can use when you long-press a word. Copy the downloaded dictionaries/ folder to the SD card root.", lblDictName:"Dictionary name", dictNamePh:"e.g. English-Indonesian", lblDictFmt:"Definition format", dictPlain:"Plain text", dictHtmlOpt:"HTML (bold/italic)", lblDictFile:"Word list file (.txt / .tsv / .csv)", stDict:"Building the dictionary\u2026", errDictEmpty:"The word list is empty or in an unrecognised format (use word[TAB]definition)."
+  }
+};
+var LANG = "id";
+function t(k){ return (T[LANG] && T[LANG][k] != null) ? T[LANG][k] : (T.id[k] != null ? T.id[k] : k); }
+function applyLang(lang){
+  LANG = T[lang] ? lang : "id";
+  document.documentElement.setAttribute("lang", LANG);
+  document.querySelectorAll("[data-i18n]").forEach(function(el){ el.textContent = t(el.getAttribute("data-i18n")); });
+  document.querySelectorAll("[data-i18n-html]").forEach(function(el){ el.innerHTML = t(el.getAttribute("data-i18n-html")); });
+  document.querySelectorAll("[data-i18n-ph]").forEach(function(el){ el.setAttribute("placeholder", t(el.getAttribute("data-i18n-ph"))); });
+  document.querySelectorAll(".langtoggle button").forEach(function(b){ b.setAttribute("aria-pressed", b.getAttribute("data-lang")===LANG ? "true":"false"); });
+  if(typeof window.__onLang==="function"){ try{ window.__onLang(); }catch(e){} }
+}
+document.addEventListener("DOMContentLoaded", function(){
+  document.querySelectorAll(".langtoggle button").forEach(function(b){
+    b.addEventListener("click", function(){ applyLang(b.getAttribute("data-lang")); });
+  });
+  applyLang("id");
+});
+</script>
+
+<script>
+"use strict";
+
+/* ============================ helpers ============================ */
+const $ = (id) => document.getElementById(id);
+const logEl = $('log');
+function log(msg){ logEl.textContent += (logEl.textContent ? "\n" : "") + msg; }
+function setStatus(msg, kind){ const s=$('status'); s.textContent=msg; s.className='status'+(kind?' '+kind:''); }
+function escXml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&apos;'); }
+function fmtSize(n){ return n<1024?n+' B':n<1048576?(n/1024).toFixed(1)+' KB':(n/1048576).toFixed(1)+' MB'; }
+function uuid(){
+  if (crypto && crypto.randomUUID) return crypto.randomUUID();
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{const r=Math.random()*16|0;return (c==='x'?r:(r&0x3|0x8)).toString(16);});
+}
+function extOf(name){ const m=/\.([a-z0-9]+)$/i.exec(name||''); return m?m[1].toLowerCase():''; }
+function baseName(name){ return (name||'book').replace(/\.[^.]+$/,''); }
+function countWords(html){ const t=html.replace(/<[^>]+>/g,' ').replace(/&[a-z#0-9]+;/gi,' '); const m=t.trim().match(/\S+/g); return m?m.length:0; }
+
+/* ============================ Markdown (compact, offline) ============================ */
+/* Handles the common writing subset: ATX headings, paragraphs, bold/italic/code,
+   links, images, unordered/ordered lists, blockquotes, hr, fenced code. */
+function mdInline(s){
+  // order matters; escape first, then re-introduce markup
+  s = s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  // images ![alt](url)
+  s = s.replace(/!\[([^\]]*)\]\(([^)\s]+)(?:\s+"[^"]*")?\)/g,(m,a,u)=>`<img src="${escAttr(u)}" alt="${escAttr(a)}"/>`);
+  // links [text](url)
+  s = s.replace(/\[([^\]]+)\]\(([^)\s]+)(?:\s+"[^"]*")?\)/g,(m,t,u)=>`<a href="${escAttr(u)}">${t}</a>`);
+  // inline code
+  s = s.replace(/`([^`]+)`/g,(m,c)=>`<code>${c}</code>`);
+  // bold+italic / bold / italic
+  s = s.replace(/\*\*\*([^*]+)\*\*\*/g,'<strong><em>$1</em></strong>');
+  s = s.replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>');
+  s = s.replace(/(^|[^*])\*([^*\n]+)\*/g,'$1<em>$2</em>');
+  s = s.replace(/__([^_]+)__/g,'<strong>$1</strong>');
+  s = s.replace(/(^|[^_])_([^_\n]+)_/g,'$1<em>$2</em>');
+  return s;
+}
+function escAttr(s){ return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function mdToHtml(md){
+  md = md.replace(/\r\n?/g,'\n');
+  const lines = md.split('\n');
+  const out=[]; let i=0;
+  const flushPara=(buf)=>{ if(buf.length){ out.push('<p>'+mdInline(buf.join(' ').trim())+'</p>'); buf.length=0; } };
+  let para=[];
+  while(i<lines.length){
+    let line=lines[i];
+    // fenced code
+    if(/^\s*```/.test(line)){ flushPara(para); const fence=line.match(/^\s*```/)[0]; const code=[]; i++;
+      while(i<lines.length && !/^\s*```/.test(lines[i])){ code.push(lines[i]); i++; } i++;
+      out.push('<pre><code>'+code.join('\n').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')+'</code></pre>'); continue; }
+    // blank
+    if(/^\s*$/.test(line)){ flushPara(para); i++; continue; }
+    // hr
+    if(/^\s*([-*_])(\s*\1){2,}\s*$/.test(line)){ flushPara(para); out.push('<hr/>'); i++; continue; }
+    // heading
+    let h=/^(#{1,6})\s+(.*)$/.exec(line);
+    if(h){ flushPara(para); const lvl=h[1].length; out.push(`<h${lvl}>${mdInline(h[2].replace(/\s+#+\s*$/,'').trim())}</h${lvl}>`); i++; continue; }
+    // setext heading
+    if(i+1<lines.length && /^\s*=+\s*$/.test(lines[i+1]) && line.trim()){ flushPara(para); out.push('<h1>'+mdInline(line.trim())+'</h1>'); i+=2; continue; }
+    if(i+1<lines.length && /^\s*-{2,}\s*$/.test(lines[i+1]) && line.trim()){ flushPara(para); out.push('<h2>'+mdInline(line.trim())+'</h2>'); i+=2; continue; }
+    // blockquote
+    if(/^\s*>/.test(line)){ flushPara(para); const q=[]; while(i<lines.length && /^\s*>/.test(lines[i])){ q.push(lines[i].replace(/^\s*>\s?/,'')); i++; }
+      out.push('<blockquote>'+mdToHtml(q.join('\n'))+'</blockquote>'); continue; }
+    // lists
+    if(/^\s*[-*+]\s+/.test(line)){ flushPara(para); const items=[]; while(i<lines.length && /^\s*[-*+]\s+/.test(lines[i])){ items.push('<li>'+mdInline(lines[i].replace(/^\s*[-*+]\s+/,'').trim())+'</li>'); i++; }
+      out.push('<ul>'+items.join('')+'</ul>'); continue; }
+    if(/^\s*\d+[.)]\s+/.test(line)){ flushPara(para); const items=[]; while(i<lines.length && /^\s*\d+[.)]\s+/.test(lines[i])){ items.push('<li>'+mdInline(lines[i].replace(/^\s*\d+[.)]\s+/,'').trim())+'</li>'); i++; }
+      out.push('<ol>'+items.join('')+'</ol>'); continue; }
+    // paragraph text
+    para.push(line); i++;
+  }
+  flushPara(para);
+  return out.join('\n');
+}
+
+/* ============================ Plain text ============================ */
+function txtToHtml(txt){
+  txt = txt.replace(/\r\n?/g,'\n');
+  const blocks = txt.split(/\n\s*\n/);
+  const headRe = /^\s*(chapter|chap\.?|part|book|section|bab|bagian|bagi|prologue|epilogue|prolog|epilog|foreword|preface|introduction|pendahuluan|kata pengantar)\b.{0,60}$/i;
+  const out=[];
+  for(let raw of blocks){
+    const b = raw.replace(/\n+$/,'');
+    if(!b.trim()) continue;
+    const single = b.trim();
+    const oneLine = !/\n/.test(single);
+    if(oneLine && (headRe.test(single) || (/^[A-Z0-9][^a-z]{2,58}$/.test(single) && single.length<=60))){
+      out.push('<h1>'+escHtmlText(single)+'</h1>'); continue;
+    }
+    // join soft-wrapped lines within a paragraph
+    const p = b.split('\n').map(l=>l.trim()).join(' ').replace(/\s+/g,' ').trim();
+    out.push('<p>'+escHtmlText(p)+'</p>');
+  }
+  return out.join('\n');
+}
+function escHtmlText(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+/* If a converted body has no headings at all, promote chapter-like paragraphs
+   (e.g. "Chapter 3", "BAB II", short all-caps titles) to <h1> so splitting works. */
+function promoteHeadings(html){
+  if(/<h[1-6][\s>]/i.test(html)) return html;
+  const headRe=/^(chapter|chap\.?|part|book|section|bab|bagian|prologue|epilogue|prolog|epilog|foreword|preface|introduction|pendahuluan|kata pengantar)\b.{0,50}$/i;
+  return html.replace(/<p>([\s\S]*?)<\/p>/g,(m,inner)=>{
+    const text=inner.replace(/<[^>]+>/g,'').replace(/&[a-z#0-9]+;/gi,' ').trim();
+    if(text && text.length<=60 && (headRe.test(text) || /^[A-Z0-9][^a-z]{2,58}$/.test(text))) return '<h1>'+inner+'</h1>';
+    return m;
+  });
+}
+
+/* ============================ RTF (Rich Text Format) ============================ */
+/* Hand-written tokenizer: groups {}, control words \word[N], control symbols
+   \'hh and \uN, formatting toggles, headings via \outlinelevel, and title/author
+   from the \info group. Skips font/color/style/pict destinations. Offline. */
+function cp1252(b){
+  const map={0x80:'\u20ac',0x82:'\u201a',0x83:'\u0192',0x84:'\u201e',0x85:'\u2026',0x86:'\u2020',0x87:'\u2021',
+    0x88:'\u02c6',0x89:'\u2030',0x8a:'\u0160',0x8b:'\u2039',0x8c:'\u0152',0x8e:'\u017d',0x91:'\u2018',0x92:'\u2019',
+    0x93:'\u201c',0x94:'\u201d',0x95:'\u2022',0x96:'\u2013',0x97:'\u2014',0x98:'\u02dc',0x99:'\u2122',0x9a:'\u0161',
+    0x9b:'\u203a',0x9c:'\u0153',0x9e:'\u017e',0x9f:'\u0178'};
+  return map[b]||String.fromCharCode(b);
+}
+function rtfToBook(rtf){
+  const skipDest=new Set(['fonttbl','colortbl','stylesheet','pict','object','header','footer','headerl','headerr',
+    'headerf','footerl','footerr','footerf','footnote','annotation','themedata','colorschememapping','latentstyles',
+    'datastore','generator','operator','company','userprops','password','listtable','listoverridetable','revtbl',
+    'rsidtbl','extrach','filetbl','pgptbl','protusertbl','xmlnstbl','fldinst','wgrffmtfilter','mmathpr']);
+  let i=0; const N=rtf.length;
+  const out=[]; let para=''; let paraLevel=-1;
+  let fmt={b:false,it:false,ul:false,st:false,sup:false,sub:false};
+  let dest='body'; let ucSkip=1;
+  const stack=[]; let title='',author='';
+
+  function emitText(t){
+    if(!t) return;
+    if(dest==='title'){ title+=t; return; }
+    if(dest==='author'){ author+=t; return; }
+    if(dest!=='body') return;
+    let open='',close='';
+    if(fmt.b){open+='<strong>';close='</strong>'+close;}
+    if(fmt.it){open+='<em>';close='</em>'+close;}
+    if(fmt.ul){open+='<u>';close='</u>'+close;}
+    if(fmt.st){open+='<s>';close='</s>'+close;}
+    if(fmt.sup){open+='<sup>';close='</sup>'+close;}
+    if(fmt.sub){open+='<sub>';close='</sub>'+close;}
+    para+=open+escHtmlText(t)+close;
+  }
+  function flushPara(){
+    if(dest!=='body'){ para=''; paraLevel=-1; return; }
+    const text=para.replace(/<[^>]+>/g,'').replace(/&[a-z#0-9]+;/gi,' ').trim();
+    if(text.length){
+      if(paraLevel>=0){ const lv=Math.min(paraLevel+1,6); out.push('<h'+lv+'>'+para+'</h'+lv+'>'); }
+      else out.push('<p>'+para+'</p>');
+    }
+    para=''; paraLevel=-1;
+  }
+  function skipFallback(cnt){
+    let k=0;
+    while(k<cnt && i<N){
+      const ch=rtf[i];
+      if(ch==='{'||ch==='}') break;
+      if(ch==='\\'){
+        if(rtf[i+1]==="'"){ i+=4; }
+        else if(/[a-z]/i.test(rtf[i+1])){ i++; while(i<N&&/[a-z]/i.test(rtf[i]))i++; if(rtf[i]==='-')i++; while(i<N&&/[0-9]/.test(rtf[i]))i++; if(rtf[i]===' ')i++; }
+        else { i+=2; }
+      } else { i++; }
+      k++;
+    }
+  }
+  function handle(w,num,hasNum){
+    const off=hasNum&&num===0;
+    switch(w){
+      case 'par': case 'sect': flushPara(); break;
+      case 'pard': case 'sectd': paraLevel=-1; break;
+      case 'plain': fmt={b:false,it:false,ul:false,st:false,sup:false,sub:false}; break;
+      case 'line': case 'lbr': if(dest==='body') para+='<br/>'; break;
+      case 'tab': emitText('\u00a0\u00a0'); break;
+      case 'b': fmt.b=!off; break;
+      case 'i': fmt.it=!off; break;
+      case 'ul': fmt.ul=!off; break;
+      case 'ulnone': fmt.ul=false; break;
+      case 'strike': fmt.st=!off; break;
+      case 'super': fmt.sup=!off; if(!off)fmt.sub=false; break;
+      case 'sub': fmt.sub=!off; if(!off)fmt.sup=false; break;
+      case 'nosupersub': fmt.sup=false; fmt.sub=false; break;
+      case 'outlinelevel': paraLevel=hasNum?num:0; break;
+      case 'uc': ucSkip=hasNum?num:1; break;
+      case 'u': { let code=num; if(code<0)code+=65536; emitText(String.fromCharCode(code)); skipFallback(ucSkip); break; }
+      case 'bin': if(hasNum&&num>0) i+=num; break;
+      case 'emdash': emitText('\u2014'); break;
+      case 'endash': emitText('\u2013'); break;
+      case 'bullet': emitText('\u2022'); break;
+      case 'lquote': emitText('\u2018'); break;
+      case 'rquote': emitText('\u2019'); break;
+      case 'ldblquote': emitText('\u201c'); break;
+      case 'rdblquote': emitText('\u201d'); break;
+      case 'enspace': case 'emspace': case 'qmspace': emitText(' '); break;
+      case 'info': dest='info'; break;
+      case 'title': if(dest==='info') dest='title'; break;
+      case 'author': if(dest==='info') dest='author'; break;
+      case 'fldrslt': break; // keep visible field result
+      default: if(skipDest.has(w)) dest='skip';
+    }
+  }
+
+  // require an rtf header
+  if(!/^\s*\{\s*\\rtf/i.test(rtf)) throw new Error(t('errRtf'));
+
+  while(i<N){
+    const c=rtf[i];
+    if(c==='{'){ stack.push({fmt:{...fmt},dest,ucSkip}); i++; continue; }
+    if(c==='}'){ const s=stack.pop(); if(s){ fmt=s.fmt; dest=s.dest; ucSkip=s.ucSkip; } i++; continue; }
+    if(c==='\\'){
+      const nx=rtf[i+1];
+      if(/[a-z]/i.test(nx)){
+        let j=i+1,w=''; while(j<N&&/[a-z]/i.test(rtf[j])){w+=rtf[j];j++;}
+        let numStr=''; if(rtf[j]==='-'){numStr='-';j++;} while(j<N&&/[0-9]/.test(rtf[j])){numStr+=rtf[j];j++;}
+        const hasNum=numStr!==''&&numStr!=='-'; const num=hasNum?parseInt(numStr,10):0;
+        if(rtf[j]===' ')j++;
+        i=j; handle(w.toLowerCase(),num,hasNum); continue;
+      } else {
+        if(nx==="'"){ const hex=rtf.substr(i+2,2); const b=parseInt(hex,16); if(!isNaN(b)) emitText(cp1252(b)); i+=4; continue; }
+        if(nx==='\\'||nx==='{'||nx==='}'){ emitText(nx); i+=2; continue; }
+        if(nx==='*'){ dest='skip'; i+=2; continue; }
+        if(nx==='~'){ emitText('\u00a0'); i+=2; continue; }
+        if(nx==='_'){ emitText('\u2011'); i+=2; continue; }
+        if(nx==='-'){ i+=2; continue; } // optional hyphen
+        if(nx==='\n'||nx==='\r'){ flushPara(); i+=2; continue; }
+        i+=2; continue; // unknown symbol
+      }
+    }
+    if(c==='\r'||c==='\n'){ i++; continue; }
+    // collect a run of literal characters under the current formatting state
+    let j2=i, run='';
+    while(j2<N){ const ch=rtf[j2]; if(ch==='\\'||ch==='{'||ch==='}') break; if(ch==='\r'||ch==='\n'){ j2++; continue; } run+=ch; j2++; }
+    emitText(run); i=j2;
+  }
+  flushPara();
+  let html=out.join('\n');
+  html=promoteHeadings(html);
+  return { html, title:title.trim(), author:author.trim(), lang:'' };
+}
+
+/* ============================ HTML source ============================ */
+function absoluteUrl(u, base){ try{ return base ? new URL(u, base).href : u; }catch(_){ return u; } }
+
+/* Shared allow-list sanitiser: emits only whitelisted tags and attributes, so
+   scripts, on* handlers and unknown tags are dropped. Used by HTML, DOCX and
+   the web-article reader so every HTML source is cleaned the same way. */
+const CLEAN_ALLOW = new Set(['P','H1','H2','H3','H4','H5','H6','BLOCKQUOTE','UL','OL','LI','IMG','PRE','CODE',
+  'EM','STRONG','I','B','U','S','SUB','SUP','A','BR','HR','FIGURE','TABLE','THEAD','TBODY','TR','TD','TH']);
+function cleanNode(node, baseUrl){
+  let out='';
+  node.childNodes.forEach(ch=>{
+    if(ch.nodeType===3){ out+=escHtmlText(ch.nodeValue); return; }
+    if(ch.nodeType!==1) return;
+    const tag=ch.tagName;
+    if(tag==='IMG'){
+      const src=ch.getAttribute('src')||ch.getAttribute('data-src')||'';
+      if(src) out+='<img src="'+escAttr(absoluteUrl(src,baseUrl))+'" alt="'+escAttr(ch.getAttribute('alt')||'')+'"/>';
+      return;
+    }
+    if(!CLEAN_ALLOW.has(tag)){ out+=cleanNode(ch,baseUrl); return; } // unwrap unknown containers (div/span/section…)
+    if(tag==='BR'){ out+='<br/>'; return; }
+    if(tag==='HR'){ out+='<hr/>'; return; }
+    const inner=cleanNode(ch,baseUrl);
+    if(tag==='A'){ const href=absoluteUrl(ch.getAttribute('href')||'#',baseUrl); out+= /^(https?:|mailto:)/i.test(href)?'<a href="'+escAttr(href)+'">'+inner+'</a>':inner; return; }
+    const t=tag.toLowerCase();
+    if(!inner.replace(/<[^>]+>/g,'').trim() && !/<img/.test(inner) && t!=='hr' && t!=='br') return; // drop empties
+    out+='<'+t+'>'+inner+'</'+t+'>';
+  });
+  return out;
+}
+function cleanHtmlFragment(htmlStr, baseUrl){
+  const doc=new DOMParser().parseFromString(htmlStr,'text/html');
+  doc.querySelectorAll('script,style,noscript,iframe,object,embed,form,button,svg,link,meta,head').forEach(n=>n.remove());
+  return cleanNode(doc.body||doc.documentElement, baseUrl||'');
+}
+function htmlToBody(htmlStr){
+  const doc = new DOMParser().parseFromString(htmlStr,'text/html');
+  const title = (doc.querySelector('title')?.textContent || '').trim();
+  const author = (doc.querySelector('meta[name="author"]')?.getAttribute('content') || '').trim();
+  const lang = (doc.documentElement.getAttribute('lang') || '').split('-')[0].trim();
+  return { html: cleanHtmlFragment(htmlStr), title, author, lang };
+}
+
+/* Reader-mode extraction: pull the main article out of a full web page,
+   drop nav/ads/boilerplate, resolve relative URLs, and read title/author. */
+function isAo3Url(u){ return /archiveofourown\.org\/works\//i.test(u || ''); }
+/* Archive of Our Own puts an entire work under <div id="chapters">, one
+   <div class="chapter"> per chapter (each with an <h3 class="title">), plus a
+   preface holding title/byline/summary. Pull those out cleanly rather than
+   letting the generic reader guess, and keep the tags/summary as front matter.
+   Fetch the ...?view_full_work=true URL to get every chapter in one page. */
+function ao3FullWorkUrl(u){
+  try{
+    const m = String(u).match(/(https?:\/\/[^/]*archiveofourown\.org\/works\/\d+)/i);
+    return m ? (m[1] + '?view_full_work=true') : u;
+  }catch(e){ return u; }
+}
+function extractAo3(htmlStr, baseUrl){
+  const doc = new DOMParser().parseFromString(htmlStr, 'text/html');
+  const pick = function(sel){ const e = doc.querySelector(sel); return e ? e.textContent.replace(/\s+/g,' ').trim() : ''; };
+  const title = pick('.preface .title') || pick('h2.title') || (doc.querySelector('title')?.textContent||'').replace(/ \[Archive of Our Own\].*$/,'').trim();
+  let author = pick('.preface .byline') || pick('a[rel="author"]');
+  author = author.replace(/^\s*by\s+/i,'').replace(/\s+/g,' ').trim();
+  const lang = (doc.documentElement.getAttribute('lang')||'').split('-')[0].trim();
+
+  const out = [];
+  // front matter: summary + tag list (only from the meta block, not the whole page)
+  const summary = doc.querySelector('.preface .summary .userstuff') || doc.querySelector('.summary.module .userstuff');
+  if(summary){ out.push('<h1>'+escHtmlText(title||'Summary')+'</h1>'); out.push(cleanNode(summary, baseUrl)); }
+
+  const chapters = doc.querySelectorAll('#chapters > .chapter');  // direct children only; the inner .chapter.preface must not double-count
+  if(chapters.length){
+    chapters.forEach(function(ch, i){
+      const h = ch.querySelector('.preface .title, h3.title');
+      let ct = h ? h.textContent.replace(/\s+/g,' ').trim() : '';
+      out.push('<h1>'+escHtmlText(ct || ('Chapter '+(i+1)))+'</h1>');
+      // chapter body is the .userstuff that is NOT the notes
+      const bodies = ch.querySelectorAll(':scope .userstuff');
+      let body = null;
+      bodies.forEach(function(b){ if(!body && !b.closest('.notes') && !b.closest('.preface')) body = b; });
+      if(!body) body = ch.querySelector('.userstuff');
+      if(body) out.push(cleanNode(body, baseUrl));
+    });
+  } else {
+    // single-chapter work: the whole text is one #chapters .userstuff
+    const body = doc.querySelector('#chapters .userstuff, #workskin .userstuff');
+    if(body){ if(!summary) out.push('<h1>'+escHtmlText(title||'Story')+'</h1>'); out.push(cleanNode(body, baseUrl)); }
+  }
+  const html = out.join('\n').replace(/(\s*<p>\s*<\/p>\s*)+/g,'');
+  return { html: html, title: title, author: author, lang: lang, ao3: true };
+}
+function extractArticle(htmlStr, baseUrl){
+  const doc = new DOMParser().parseFromString(htmlStr, 'text/html');
+  const metaC = (sel)=> (doc.querySelector(sel)?.getAttribute('content')||'').trim();
+  let title = metaC('meta[property="og:title"]') || metaC('meta[name="twitter:title"]') ||
+              (doc.querySelector('title')?.textContent||'').trim() ||
+              (doc.querySelector('h1')?.textContent||'').trim();
+  let author = metaC('meta[name="author"]') || metaC('meta[property="article:author"]') ||
+               (doc.querySelector('[rel="author"], .byline, .author')?.textContent||'').trim();
+  author = author.replace(/^\s*by\s+/i,'').replace(/\s+/g,' ').trim();
+  const lang = (doc.documentElement.getAttribute('lang')||'').split('-')[0].trim();
+
+  const junk = 'script,style,noscript,iframe,form,button,svg,link,meta,nav,aside,header,footer,'+
+    '[role="navigation"],[role="banner"],[role="complementary"],[role="contentinfo"],'+
+    '.nav,.navbar,.menu,.sidebar,.share,.social,.related,.comments,.comment,.advert,.ad,.ads,'+
+    '.newsletter,.subscribe,.cookie,.promo,.breadcrumbs,.pagination,figure figcaption';
+  doc.querySelectorAll(junk).forEach(n=>n.remove());
+
+  // choose best content root: explicit article/main, else densest block by text
+  // minus link density (menus score low even if long).
+  let root = doc.querySelector('article') || doc.querySelector('[role="main"]') || doc.querySelector('main');
+  if(!root){
+    let best=null,bestScore=0;
+    doc.querySelectorAll('div,section').forEach(el=>{
+      const ps=el.querySelectorAll(':scope > p, :scope > h2, :scope > h3');
+      let textLen=0; ps.forEach(p=>textLen+=p.textContent.trim().length);
+      const linkLen=Array.from(el.querySelectorAll(':scope a')).reduce((a,x)=>a+x.textContent.length,0);
+      const score = textLen - linkLen*0.5;             // penalise link-heavy blocks (menus)
+      if(score>bestScore){bestScore=score;best=el;}
+    });
+    root = best || doc.body;
+  }
+  let html = cleanNode(root, baseUrl).replace(/(\s*<p>\s*<\/p>\s*)+/g,'');
+  if(title) html = '<h1>'+escHtmlText(title)+'</h1>\n'+html;
+  return { html, title, author, lang };
+}
+
+/* ============================ FB2 (FictionBook 2) ============================ */
+function fb2ToBook(xmlStr){
+  const doc = new DOMParser().parseFromString(xmlStr,'application/xml');
+  if(doc.querySelector('parsererror')) throw new Error(t('errFb2'));
+  const NS = 'http://www.gribuser.ru/xml/fictionbook/2.0';
+  const q = (sel,root)=> (root||doc).querySelector(sel);
+  const txt = (el)=> el ? el.textContent.trim() : '';
+  const ti = doc.getElementsByTagName('title-info')[0];
+  let title='', author='', lang='';
+  if(ti){
+    title = txt(ti.getElementsByTagName('book-title')[0]);
+    const a = ti.getElementsByTagName('author')[0];
+    if(a){
+      const fn=txt(a.getElementsByTagName('first-name')[0]);
+      const ln=txt(a.getElementsByTagName('last-name')[0]);
+      const nick=txt(a.getElementsByTagName('nickname')[0]);
+      author = [fn,ln].filter(Boolean).join(' ') || nick;
+    }
+    lang = txt(ti.getElementsByTagName('lang')[0]);
+  }
+  // binaries (images/cover)
+  const binaries = {};
+  Array.from(doc.getElementsByTagName('binary')).forEach(b=>{
+    const id=b.getAttribute('id'); const ct=b.getAttribute('content-type')||'image/jpeg';
+    if(id) binaries[id]={ mime:ct, b64:b.textContent.replace(/\s+/g,'') };
+  });
+  // cover ref
+  let coverId='';
+  const cover = ti && ti.getElementsByTagName('coverpage')[0];
+  if(cover){ const img=cover.getElementsByTagName('image')[0]; if(img){ const href=img.getAttribute('l:href')||img.getAttribute('xlink:href')||img.getAttribute('href')||''; coverId=href.replace(/^#/,''); } }
+
+  // convert bodies
+  const bodies = Array.from(doc.getElementsByTagName('body'));
+  const images = []; // {name, mime, b64}
+  let imgCount=0;
+  const usedBins = new Set();
+  function conv(node){
+    let s='';
+    node.childNodes.forEach(ch=>{
+      if(ch.nodeType===3){ s+=escHtmlText(ch.nodeValue); return; }
+      if(ch.nodeType!==1) return;
+      const tag=ch.localName;
+      switch(tag){
+        case 'title': s+='<h1>'+innerText(ch)+'</h1>'; break;
+        case 'subtitle': s+='<h3>'+innerText(ch)+'</h3>'; break;
+        case 'section': s+=conv(ch); break;
+        case 'p': s+='<p>'+conv(ch)+'</p>'; break;
+        case 'empty-line': s+='<p>\u00a0</p>'; break;
+        case 'emphasis': s+='<em>'+conv(ch)+'</em>'; break;
+        case 'strong': s+='<strong>'+conv(ch)+'</strong>'; break;
+        case 'strikethrough': s+='<s>'+conv(ch)+'</s>'; break;
+        case 'sub': s+='<sub>'+conv(ch)+'</sub>'; break;
+        case 'sup': s+='<sup>'+conv(ch)+'</sup>'; break;
+        case 'code': s+='<code>'+conv(ch)+'</code>'; break;
+        case 'cite': case 'epigraph': s+='<blockquote>'+conv(ch)+'</blockquote>'; break;
+        case 'poem': s+='<blockquote>'+conv(ch)+'</blockquote>'; break;
+        case 'stanza': s+=conv(ch); break;
+        case 'v': s+='<p>'+conv(ch)+'</p>'; break;
+        case 'a': { const href=ch.getAttribute('l:href')||ch.getAttribute('xlink:href')||ch.getAttribute('href')||'#'; s+='<a href="'+escAttr(href)+'">'+conv(ch)+'</a>'; break; }
+        case 'image': {
+          const href=(ch.getAttribute('l:href')||ch.getAttribute('xlink:href')||ch.getAttribute('href')||'').replace(/^#/,'');
+          if(href && binaries[href]){ const bin=binaries[href]; const ext=extFromMime(bin.mime); const nm='img_'+(imgCount++)+'.'+ext;
+            if(!usedBins.has(href)){ images.push({name:nm,mime:bin.mime,b64:bin.b64}); usedBins.add(href); binaries[href]._name=nm; }
+            s+='<img src="images/'+(binaries[href]._name||nm)+'" alt=""/>';
+          }
+          break; }
+        default: s+=conv(ch);
+      }
+    });
+    return s;
+  }
+  function innerText(ch){ return conv(ch); }
+  let bodyHtml = bodies.map(conv).join('\n');
+  // register cover image among images if present
+  let coverName='';
+  if(coverId && binaries[coverId]){
+    const bin=binaries[coverId]; const ext=extFromMime(bin.mime); coverName='cover.'+ext;
+    if(!usedBins.has(coverId)){ images.unshift({name:coverName,mime:bin.mime,b64:bin.b64}); usedBins.add(coverId); }
+    else { coverName = binaries[coverId]._name || coverName; }
+  }
+  return { html:bodyHtml, title, author, lang, images, coverName };
+}
+function extFromMime(m){ m=(m||'').toLowerCase(); if(m.includes('png'))return 'png'; if(m.includes('gif'))return 'gif'; if(m.includes('svg'))return 'svg'; return 'jpg'; }
+function b64ToU8(b64){ const bin=atob(b64); const u=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i); return u; }
+
+/* ============================ ODT (OpenDocument Text) ============================ */
+/* ODT is a ZIP of XML. Parse content.xml for structure, meta.xml for metadata,
+   map automatic text styles to bold/italic/underline, and pull Pictures/*. */
+function mimeFromName(n){ const e=extOf(n); return e==='png'?'image/png':e==='gif'?'image/gif':e==='svg'?'image/svg+xml':e==='bmp'?'image/bmp':'image/jpeg'; }
+async function odtToBook(arrayBuffer){
+  const zip=await JSZip.loadAsync(arrayBuffer);
+  const contentFile=zip.file('content.xml');
+  if(!contentFile) throw new Error(t('errOdtBad'));
+  const contentXml=await contentFile.async('string');
+  const doc=new DOMParser().parseFromString(contentXml,'application/xml');
+  if(doc.querySelector('parsererror')) throw new Error(t('errOdtXml'));
+
+  // metadata (meta.xml, fallback to content.xml meta)
+  let title='',author='',lang='';
+  const metaFile=zip.file('meta.xml');
+  if(metaFile){
+    const md=new DOMParser().parseFromString(await metaFile.async('string'),'application/xml');
+    const g=(t)=>{ const e=md.getElementsByTagName(t)[0]; return e?e.textContent.trim():''; };
+    title=g('dc:title'); author=g('dc:creator'); lang=(g('dc:language')||'').split('-')[0];
+  }
+
+  // style map: automatic text styles -> {b,i,u}
+  const styleMap={};
+  Array.from(doc.getElementsByTagName('style:style')).forEach(st=>{
+    const name=st.getAttribute('style:name'); if(!name) return;
+    const tp=st.getElementsByTagName('style:text-properties')[0]; if(!tp) return;
+    const uline=tp.getAttribute('style:text-underline-style');
+    styleMap[name]={ b:tp.getAttribute('fo:font-weight')==='bold', i:tp.getAttribute('fo:font-style')==='italic', u:!!uline&&uline!=='none' };
+  });
+
+  // pre-extract pictures
+  const pics={};
+  for(const n of Object.keys(zip.files)){
+    if(/^Pictures\//.test(n) && !zip.files[n].dir){ pics[n]={ u8:await zip.file(n).async('uint8array'), mime:mimeFromName(n) }; }
+  }
+  const images=[]; let imgCount=0; const usedPic={};
+  function addImage(href){
+    if(!href) return '';
+    const key=href.replace(/^\.?\//,'');
+    if(!pics[key]) return '';
+    if(!usedPic[key]){ const nm='img_'+(imgCount++)+'.'+extOf(key); images.push({name:nm,mime:pics[key].mime,b64:u8ToB64(pics[key].u8)}); usedPic[key]=nm; }
+    return '<img src="images/'+usedPic[key]+'" alt=""/>';
+  }
+
+  function inlineOf(node){
+    let s='';
+    node.childNodes.forEach(ch=>{
+      if(ch.nodeType===3){ s+=escHtmlText(ch.nodeValue); return; }
+      if(ch.nodeType!==1) return;
+      const ln=ch.localName;
+      if(ln==='span'){ const st=styleMap[ch.getAttribute('text:style-name')]||{}; let o='',c='';
+        if(st.b){o+='<strong>';c='</strong>'+c;} if(st.i){o+='<em>';c='</em>'+c;} if(st.u){o+='<u>';c='</u>'+c;}
+        s+=o+inlineOf(ch)+c; }
+      else if(ln==='a'){ s+='<a href="'+escAttr(ch.getAttribute('xlink:href')||'#')+'">'+inlineOf(ch)+'</a>'; }
+      else if(ln==='line-break'){ s+='<br/>'; }
+      else if(ln==='tab'){ s+='\u00a0\u00a0'; }
+      else if(ln==='s'){ const c=parseInt(ch.getAttribute('text:c')||'1',10); s+=' '.repeat(isNaN(c)?1:Math.min(c,20)); }
+      else if(ln==='image'){ s+=addImage(ch.getAttribute('xlink:href')||''); }
+      else { s+=inlineOf(ch); } // frame, softpagebreak, bookmarks, etc.
+    });
+    return s;
+  }
+  function convList(el){
+    const items=[];
+    Array.from(el.childNodes).forEach(li=>{
+      if(li.nodeType!==1||li.localName!=='list-item') return;
+      let inner='';
+      Array.from(li.childNodes).forEach(c=>{
+        if(c.nodeType!==1) return;
+        if(c.localName==='list') inner+=convList(c);
+        else inner+=inlineOf(c); // paragraphs/headings inside item -> inline
+      });
+      items.push('<li>'+inner+'</li>');
+    });
+    return '<ul>'+items.join('')+'</ul>';
+  }
+
+  const out=[];
+  function walk(container){
+    Array.from(container.childNodes).forEach(ch=>{
+      if(ch.nodeType!==1) return;
+      const ln=ch.localName;
+      if(ln==='h'){ const lvl=Math.min(parseInt(ch.getAttribute('text:outline-level')||'1',10)||1,6); const inner=inlineOf(ch); if(inner.trim()) out.push('<h'+lvl+'>'+inner+'</h'+lvl+'>'); }
+      else if(ln==='p'){ const inner=inlineOf(ch); if(inner.replace(/<[^>]+>/g,'').trim()||/<img/.test(inner)) out.push('<p>'+inner+'</p>'); }
+      else if(ln==='list'){ out.push(convList(ch)); }
+      else { walk(ch); } // office:text, section, table, frame, soft-page-break...
+    });
+  }
+  const bodyText=doc.getElementsByTagName('office:text')[0]||doc.getElementsByTagName('office:body')[0]||doc.documentElement;
+  walk(bodyText);
+
+  let html=promoteHeadings(out.join('\n'));
+  return { html, title, author, lang, images, coverName:'' };
+}
+
+/* ============================ PDF (text) ============================ */
+/* Reconstruct reading order from positioned text: group items into lines,
+   lines into paragraphs, detect headings by font size, drop page numbers,
+   de-hyphenate line breaks. Pure function below is unit-tested; the pdf.js
+   loader wrapper is kept thin. Scanned (image-only) PDFs have no text. */
+function median(arr){ if(!arr.length) return 0; const s=[...arr].sort((a,b)=>a-b); const m=s.length>>1; return s.length%2?s[m]:(s[m-1]+s[m])/2; }
+function pdfItemsToHtml(pages){
+  const heights=[];
+  pages.forEach(p=>p.forEach(it=>{ if(it.str && it.str.trim()) heights.push(Math.round(it.h)); }));
+  const bodyH = median(heights) || 12;
+
+  const allLines=[];
+  pages.forEach((items,pi)=>{
+    const its=(items||[]).filter(it=>it.str && it.str.replace(/\s+/g,'').length);
+    if(!its.length) return;
+    const sorted=[...its].sort((a,b)=> (b.y-a.y) || (a.x-b.x));
+    const tol=Math.max(1,bodyH*0.6);
+    const lines=[]; let cur=null;
+    for(const it of sorted){
+      if(!cur || Math.abs(it.y-cur.y)>tol){ cur={y:it.y, items:[it]}; lines.push(cur); }
+      else cur.items.push(it);
+    }
+    const pageLines=lines.map(ln=>{
+      const li=[...ln.items].sort((a,b)=>a.x-b.x);
+      let text='', prev=null;
+      for(const it of li){
+        if(prev){ const gap=it.x-(prev.x+(prev.w||0));
+          if(gap>bodyH*0.25 && !/\s$/.test(text) && !/^\s/.test(it.str)) text+=' '; }
+        text+=it.str; prev=it;
+      }
+      text=text.replace(/\s+/g,' ').trim();
+      return { page:pi, y:ln.y, x0:Math.min(...ln.items.map(i=>i.x)), size:Math.round(Math.max(...ln.items.map(i=>i.h))), text };
+    }).filter(l=>l.text.length);
+    if(pageLines.length){ pageLines[0].firstOfPage=true; pageLines[pageLines.length-1].lastOfPage=true; }
+    for(const l of pageLines){
+      const isNum=/^[\divxlcdm]{1,5}$/i.test(l.text) || /^page\s+\d+$/i.test(l.text) || /^\d+\s*\/\s*\d+$/.test(l.text);
+      if(isNum && (l.firstOfPage||l.lastOfPage)) continue;
+      allLines.push(l);
+    }
+  });
+  if(!allLines.length) return '';
+
+  // drop running headers/footers: text that repeats at the top/bottom edge across many pages
+  const pageCount=pages.length;
+  const edge={};
+  for(const l of allLines){ if(l.firstOfPage||l.lastOfPage){ const k=l.text.toLowerCase().replace(/\d+/g,'#').trim(); edge[k]=(edge[k]||0)+1; } }
+  const repThreshold=Math.max(2, Math.round(pageCount*0.4));
+  const kept=allLines.filter(l=>{
+    if(!(l.firstOfPage||l.lastOfPage)) return true;
+    const k=l.text.toLowerCase().replace(/\d+/g,'#').trim();
+    return !(edge[k]>=repThreshold);
+  });
+  allLines.length=0; Array.prototype.push.apply(allLines, kept);
+  if(!allLines.length) return '';
+
+  const bodyX=allLines.filter(l=>l.size<=bodyH*1.3).map(l=>l.x0);
+  const leftMargin=bodyX.length?Math.min(...bodyX):Math.min(...allLines.map(l=>l.x0));
+  const headingLevel=(s)=> s>=bodyH*1.8?1 : s>=bodyH*1.45?2 : 3;
+
+  const out=[]; let para='', prev=null;
+  const flush=()=>{ if(para.trim()) out.push('<p>'+escHtmlText(para.trim())+'</p>'); para=''; };
+  for(const l of allLines){
+    if(l.size>=bodyH*1.35 && l.text.length<=120){
+      flush(); const lv=headingLevel(l.size); out.push('<h'+lv+'>'+escHtmlText(l.text)+'</h'+lv+'>'); prev=l; continue;
+    }
+    let newp=false;
+    if(!para) newp=true;
+    else if(prev){
+      if(prev.page===l.page && (prev.y-l.y)>bodyH*1.8) newp=true;
+      else if(l.x0-leftMargin>bodyH*0.8) newp=true;
+      else if(prev.page!==l.page && /[.!?:”"']\s*$/.test(para)) newp=true;
+    }
+    if(newp){ flush(); para=l.text; }
+    else if(/-$/.test(para) && /^[a-z]/.test(l.text)) para=para.replace(/-$/,'')+l.text; // de-hyphenate
+    else para+=(para?' ':'')+l.text;
+    prev=l;
+  }
+  flush();
+  return out.join('\n');
+}
+/* Scanned PDFs hold no text layer, only page images. With OCR enabled we
+   rasterise each page and read it with Tesseract. The assembly below turns the
+   recognised lines back into paragraphs; it is pure, so it is unit-tested. */
+function ocrTextToHtml(pageTexts){
+  const paras = []; let cur = '';
+  function flush(){ if(cur.trim()) paras.push('<p>' + escHtmlText(cur.trim()) + '</p>'); cur = ''; }
+  const pages = Array.isArray(pageTexts) ? pageTexts : (pageTexts ? [pageTexts] : []);
+  pages.forEach(function(txt){
+    const lines = String(txt || '').replace(/\r/g, '').split('\n');
+    lines.forEach(function(raw){
+      const line = raw.replace(/\s+/g, ' ').trim();
+      if(!line){ flush(); return; }
+      if(/^\d{1,4}$/.test(line)) return;                      // bare page number
+      if(/^[ivxlcdm]{1,6}$/i.test(line) && line.length <= 4) return;
+      if(/-$/.test(cur) && /^[a-z]/.test(line)){               // word split across lines
+        cur = cur.replace(/-$/, '') + line; return;
+      }
+      cur = cur ? cur + ' ' + line : line;
+    });
+    flush();                                                   // page end ends the paragraph
+  });
+  flush();
+  return promoteHeadings(paras.join('\n'));
+}
+var OCR_LANGS = ['ind','eng','ind+eng','ara','chi_sim','chi_tra','jpn','kor','rus','deu','fra','spa'];
+function ocrLangCode(v){ return OCR_LANGS.indexOf(v) !== -1 ? v : 'eng'; }
+let tesseractPromise=null;
+function loadTesseract(){
+  if(window.Tesseract) return Promise.resolve(window.Tesseract);
+  if(tesseractPromise) return tesseractPromise;
+  tesseractPromise = new Promise(function(res, rej){
+    const sc = document.createElement('script');
+    sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/5.1.0/tesseract.min.js';
+    sc.onload = function(){ res(window.Tesseract); };
+    sc.onerror = function(){ rej(new Error(t('errOcrLoad'))); };
+    document.head.appendChild(sc);
+  });
+  return tesseractPromise;
+}
+async function pdfPagesToOcrText(pdf, lang){
+  const Tesseract = await loadTesseract();
+  const worker = await Tesseract.createWorker(ocrLangCode(lang));
+  const texts = [];
+  try{
+    for(let i = 1; i <= pdf.numPages; i++){
+      setStatus(t('stOcr') + ' ' + i + '/' + pdf.numPages);
+      const page = await pdf.getPage(i);
+      const viewport = page.getViewport({ scale: 2 });          // 2x helps recognition
+      const cv = document.createElement('canvas');
+      cv.width = Math.round(viewport.width); cv.height = Math.round(viewport.height);
+      const ctx = cv.getContext('2d');
+      ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, cv.width, cv.height);
+      await page.render({ canvasContext: ctx, viewport: viewport }).promise;
+      const out = await worker.recognize(cv);
+      texts.push((out && out.data && out.data.text) || '');
+    }
+  } finally { try{ await worker.terminate(); }catch(e){} }
+  return texts;
+}
+let pdfjsPromise=null;
+function loadPdfjs(){
+  if(window.pdfjsLib) return Promise.resolve(window.pdfjsLib);
+  if(pdfjsPromise) return pdfjsPromise;
+  pdfjsPromise=new Promise((res,rej)=>{
+    const base='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/';
+    const s=document.createElement('script'); s.src=base+'pdf.min.js';
+    s.onload=()=>{ try{ window.pdfjsLib.GlobalWorkerOptions.workerSrc=base+'pdf.worker.min.js'; res(window.pdfjsLib); }catch(e){ rej(e); } };
+    s.onerror=()=>rej(new Error('Could not load the PDF helper. Check your connection.'));
+    document.head.appendChild(s);
+  });
+  return pdfjsPromise;
+}
+async function pdfToBook(arrayBuffer){
+  const pdfjsLib=await loadPdfjs();
+  const pdf=await pdfjsLib.getDocument({data:new Uint8Array(arrayBuffer)}).promise;
+  let title='',author='';
+  try{ const meta=await pdf.getMetadata(); if(meta&&meta.info){ title=(meta.info.Title||'').trim(); author=(meta.info.Author||'').trim(); } }catch(e){}
+  const pages=[];
+  for(let i=1;i<=pdf.numPages;i++){
+    const page=await pdf.getPage(i);
+    const tc=await page.getTextContent();
+    pages.push(tc.items.filter(it=>it.str).map(it=>({ str:it.str, x:it.transform[4], y:it.transform[5], w:it.width||0, h:Math.abs(it.transform[3])||it.height||10 })));
+    if(i%5===0 || i===pdf.numPages) setStatus(t('stParsing')+' '+i+'/'+pdf.numPages);
+  }
+  let html=pdfItemsToHtml(pages);
+  if((!html || !html.trim())){
+    const ocrEl = document.getElementById('ocrOn');
+    if(ocrEl && ocrEl.value === 'on'){
+      log('No text layer found - running OCR');
+      const texts = await pdfPagesToOcrText(pdf, document.getElementById('ocrLang').value);
+      html = ocrTextToHtml(texts);
+      if(!html || !html.trim()) throw new Error(t('errOcrEmpty'));
+      log('OCR finished: ' + pdf.numPages + ' page(s)');
+    } else {
+      throw new Error(t('errScanned'));
+    }
+  }
+  html=promoteHeadings(html);
+  return { html, title, author, lang:'', images:[], coverName:'' };
+}
+
+/* ============================ MOBI / AZW3 ============================ */
+/* MOBI files carry their real table of contents as <a filepos=NNNN>Title</a>
+   links whose target is a *byte* offset into the decoded text. Reading those is
+   how desktop converters recover true chapter names; guessing from heading tags
+   fails on books that wrap body prose (or drop caps) in <h*>. */
+function mobiByteToCharMap(bytes, encoding, offsets){
+  // returns { byteOffset: charIndex } for the requested offsets
+  const want = offsets.slice().sort((a,b)=>a-b);
+  const map = {};
+  if(encoding !== 65001){                       // cp1252: 1 byte == 1 char
+    want.forEach(o=>{ map[o]=o; });
+    return map;
+  }
+  let ci = 0, wi = 0;
+  for(let bi = 0; bi < bytes.length && wi < want.length; bi++){
+    while(wi < want.length && want[wi] <= bi){ map[want[wi]] = ci; wi++; }
+    const b = bytes[bi];
+    if(b < 0x80 || b >= 0xC0){                  // start of a character
+      ci += (b >= 0xF0) ? 2 : 1;                // 4-byte sequences are 2 JS chars
+    }
+  }
+  while(wi < want.length){ map[want[wi]] = ci; wi++; }
+  return map;
+}
+/* The authoritative MOBI table of contents is a binary index (INDX records)
+   rather than HTML links — this is what KindleUnpack and Calibre read. Layout:
+   a header record holding an INDX header + TAGX tag table, then entry records
+   (each with an IDXT offset table), then CNCX records holding the label text. */
+function mobiReadVwi(data, off){                 // variable-width integer
+  let value = 0, consumed = 0;
+  while(off + consumed < data.length){
+    const v = data[off + consumed]; consumed++;
+    value = (value << 7) | (v & 0x7f);
+    if(v & 0x80) break;
+  }
+  return { value: value, consumed: consumed };
+}
+function mobiCountBits(m){ let n = 0; while(m){ n += m & 1; m >>= 1; } return n; }
+function mobiParseIndxHeader(rec){
+  if(rec.length < 0x30 || String.fromCharCode(rec[0],rec[1],rec[2],rec[3]) !== 'INDX') return null;
+  const dv = new DataView(rec.buffer, rec.byteOffset, rec.byteLength);
+  return {
+    len:   dv.getUint32(0x04, false),
+    start: dv.getUint32(0x14, false),      // IDXT offset
+    count: dv.getUint32(0x18, false),
+    code:  dv.getUint32(0x1c, false),
+    total: dv.getUint32(0x24, false)
+  };
+}
+function mobiParseTagx(rec, hdrLen){
+  if(rec.length < hdrLen + 12) return null;
+  if(String.fromCharCode(rec[hdrLen],rec[hdrLen+1],rec[hdrLen+2],rec[hdrLen+3]) !== 'TAGX') return null;
+  const dv = new DataView(rec.buffer, rec.byteOffset, rec.byteLength);
+  const len = dv.getUint32(hdrLen + 4, false);
+  const controlByteCount = dv.getUint32(hdrLen + 8, false);
+  const tags = [];
+  for(let o = hdrLen + 12; o < hdrLen + len; o += 4){
+    tags.push([rec[o], rec[o+1], rec[o+2], rec[o+3]]);   // tag, valuesPerEntry, mask, endFlag
+  }
+  return { controlByteCount: controlByteCount, tags: tags };
+}
+function mobiEntryTagMap(tagx, data, startPos, endPos){
+  const out = {};
+  let controlByteIndex = 0, dataStart = startPos + tagx.controlByteCount;
+  const pending = [];
+  for(let i = 0; i < tagx.tags.length; i++){
+    const tag = tagx.tags[i][0], valuesPerEntry = tagx.tags[i][1];
+    let mask = tagx.tags[i][2];
+    const endFlag = tagx.tags[i][3];
+    if(endFlag === 0x01){ controlByteIndex++; continue; }
+    let value = data[startPos + controlByteIndex] & mask;
+    if(!value) continue;
+    if(value === mask){
+      if(mobiCountBits(mask) > 1){
+        const r = mobiReadVwi(data, dataStart); dataStart += r.consumed;
+        pending.push([tag, null, r.value, valuesPerEntry]);
+      } else {
+        pending.push([tag, 1, null, valuesPerEntry]);
+      }
+    } else {
+      while((mask & 0x01) === 0){ mask >>= 1; value >>= 1; }
+      pending.push([tag, value, null, valuesPerEntry]);
+    }
+  }
+  for(let i = 0; i < pending.length; i++){
+    const tag = pending[i][0], valueCount = pending[i][1], valueBytes = pending[i][2], vpe = pending[i][3];
+    const values = [];
+    if(valueCount !== null){
+      for(let k = 0; k < valueCount * vpe && dataStart < endPos; k++){
+        const r = mobiReadVwi(data, dataStart); dataStart += r.consumed; values.push(r.value);
+      }
+    } else {
+      let consumed = 0;
+      while(consumed < valueBytes && dataStart < endPos){
+        const r = mobiReadVwi(data, dataStart); dataStart += r.consumed; consumed += r.consumed; values.push(r.value);
+      }
+    }
+    out[tag] = values;
+  }
+  return out;
+}
+function mobiReadCncx(recFn, from, to){
+  const cncx = {}; let base = 0;
+  for(let i = from; i < to; i++){
+    const rec = recFn(i); let pos = 0;
+    while(pos < rec.length){
+      const index = pos + base;
+      const r = mobiReadVwi(rec, pos); pos += r.consumed;
+      if(r.value <= 0 || pos + r.value > rec.length) break;
+      cncx[index] = mobiDecode(rec.subarray(pos, pos + r.value), 65001);
+      pos += r.value;
+    }
+    base += 0x10000;
+  }
+  return cncx;
+}
+function mobiParseNcxIndex(recFn, numRecords, ncxidx){
+  const head = recFn(ncxidx);
+  const hdr = mobiParseIndxHeader(head);
+  if(!hdr || !hdr.count) return [];
+  const tagx = mobiParseTagx(head, hdr.len);
+  if(!tagx || !tagx.tags.length) return [];
+  const entryRecs = hdr.count;                       // number of entry records
+  const cncx = mobiReadCncx(recFn, ncxidx + 1 + entryRecs, Math.min(numRecords, ncxidx + 1 + entryRecs + 4));
+  const entries = [];
+  for(let r = 0; r < entryRecs; r++){
+    const idx = ncxidx + 1 + r;
+    if(idx >= numRecords) break;
+    const rec = recFn(idx);
+    const rh = mobiParseIndxHeader(rec);
+    if(!rh || !rh.count) continue;
+    const dv = new DataView(rec.buffer, rec.byteOffset, rec.byteLength);
+    const idxt = rh.start;
+    if(String.fromCharCode(rec[idxt],rec[idxt+1],rec[idxt+2],rec[idxt+3]) !== 'IDXT') continue;
+    const offsets = [];
+    for(let k = 0; k < rh.count; k++) offsets.push(dv.getUint16(idxt + 4 + k * 2, false));
+    for(let k = 0; k < offsets.length; k++){
+      const startPos = offsets[k];
+      const endPos = (k + 1 < offsets.length) ? offsets[k + 1] : idxt;
+      if(startPos >= rec.length) continue;
+      const textLen = rec[startPos];
+      const tagMap = mobiEntryTagMap(tagx, rec, startPos + 1 + textLen, endPos);
+      const pos = tagMap[1] && tagMap[1][0];
+      const labelOff = tagMap[3] && tagMap[3][0];
+      const title = (labelOff != null && cncx[labelOff] != null) ? String(cncx[labelOff]).trim() : '';
+      if(title && pos > 0 && title.length <= 120) entries.push({ pos: pos, title: title });
+    }
+  }
+  entries.sort(function(a, b){ return a.pos - b.pos; });
+  return entries;
+}
+function mobiExtractToc(htmlText){
+  const re = /<a\b[^>]*\bfilepos\s*=\s*["']?(\d+)["']?[^>]*>([\s\S]*?)<\/a>/gi;
+  const out = []; let m;
+  while((m = re.exec(htmlText)) !== null){
+    const pos = parseInt(m[1], 10);
+    const title = m[2].replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
+    if(title && pos > 0 && title.length <= 120) out.push({ pos, title });
+  }
+  return out;
+}
+/* Most Calibre-built MOBI/AZW3 files use ordinary HTML anchors for their
+   contents page: <a href="#ch3">Title</a> pointing at <a name="ch3"> or id="ch3".
+   Inject a marker heading in front of each target so the split follows them. */
+function mobiInjectAnchorToc(doc){
+  const links = Array.from(doc.querySelectorAll('a[href^="#"]'));
+  if(links.length < 2) return 0;
+  const titles = {}, order = [];
+  links.forEach(a=>{
+    const id = (a.getAttribute('href') || '').slice(1);
+    const title = (a.textContent || '').replace(/\s+/g, ' ').trim();
+    if(!id || !title || title.length > 120 || titles[id] != null) return;
+    titles[id] = title; order.push(id);
+  });
+  if(order.length < 2) return 0;
+  const named = {};
+  Array.from(doc.getElementsByTagName('a')).forEach(a=>{
+    const n = a.getAttribute('name'); if(n && named[n] == null) named[n] = a;
+  });
+  let count = 0;
+  order.forEach(id=>{
+    let target = null;
+    try{ target = doc.getElementById(id); }catch(e){}
+    if(!target) target = named[id] || null;
+    if(!target || !target.parentNode) return;
+    if(target.closest && target.closest('a[href^="#"]')) return;   // skip self-links
+    const h = doc.createElement('h1');
+    h.setAttribute('data-cp-toc', '1');
+    h.textContent = titles[id];
+    target.parentNode.insertBefore(h, target);
+    count++;
+  });
+  return count;
+}
+function mobiInsertTocMarkers(htmlText, entries, byteMap){
+  // de-duplicate by target, keep first title, then insert from the end so
+  // earlier character indices stay valid
+  const seen = {}, items = [];
+  entries.forEach(e=>{
+    const ci = byteMap[e.pos];
+    if(ci == null || seen[ci] != null) return;
+    seen[ci] = 1; items.push({ ci, title: e.title });
+  });
+  items.sort((a,b)=>b.ci - a.ci);
+  let out = htmlText;
+  let inserted = 0;
+  items.forEach(it=>{
+    let at = it.ci;
+    if(at < 0 || at > out.length) return;
+    const nextTag = out.indexOf('<', at);      // never split a tag in half
+    at = (nextTag === -1) ? out.length : nextTag;
+    out = out.slice(0, at) + '<h1 data-cp-toc="1">' + escHtmlText(it.title) + '</h1>' + out.slice(at);
+    inserted++;
+  });
+  return { html: out, count: inserted };
+}
+/* Parse the Palm database, decompress PalmDOC text, read MOBI/EXTH metadata,
+   resolve <img recindex> to embedded image records, and clean to our HTML.
+   Non-DRM only. HUFF/CDIC-compressed books are not supported. */
+function palmDocDecompress(bytes){
+  const out=[]; let i=0; const n=bytes.length;
+  while(i<n){
+    let c=bytes[i++];
+    if(c===0) out.push(0);
+    else if(c<=8){ for(let j=0;j<c && i<n;j++) out.push(bytes[i++]); }
+    else if(c<=0x7f) out.push(c);
+    else if(c>=0xc0){ out.push(32); out.push(c ^ 0x80); }
+    else { c=(c<<8)|bytes[i++]; const dist=(c>>3)&0x07ff, len=(c&7)+3; let sp=out.length-dist; for(let j=0;j<len;j++) out.push(out[sp++]); }
+  }
+  return Uint8Array.from(out);
+}
+function mobiTrailingSize(data, flags){
+  function entrySize(d, size){ let bit=0,res=0; while(true){ const v=d[size-1]; res|=(v&0x7f)<<bit; bit+=7; size--; if((v&0x80)||bit>=28||size===0) return res; } }
+  let num=0, size=data.length, tf=flags>>1;
+  while(tf){ if(tf&1) num+=entrySize(data, size-num); tf>>=1; }
+  if(flags&1) num+=(data[size-num-1]&0x3)+1;
+  return num;
+}
+function mobiDecode(u8, encoding){
+  try{ return new TextDecoder(encoding===65001?'utf-8':'windows-1252').decode(u8); }
+  catch(e){ let s=''; for(let i=0;i<u8.length;i++) s+=(encoding===65001?String.fromCharCode(u8[i]):cp1252(u8[i])); return s; }
+}
+function mobiImageMime(b){ if(!b||b.length<4) return null;
+  if(b[0]===0xff&&b[1]===0xd8) return 'image/jpeg';
+  if(b[0]===0x89&&b[1]===0x50&&b[2]===0x4e&&b[3]===0x47) return 'image/png';
+  if(b[0]===0x47&&b[1]===0x49&&b[2]===0x46) return 'image/gif';
+  if(b[0]===0x42&&b[1]===0x4d) return 'image/bmp';
+  return null;
+}
+function mobiToBook(arrayBuffer){
+  const u8=new Uint8Array(arrayBuffer);
+  if(u8.length<80) throw new Error(t('errMobi'));
+  const dv=new DataView(u8.buffer, u8.byteOffset, u8.byteLength);
+  const numRecords=dv.getUint16(76,false);
+  if(!numRecords) throw new Error(t('errMobi'));
+  const off=[]; for(let i=0;i<numRecords;i++) off.push(dv.getUint32(78+i*8,false)); off.push(u8.length);
+  const rec=(i)=> u8.subarray(off[i], off[i+1]);
+
+  const r0=rec(0); const r0dv=new DataView(r0.buffer, r0.byteOffset, r0.byteLength);
+  const compression=r0dv.getUint16(0,false);
+  const textLength=r0dv.getUint32(4,false);
+  const textRecordCount=r0dv.getUint16(8,false);
+  let encoding=1252, fullNameOffset=0, fullNameLength=0, firstImageIndex=0xffffffff, exthFlags=0, mobiHeaderLength=0, extraDataFlags=0;
+  const hasMobi=r0.length>=132 && String.fromCharCode(r0[16],r0[17],r0[18],r0[19])==='MOBI';
+  if(hasMobi){
+    mobiHeaderLength=r0dv.getUint32(20,false);
+    encoding=r0dv.getUint32(28,false);
+    fullNameOffset=r0dv.getUint32(0x54,false);
+    fullNameLength=r0dv.getUint32(0x58,false);
+    firstImageIndex=r0dv.getUint32(0x6c,false);
+    exthFlags=r0dv.getUint32(0x80,false);
+    if(mobiHeaderLength>=0xf4 && r0.length>=0xf4) extraDataFlags=r0dv.getUint16(0xf2,false);
+  }
+  if(compression===17480) throw new Error(t('errHuff'));
+
+  let author='',pubTitle='',lang='',coverIndex=-1;
+  if(hasMobi && (exthFlags&0x40)){
+    const es=16+mobiHeaderLength;
+    if(es+12<=r0.length && String.fromCharCode(r0[es],r0[es+1],r0[es+2],r0[es+3])==='EXTH'){
+      const cnt=r0dv.getUint32(es+8,false); let p=es+12;
+      for(let k=0;k<cnt && p+8<=r0.length;k++){
+        const type=r0dv.getUint32(p,false), len=r0dv.getUint32(p+4,false);
+        if(len<8) break;
+        const data=r0.subarray(p+8, p+len);
+        if(type===100) author=mobiDecode(data,encoding);
+        else if(type===503) pubTitle=mobiDecode(data,encoding);
+        else if(type===524) lang=mobiDecode(data,encoding);
+        else if(type===201 && data.length===4) coverIndex=((data[0]<<24)|(data[1]<<16)|(data[2]<<8)|data[3])>>>0;
+        p+=len;
+      }
+    }
+  }
+  let title=pubTitle;
+  if(!title && fullNameLength>0 && fullNameOffset+fullNameLength<=r0.length)
+    title=mobiDecode(r0.subarray(fullNameOffset, fullNameOffset+fullNameLength), encoding);
+
+  const textBytes=[];
+  for(let i=1;i<=textRecordCount && i<numRecords;i++){
+    let rb=rec(i);
+    const strip=mobiTrailingSize(rb, extraDataFlags);
+    if(strip>0 && strip<rb.length) rb=rb.subarray(0, rb.length-strip);
+    const dec = compression===2 ? palmDocDecompress(rb) : rb;
+    for(let j=0;j<dec.length;j++) textBytes.push(dec[j]);
+  }
+  let all=Uint8Array.from(textBytes);
+  if(textLength && textLength<all.length) all=all.subarray(0,textLength);
+  let htmlText=mobiDecode(all, encoding);
+  // recover the book's own chapter list, if it has one
+  let tocCount=0;
+  try{
+    let toc=mobiExtractToc(htmlText);
+    if(toc.length<2 && hasMobi && mobiHeaderLength>=0xf8 && r0.length>=0xf8){
+      const ncxidx=r0dv.getUint32(0xf4,false);       // binary NCX index (KindleUnpack layout)
+      if(ncxidx!==0xffffffff && ncxidx>0 && ncxidx<numRecords){
+        try{ const ncx=mobiParseNcxIndex(rec, numRecords, ncxidx); if(ncx.length>=2) toc=ncx; }catch(e){}
+      }
+    }
+    if(toc.length>=2){
+      const map=mobiByteToCharMap(all, encoding, toc.map(e=>e.pos));
+      const res=mobiInsertTocMarkers(htmlText, toc, map);
+      htmlText=res.html; tocCount=res.count;
+    }
+  }catch(e){ /* fall back to heading detection */ }
+
+  const imageRecords=[];
+  if(firstImageIndex!==0xffffffff && firstImageIndex>0 && firstImageIndex<numRecords){
+    for(let i=firstImageIndex;i<numRecords;i++){ const b=rec(i); const m=mobiImageMime(b); imageRecords.push(m?{bytes:b,mime:m}:null); }
+  }
+  const images=[]; const used={};
+  function addImage(idx0){ if(idx0<0||idx0>=imageRecords.length||!imageRecords[idx0]) return '';
+    if(!used[idx0]){ const nm='img_'+idx0+'.'+extFromMime(imageRecords[idx0].mime); images.push({name:nm,mime:imageRecords[idx0].mime,b64:u8ToB64(imageRecords[idx0].bytes)}); used[idx0]=nm; }
+    return '<img src="images/'+used[idx0]+'" alt=""/>';
+  }
+  const doc=new DOMParser().parseFromString(htmlText,'text/html');
+  const body=doc.body||doc.documentElement;
+  body.querySelectorAll('script,style,link').forEach(n=>n.remove());
+  if(!tocCount){                       // no filepos contents: try HTML anchors
+    try{ tocCount = mobiInjectAnchorToc(doc); }catch(e){ tocCount = 0; }
+  }
+  const allow=new Set(['P','H1','H2','H3','H4','H5','H6','BLOCKQUOTE','B','STRONG','I','EM','U','S','SUP','SUB','A','UL','OL','LI','BR','HR','DIV','SPAN','IMG','TABLE','TR','TD','TH','CENTER']);
+  function conv(node){
+    let s='';
+    node.childNodes.forEach(ch=>{
+      if(ch.nodeType===3){ s+=escHtmlText(ch.nodeValue); return; }
+      if(ch.nodeType!==1) return;
+      const tag=ch.tagName;
+      // MOBI chapter separator. <mbp:pagebreak/> is namespaced, so the HTML parser
+      // ignores its self-closing slash and nests the rest of the book inside it —
+      // emit the marker AND keep converting the children, or the text is lost.
+      if(/PAGEBREAK/.test(tag)){ s+='<hr data-cp-break="1"/>'+conv(ch); return; }
+      if(tag==='IMG'){ const ri=ch.getAttribute('recindex'); if(ri) s+=addImage(parseInt(ri,10)-1); else { const src=ch.getAttribute('src'); if(src&&/^https?:/i.test(src)) s+='<img src="'+escAttr(src)+'" alt=""/>'; } return; }
+      if(!allow.has(tag)){ s+=conv(ch); return; }
+      const t2=tag.toLowerCase();
+      if(t2==='br'){ s+='<br/>'; return; }
+      if(t2==='hr'){ s+= (ch.getAttribute && ch.getAttribute('data-cp-break')) ? '<hr data-cp-break="1"/>' : '<hr/>'; return; }
+      if(t2==='center'){ const inner=conv(ch); if(inner.trim()) s+='<p>'+inner+'</p>'; return; }
+      if(t2==='a'){ const href=ch.getAttribute('href')||''; s+=/^https?:/i.test(href)?'<a href="'+escAttr(href)+'">'+conv(ch)+'</a>':conv(ch); return; }
+      if(t2==='div'||t2==='span'){ s+=conv(ch); return; } // unwrap generic containers
+      const inner=conv(ch);
+      if(!inner.replace(/<[^>]+>/g,'').trim() && !/<img/.test(inner) && t2!=='hr') return;
+      if(ch.getAttribute && ch.getAttribute('data-cp-toc')){ s+='<'+t2+' data-cp-toc="1">'+inner+'</'+t2+'>'; return; }
+      s+='<'+t2+'>'+inner+'</'+t2+'>';
+    });
+    return s;
+  }
+  let html=conv(body);
+  let coverName='';
+  if(coverIndex>=0 && coverIndex<imageRecords.length && imageRecords[coverIndex]){
+    if(used[coverIndex]) coverName=used[coverIndex];
+    else { coverName='cover.'+extFromMime(imageRecords[coverIndex].mime); images.unshift({name:coverName,mime:imageRecords[coverIndex].mime,b64:u8ToB64(imageRecords[coverIndex].bytes)}); }
+  }
+  // Only guess headings from text when the book gives us nothing better; if it
+  // has page-break separators, those are more reliable and let the chapter
+  // marker and its name stay together as one title.
+  if(!/data-cp-break/.test(html) && !/data-cp-toc/.test(html)) html=promoteHeadings(html);
+  if(!html.trim()) throw new Error(t('errMobi'));
+  return { html, title:(title||'').trim(), author:(author||'').trim(), lang:(lang||'').split('-')[0], images, coverName, tocCount };
+}
+
+/* ============================ CBZ (comic archive) ============================ */
+/* A CBZ is a ZIP of page images. List them, sort in natural page order, and
+   emit one image per page — the e-ink pipeline greyscales/fits each page.
+   CBR (RAR) is not supported directly; convert it to CBZ first. */
+async function cbzToBook(arrayBuffer){
+  const zip=await JSZip.loadAsync(arrayBuffer);
+  const names=Object.keys(zip.files).filter(n=>!zip.files[n].dir
+    && /\.(jpe?g|png|gif|bmp|webp)$/i.test(n)
+    && !/(^|\/)__MACOSX\//.test(n) && !/(^|\/)\._/.test(n));
+  names.sort((a,b)=>a.localeCompare(b, undefined, {numeric:true, sensitivity:'base'}));
+  if(!names.length) throw new Error(t('errCbz'));
+  const images=[], pages=[], pageDirs=[];
+  for(let i=0;i<names.length;i++){
+    const u8=await zip.file(names[i]).async('uint8array');
+    const nm='page_'+String(i).padStart(4,'0')+'.'+(extOf(names[i])||'jpg');
+    images.push({ name:nm, mime:mimeFromName(names[i]), b64:u8ToB64(u8) });
+    pages.push(nm);
+    const slash=names[i].lastIndexOf('/');
+    pageDirs.push(slash>0 ? names[i].slice(0,slash) : '');
+  }
+  return { comic:true, pages, pageDirs, images, html:'', title:'', author:'', lang:'', coverName:'' };
+}
+
+/* ============================ DOCX (via mammoth, optional) ============================ */
+let mammothPromise=null;
+function loadMammoth(){
+  if(window.mammoth) return Promise.resolve(window.mammoth);
+  if(mammothPromise) return mammothPromise;
+  mammothPromise = new Promise((res,rej)=>{
+    const s=document.createElement('script');
+    s.src='https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.9.0/mammoth.browser.min.js';
+    s.onload=()=>res(window.mammoth);
+    s.onerror=()=>rej(new Error('Could not load the DOCX helper. Check your connection, or convert the DOCX to HTML first.'));
+    document.head.appendChild(s);
+  });
+  return mammothPromise;
+}
+async function docxToBody(arrayBuffer){
+  const m = await loadMammoth();
+  const result = await m.convertToHtml({arrayBuffer}, {styleMap:[
+    "p[style-name='Title'] => h1:fresh",
+    "p[style-name='Heading 1'] => h1:fresh",
+    "p[style-name='Heading 2'] => h2:fresh",
+    "p[style-name='Heading 3'] => h3:fresh"
+  ]});
+  return { html: cleanHtmlFragment(result.value), title:'', author:'', lang:'' };
+}
+
+/* ============================ chapter splitting ============================ */
+/* A heading element in a real book is short and title-like. Badly built EPUB/MOBI
+   files often wrap body prose (or a drop-cap letter plus the paragraph that
+   follows it) in a heading tag, which would otherwise become the chapter title.
+   Reject anything that reads like running text and fall back to a numbered label. */
+function looksLikeProse(s){
+  if(!s) return true;
+  if(/^[a-z]/.test(s)) return true;                        // starts mid-sentence
+  if(s.length > 70) return true;                           // far longer than a title
+  const parts = s.match(/\S+/g) || [];
+  const words = parts.length;
+  if(words > 12) return true;
+  // a lone capital first "word" is a drop cap glued to body text; "A" and "I"
+  // are the only single-letter words that legitimately open an English title
+  if(words > 1 && /^[A-Z]$/.test(parts[0]) && parts[0] !== 'A' && parts[0] !== 'I') return true;
+  // Running text is mostly lower-case words; real titles are capitalised or all
+  // caps. This catches drop caps fused to the sentence ("Ito get through his
+  // exams..."), which no length or punctuation rule can see. Chapter markers
+  // ("Bagian dua puluh satu") are exempt because they are legitimately lower-case.
+  if(words >= 5 && !(typeof CHAPTER_MARKER_RE !== 'undefined' && /^(chapter|chap|part|book|section|bab|bagian|prolog|epilog|jilid)\b/i.test(s))){
+    const lower = parts.filter(function(x){ return /^[a-z]/.test(x); }).length;
+    if(lower / words > 0.55) return true;
+  }
+  // ignore full stops that belong to abbreviations/initials (Mr. Hyde, J.K. Rowling)
+  const probe = s.replace(/\b(Mr|Mrs|Ms|Dr|St|Jr|Sr|Prof|Rev|Hon|Capt|Sgt|vs|etc|No|Vol|Ch|Pt)\./gi, '$1')
+                 .replace(/\b([IVXLCDM]+)\./g, '$1')
+                 .replace(/\b([A-Za-z])\./g, '$1');
+  if(/[.!?][\u201d"']?\s+[A-Za-z]/.test(probe)) return true;   // more than one sentence
+  if(/[.!?]$/.test(probe) && words > 6) return true;       // a complete sentence
+  return false;
+}
+/* Lines that announce a chapter ("CHAPTER ONE", "Bab 3", "Prologue"). Books
+   often follow them with the real chapter name on the next line. */
+var CHAPTER_MARKER_RE = /^(chapter|chap\.?|part|book|section|bab|bagian|prolog(?:ue)?|epilog(?:ue)?|interlude|foreword|preface|introduction|pendahuluan|kata pengantar)\b[\s\u2014\u2013\-:.]*(\d{1,3}|[ivxlcdm]{1,7}|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|satu|dua|tiga|empat|lima|enam|tujuh|delapan|sembilan|sepuluh)?\s*$/i;
+function titleFromBlocks(wrap){
+  const blocks = Array.from(wrap.children).slice(0, 5);
+  let first = null, firstIdx = -1;
+  for(let i = 0; i < blocks.length; i++){
+    const txt = (blocks[i].textContent || '').replace(/\s+/g, ' ').trim();
+    if(!txt) continue;
+    first = txt; firstIdx = i; break;
+  }
+  if(!first || first.length > 48 || !CHAPTER_MARKER_RE.test(first)) return '';
+  for(let k = firstIdx + 1; k < blocks.length; k++){
+    const nt = (blocks[k].textContent || '').replace(/\s+/g, ' ').trim();
+    if(!nt) continue;
+    if(nt.length <= 60 && !looksLikeProse(nt)) return first + ': ' + nt;  // "CHAPTER ONE: THE BOY WHO LIVED"
+    break;
+  }
+  return first;
+}
+function cleanChapterTitle(raw, idx){
+  let s = (raw || '').replace(/\s+/g, ' ').trim();
+  s = s.replace(/^[\s\u2022\-\u2013\u2014*#]+/, '').replace(/[\s\-\u2013\u2014*#]+$/, '').trim();
+  const label = (typeof t === 'function') ? t('chapterLabel') : 'Chapter';
+  if(!s || looksLikeProse(s)) return label + ' ' + (idx + 1);
+  return s;
+}
+function splitChapters(bodyHtml, mode){
+  const doc = new DOMParser().parseFromString('<!DOCTYPE html><body>'+bodyHtml+'</body>','text/html');
+  const nodes = Array.from(doc.body.childNodes);
+  // If the source carried a real table of contents, trust it over heading tags.
+  const useToc = (mode==='toc') || (mode!=='single' && !!doc.body.querySelector('[data-cp-toc]'));
+  // MOBI page breaks are a reliable last resort when headings are unusable
+  const breaks = doc.body.querySelectorAll('hr[data-cp-break]').length;
+  let useBreaks = false;
+  let levels;
+  if(mode==='single') levels=[];
+  else if(mode==='h1') levels=['H1'];
+  else if(mode==='h1h2') levels=['H1','H2'];
+  else { // auto: prefer H1 if there are >=2, else H2, else page breaks
+    const h1=doc.body.querySelectorAll('h1').length;
+    const h2=doc.body.querySelectorAll('h2').length;
+    levels = h1>=2?['H1'] : (h1===0 && h2>=2?['H2'] : (h1>=1?['H1']:[]));
+    if(!useToc && levels.length===0 && breaks>=2) useBreaks = true;
+  }
+  const chapters=[];
+  let cur=null;
+  const startChapter=(title, level)=>{ cur={title:title||'', level:level||1, nodes:[]}; chapters.push(cur); };
+  for(const n of nodes){
+    const isPageBreak = useBreaks && n.nodeType===1 && n.tagName==='HR' && n.hasAttribute && n.hasAttribute('data-cp-break');
+    if(isPageBreak){ startChapter('', 1); continue; }   // separator itself is not content
+    const isHeadBreak = n.nodeType===1 && (useToc
+      ? (n.hasAttribute && n.hasAttribute('data-cp-toc'))
+      : (!useBreaks && levels.includes(n.tagName)));
+    const isWs = n.nodeType===3 && !/\S/.test(n.nodeValue);
+    if(isHeadBreak){
+      const lvl = /^H([1-6])$/.test(n.tagName) ? parseInt(n.tagName.slice(1),10) : 1;
+      startChapter(n.textContent.trim(), useToc ? 1 : lvl);
+      cur.nodes.push(n);
+    } else {
+      if(!cur){ if(isWs) continue; startChapter('', 1); }  // ignore whitespace before first content
+      cur.nodes.push(n);
+    }
+  }
+  if(chapters.length===0) startChapter('', 1);
+  // drop chapters with no visible content (empty text and no media)
+  for(let k=chapters.length-1;k>=0;k--){
+    const tmp=doc.createElement('div'); chapters[k].nodes.forEach(n=>tmp.appendChild(n.cloneNode(true)));
+    const hasText=tmp.textContent.trim().length>0;
+    const hasMedia=!!tmp.querySelector('img,svg,image');
+    if(!hasText && !hasMedia && chapters.length>1) chapters.splice(k,1);
+  }
+  // materialize html + fallback titles
+  return chapters.map((c,idx)=>{
+    const wrap=doc.createElement('div');
+    c.nodes.forEach(n=>wrap.appendChild(n.cloneNode(true)));
+    let title=c.title;
+    if(!title) title = titleFromBlocks(wrap);
+    if(!title){
+      const firstHead=wrap.querySelector('h1,h2,h3,h4,h5,h6');
+      if(firstHead) title=firstHead.textContent.trim();
+    }
+    if(!title){
+      const firstP=wrap.querySelector('p');
+      if(firstP) title=firstP.textContent.trim();
+    }
+    title = cleanChapterTitle(title, idx);
+    return { title, level: c.level || 1, html: wrap.innerHTML };
+  });
+}
+
+/* Right-to-left scripts. The reader honours both the HTML dir attribute and the
+   CSS direction property (dir wins), so mark the document itself rather than
+   relying on styling alone; other firmware and desktop readers follow the same
+   rule, and the spine gets page-progression-direction for page-turn order. */
+var RTL_LANGS = ['ar','he','fa','ur','yi','ps','sd','ug','dv','ku','arc','ckb'];
+function isRtlLang(code){
+  const base = String(code || '').toLowerCase().split(/[-_]/)[0];
+  return RTL_LANGS.indexOf(base) !== -1;
+}
+
+/* ============================ XHTML serialization ============================ */
+/* The CrossPoint parser only knows p/div/br/blockquote/li/h1-6/hr/table and the
+   inline tags — it does NOT handle <pre>/<code>, and it ignores white-space CSS.
+   So a fenced code block would collapse onto one line. Convert each <pre> into a
+   real block whose newlines become <br/> (a tag the engine does honour). This is
+   harmless on full EPUB engines too — it only drops monospace, which the device
+   cannot render anyway. Lists: only <li> is honoured, so ordered lists show as
+   bullets; we leave that cosmetic difference alone. */
+function normalizeForEngine(html){
+  return String(html || '').replace(/<pre>([\s\S]*?)<\/pre>/gi, function(m, inner){
+    inner = inner.replace(/<\/?code[^>]*>/gi, '');   // <code> is unknown to the engine
+    inner = inner.replace(/\r?\n/g, '<br/>');         // keep line breaks
+    return '<div>' + inner + '</div>';
+  });
+}
+
+function toXhtml(title, innerHtml, rtl){
+  const src = '<?xml version="1.0" encoding="utf-8"?>\n'+
+    '<!DOCTYPE html>\n'+
+    '<html xmlns="http://www.w3.org/1999/xhtml"><head>'+
+    '<meta charset="utf-8"/><title>'+escXml(title||'')+'</title>'+
+    '<link rel="stylesheet" type="text/css" href="style.css"/></head><body>'+innerHtml+'</body></html>';
+  // normalize to well-formed XHTML: parse as HTML then re-serialize into XHTML namespace
+  const htmlDoc = new DOMParser().parseFromString(src,'text/html');
+  const xdoc = document.implementation.createDocument('http://www.w3.org/1999/xhtml','html',null);
+  if(rtl) xdoc.documentElement.setAttribute('dir','rtl');
+  // head
+  const head = xdoc.createElementNS('http://www.w3.org/1999/xhtml','head');
+  const meta = xdoc.createElementNS('http://www.w3.org/1999/xhtml','meta'); meta.setAttribute('charset','utf-8'); head.appendChild(meta);
+  const t = xdoc.createElementNS('http://www.w3.org/1999/xhtml','title'); t.textContent=title||''; head.appendChild(t);
+  const link = xdoc.createElementNS('http://www.w3.org/1999/xhtml','link'); link.setAttribute('rel','stylesheet'); link.setAttribute('type','text/css'); link.setAttribute('href','style.css'); head.appendChild(link);
+  xdoc.documentElement.appendChild(head);
+  // body
+  const body = xdoc.createElementNS('http://www.w3.org/1999/xhtml','body');
+  if(rtl) body.setAttribute('dir','rtl');
+  Array.from(htmlDoc.body.childNodes).forEach(n=>{ body.appendChild(xdoc.importNode(n,true)); });
+  xdoc.documentElement.appendChild(body);
+  let out = new XMLSerializer().serializeToString(xdoc);
+  if(!/^<\?xml/.test(out)) out='<?xml version="1.0" encoding="utf-8"?>\n'+out;
+  return out;
+}
+
+/* ============================ CSS ============================ */
+/* Base rules use only what the CrossPoint engine honours (text-indent, margins,
+   font-style), so the reader's own font/size/spacing settings stay in charge.
+   The compatibility rules below use properties CrossPoint does not parse at all
+   (max-width, white-space, font-size, line-height) — they are ignored there but
+   keep the book sane on the stock Xteink OS and other firmware, whose engines
+   do not always scale images or size headings on their own. */
+const BOOK_CSS_BASE = `p{margin:0;text-indent:1.2em}
+h1,h2,h3,h4,h5,h6{margin:0.8em 0 0.4em}
+blockquote{margin:0.8em 1.2em;font-style:italic}
+ul,ol{margin:0.5em 0 0.5em 1.4em}
+hr{margin:1em 0}
+img{max-width:100%;height:auto}
+pre{white-space:pre-wrap}`;
+const BOOK_CSS_UNIVERSAL = `
+h1{font-size:1.6em;line-height:1.25}
+h2{font-size:1.35em;line-height:1.25}
+h3{font-size:1.15em;line-height:1.3}`;
+function bookCss(profile){ return profile === 'crosspoint' ? BOOK_CSS_BASE : (BOOK_CSS_BASE + BOOK_CSS_UNIVERSAL); }
+
+/* ============================ EPUB builder ============================ */
+function xmlOK(str, mime){ try{ return !new DOMParser().parseFromString(str, mime||'application/xml').querySelector('parsererror'); }catch(e){ return false; } }
+async function buildEpub(book, onWarn){
+  const warn=onWarn||function(){};
+  const zip = new JSZip();
+  zip.file('mimetype','application/epub+zip',{compression:'STORE'});
+  zip.file('META-INF/container.xml',
+    '<?xml version="1.0" encoding="utf-8"?>\n'+
+    '<container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container">'+
+    '<rootfiles><rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/></rootfiles></container>',
+    {compression:'DEFLATE'});
+
+  const oebps = zip.folder('OEBPS');
+  oebps.file('style.css', bookCss(book.cssProfile || 'universal'), {compression:'DEFLATE'});
+
+  const rtl = isRtlLang(book.language);
+  const id = 'urn:uuid:'+uuid();
+  const now = new Date().toISOString().replace(/\.\d+Z$/,'Z');
+
+  // images
+  const imageManifest=[];
+  if(book.images && book.images.length){
+    const imgFolder = oebps.folder('images');
+    book.images.forEach((im,i)=>{
+      imgFolder.file(im.name, b64ToU8(im.b64), {compression:'STORE'});
+      imageManifest.push({ id:'img'+i, href:'images/'+im.name, mime:im.mime, isCover: im.name===book.coverName });
+    });
+  }
+
+  // cover page
+  let coverItem=null, coverPageItem=null;
+  if(book.coverName){
+    const coverXhtml = toXhtml(book.title, '<div style="text-align:center;margin:0;padding:0"><img src="images/'+escAttr(book.coverName)+'" alt="'+escAttr(book.title)+'"/></div>', rtl);
+    oebps.file('cover.xhtml', coverXhtml, {compression:'DEFLATE'});
+    coverPageItem = { id:'coverpage', href:'cover.xhtml' };
+    coverItem = imageManifest.find(x=>x.isCover) || null;
+  }
+
+  // chapters
+  const chapItems=[];
+  book.chapters.forEach((c,i)=>{
+    const fname='chap'+String(i+1).padStart(3,'0')+'.xhtml';
+    const inner = (c.html && c.html.trim()) ? normalizeForEngine(c.html) : '<p>\u00a0</p>';
+    const cx=toXhtml(c.title, inner, rtl);
+    if(!xmlOK(cx,'application/xhtml+xml')) warn(fname);
+    oebps.file(fname, cx, {compression:'DEFLATE'});
+    chapItems.push({ id:'chap'+(i+1), href:fname, title:c.title, level: c.level || 1 });
+  });
+
+  /* The reader's nav parser tracks <ol> nesting depth, so emit a hierarchical
+     contents list when the split produced sub-chapters instead of a flat one. */
+  function buildTocTree(items){
+    const root=[]; const stack=[{level:0, children:root}];
+    items.forEach(function(it){
+      const lvl=Math.max(1, Math.min(6, it.level||1));
+      while(stack.length>1 && stack[stack.length-1].level>=lvl) stack.pop();
+      const node={level:lvl, item:it, children:[]};
+      stack[stack.length-1].children.push(node);
+      stack.push(node);
+    });
+    return root;
+  }
+  function navList(nodes){
+    return '<ol>'+nodes.map(function(n){
+      return '<li><a href="'+escAttr(n.item.href)+'">'+escXml(n.item.title)+'</a>'+
+             (n.children.length ? navList(n.children) : '')+'</li>';
+    }).join('')+'</ol>';
+  }
+  let playOrder=0;
+  function ncxPoints(nodes){
+    return nodes.map(function(n){
+      const po = ++playOrder;                 // capture before recursing into children
+      const inner=n.children.length ? ncxPoints(n.children) : '';
+      return '<navPoint id="np'+po+'" playOrder="'+po+'">'+
+             '<navLabel><text>'+escXml(n.item.title)+'</text></navLabel>'+
+             '<content src="'+escAttr(n.item.href)+'"/>'+inner+'</navPoint>';
+    }).join('');
+  }
+  const tocTree=buildTocTree(chapItems);
+
+  // nav.xhtml (EPUB3)
+  const navBody = navList(tocTree);
+  const navXhtml = '<?xml version="1.0" encoding="utf-8"?>\n'+
+    '<!DOCTYPE html>\n'+
+    '<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops"'+(rtl?' dir="rtl"':'')+'><head>'+
+    '<meta charset="utf-8"/><title>Contents</title></head><body>'+
+    '<nav epub:type="toc" id="toc"><h1>Contents</h1>'+navBody+'</nav></body></html>';
+  if(!xmlOK(navXhtml,'application/xhtml+xml')) warn('nav.xhtml');
+  oebps.file('nav.xhtml', navXhtml, {compression:'DEFLATE'});
+
+  // toc.ncx (EPUB2 fallback)
+  const navPoints = ncxPoints(tocTree);
+  const ncx = '<?xml version="1.0" encoding="utf-8"?>\n'+
+    '<ncx xmlns="http://www.daisy.org/z3986/2005/ncx/" version="2005-1"><head>'+
+    `<meta name="dtb:uid" content="${escXml(id)}"/><meta name="dtb:depth" content="${Math.max.apply(null,[1].concat(chapItems.map(function(c){return c.level||1;})))}"/>`+
+    '<meta name="dtb:totalPageCount" content="0"/><meta name="dtb:maxPageNumber" content="0"/></head>'+
+    `<docTitle><text>${escXml(book.title)}</text></docTitle><navMap>${navPoints}</navMap></ncx>`;
+  if(!xmlOK(ncx,'application/xml')) warn('toc.ncx');
+  oebps.file('toc.ncx', ncx, {compression:'DEFLATE'});
+
+  // content.opf
+  const manifestItems=[];
+  manifestItems.push('<item id="ncx" href="toc.ncx" media-type="application/x-dtbncx+xml"/>');
+  manifestItems.push('<item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/>');
+  manifestItems.push('<item id="css" href="style.css" media-type="text/css"/>');
+  if(coverPageItem) manifestItems.push(`<item id="coverpage" href="cover.xhtml" media-type="application/xhtml+xml"/>`);
+  imageManifest.forEach(im=>{
+    const props = im.isCover ? ' properties="cover-image"' : '';
+    manifestItems.push(`<item id="${im.id}" href="${escAttr(im.href)}" media-type="${im.mime}"${props}/>`);
+  });
+  chapItems.forEach(c=> manifestItems.push(`<item id="${c.id}" href="${escAttr(c.href)}" media-type="application/xhtml+xml"/>`));
+
+  const spineDir = rtl ? ' page-progression-direction="rtl"' : '';
+  const spineItems=[];
+  if(coverPageItem) spineItems.push('<itemref idref="coverpage"/>');
+  chapItems.forEach(c=> spineItems.push(`<itemref idref="${c.id}"/>`));
+
+  const coverMeta = coverItem ? `<meta name="cover" content="${coverItem.id}"/>` : '';
+  const opf = '<?xml version="1.0" encoding="utf-8"?>\n'+
+    '<package xmlns="http://www.idpf.org/2007/opf" version="3.0" unique-identifier="bookid">'+
+    '<metadata xmlns:dc="http://purl.org/dc/elements/1.1/">'+
+    `<dc:identifier id="bookid">${escXml(id)}</dc:identifier>`+
+    `<dc:title>${escXml(book.title)}</dc:title>`+
+    `<dc:creator>${escXml(book.author||'Unknown')}</dc:creator>`+
+    `<dc:language>${escXml(book.language||'en')}</dc:language>`+
+    `<meta property="dcterms:modified">${now}</meta>`+
+    coverMeta+
+    '</metadata>'+
+    '<manifest>'+manifestItems.join('')+'</manifest>'+
+    '<spine toc="ncx"'+spineDir+'>'+spineItems.join('')+'</spine>'+
+    '</package>';
+  if(!xmlOK(opf,'application/xml')) warn('content.opf');
+  oebps.file('content.opf', opf, {compression:'DEFLATE'});
+
+  return await zip.generateAsync({type:'blob', mimeType:'application/epub+zip'});
+}
+
+/* ============================ e-ink image pipeline ============================ */
+/* Pure pixel ops (unit-testable) + a canvas wrapper. Greyscale, quantize to N
+   tones, dither (Floyd–Steinberg / ordered Bayer), and fit to panel size.
+   Reused for embedded images now; ready for PDF/CBZ image pages later. */
+function nearestLevel(v, levels){
+  const step = 255/(levels-1);
+  let q = Math.round(v/step)*step;
+  return q<0?0:q>255?255:Math.round(q);
+}
+function rgbaToGray(rgba, w, h){
+  const g = new Uint8ClampedArray(w*h);
+  for(let i=0,p=0;i<g.length;i++,p+=4){
+    const a = rgba[p+3]/255;                 // flatten transparency over white
+    const r = rgba[p]*a + 255*(1-a);
+    const gr= rgba[p+1]*a + 255*(1-a);
+    const b = rgba[p+2]*a + 255*(1-a);
+    g[i] = Math.round(0.299*r + 0.587*gr + 0.114*b);
+  }
+  return g;
+}
+function quantize(gray, levels){ for(let i=0;i<gray.length;i++) gray[i]=nearestLevel(gray[i],levels); return gray; }
+function floydSteinberg(gray, w, h, levels){
+  const err = new Float32Array(gray.length);
+  for(let y=0;y<h;y++){
+    for(let x=0;x<w;x++){
+      const i=y*w+x;
+      const v=gray[i]+err[i];
+      const nv=nearestLevel(v,levels);
+      gray[i]=nv;
+      const e=v-nv;
+      if(x+1<w) err[i+1]+=e*7/16;
+      if(y+1<h){
+        if(x>0) err[i+w-1]+=e*3/16;
+        err[i+w]+=e*5/16;
+        if(x+1<w) err[i+w+1]+=e*1/16;
+      }
+    }
+  }
+  return gray;
+}
+const BAYER4=[[0,8,2,10],[12,4,14,6],[3,11,1,9],[15,7,13,5]];
+function bayerDither(gray, w, h, levels){
+  const step=255/(levels-1);
+  for(let y=0;y<h;y++) for(let x=0;x<w;x++){
+    const i=y*w+x;
+    const t=((BAYER4[y&3][x&3]+0.5)/16 - 0.5)*step;
+    gray[i]=nearestLevel(gray[i]+t, levels);
+  }
+  return gray;
+}
+function fitSize(w, h, maxW, maxH){
+  if(!maxW||!maxH) return {w,h};
+  const s=Math.min(1, maxW/w, maxH/h);
+  return { w:Math.max(1,Math.round(w*s)), h:Math.max(1,Math.round(h*s)) };
+}
+function u8ToB64(u8){ let s=''; const CH=0x8000; for(let i=0;i<u8.length;i+=CH){ s+=String.fromCharCode.apply(null,u8.subarray(i,i+CH)); } return btoa(s); }
+function loadImage(url){ return new Promise((res,rej)=>{ const im=new Image(); im.onload=()=>res(im); im.onerror=()=>rej(new Error('image decode failed')); im.src=url; }); }
+
+// Browser wrapper: bytes in -> processed PNG bytes out.
+async function processImageBytes(u8, mime, opts){
+  const blob=new Blob([u8],{type:mime||'image/png'});
+  const url=URL.createObjectURL(blob);
+  try{
+    const img=await loadImage(url);
+    const sw=img.naturalWidth||img.width, sh=img.naturalHeight||img.height;
+    const {w,h}=fitSize(sw,sh,opts.maxW,opts.maxH);
+    const cv=document.createElement('canvas'); cv.width=w; cv.height=h;
+    const ctx=cv.getContext('2d');
+    ctx.fillStyle='#fff'; ctx.fillRect(0,0,w,h);
+    ctx.drawImage(img,0,0,w,h);
+    const id=ctx.getImageData(0,0,w,h);
+    const gray=rgbaToGray(id.data,w,h);
+    if(opts.dither==='fs') floydSteinberg(gray,w,h,opts.levels);
+    else if(opts.dither==='bayer') bayerDither(gray,w,h,opts.levels);
+    else quantize(gray,opts.levels);
+    for(let i=0,p=0;i<gray.length;i++,p+=4){ id.data[p]=id.data[p+1]=id.data[p+2]=gray[i]; id.data[p+3]=255; }
+    ctx.putImageData(id,0,0);
+    const outBlob=await new Promise(r=>cv.toBlob(r,'image/png'));
+    const buf=new Uint8Array(await outBlob.arrayBuffer());
+    return { u8:buf, mime:'image/png', w, h };
+  } finally { URL.revokeObjectURL(url); }
+}
+
+/* ============================ StarDict dictionary builder ============================ */
+/* CrossPoint (and SUMI) read StarDict dictionaries from /dictionaries/<folder>/:
+   <stem>.ifo (bookname/wordcount/idxoffsetbits=32/sametypesequence), <stem>.idx
+   (each entry: headword + NUL + BE32 offset + BE32 size, sorted by headword),
+   and <stem>.dict (definitions concatenated). This turns a simple word<TAB>def
+   list into those three files. Pure + round-trip tested. */
+function parseWordlist(text){
+  const rows = [];
+  String(text || '').replace(/\r/g, '').split('\n').forEach(function(line){
+    if(!line.trim()) return;
+    let word, def;
+    const tab = line.indexOf('\t');
+    if(tab >= 0){ word = line.slice(0, tab); def = line.slice(tab + 1); }
+    else {
+      const colon = line.indexOf(':');
+      if(colon < 0) return;                       // no separator: skip
+      word = line.slice(0, colon); def = line.slice(colon + 1);
+    }
+    word = word.trim(); def = def.trim();
+    if(word && def) rows.push([word, def]);
+  });
+  return rows;
+}
+function buildStarDict(rows, opts){
+  const enc = new TextEncoder();
+  const html = !!(opts && opts.html);
+  // merge duplicate headwords, then sort by UTF-8 bytes (StarDict's g_ascii order)
+  const merged = {};
+  const order = [];
+  rows.forEach(function(r){
+    const w = r[0];
+    if(merged[w] == null){ merged[w] = r[1]; order.push(w); }
+    else merged[w] = merged[w] + (html ? '<br/>' : '\n') + r[1];
+  });
+  order.sort(function(a, b){
+    const A = enc.encode(a), B = enc.encode(b), n = Math.min(A.length, B.length);
+    for(let i = 0; i < n; i++){ if(A[i] !== B[i]) return A[i] - B[i]; }
+    return A.length - B.length;
+  });
+  // .dict = concatenated definitions; .idx = headword\0 + BE32 offset + BE32 size
+  const dictParts = [], idxParts = [];
+  let offset = 0;
+  order.forEach(function(w){
+    const defBytes = enc.encode(merged[w]);
+    const wordBytes = enc.encode(w);
+    const idxEntry = new Uint8Array(wordBytes.length + 1 + 8);
+    idxEntry.set(wordBytes, 0);
+    idxEntry[wordBytes.length] = 0;                 // NUL terminator
+    const dv = new DataView(idxEntry.buffer);
+    dv.setUint32(wordBytes.length + 1, offset, false);        // BE32 offset
+    dv.setUint32(wordBytes.length + 5, defBytes.length, false); // BE32 size
+    idxParts.push(idxEntry);
+    dictParts.push(defBytes);
+    offset += defBytes.length;
+  });
+  function concat(list){ let n = 0; list.forEach(function(a){ n += a.length; }); const out = new Uint8Array(n); let o = 0; list.forEach(function(a){ out.set(a, o); o += a.length; }); return out; }
+  const idx = concat(idxParts), dict = concat(dictParts);
+  const name = (opts && opts.bookname) || 'Dictionary';
+  const ifo =
+    'StarDict\'s dict ifo file\n' +
+    'version=2.4.2\n' +
+    'bookname=' + name.replace(/\n/g, ' ') + '\n' +
+    'wordcount=' + order.length + '\n' +
+    'idxfilesize=' + idx.length + '\n' +
+    'idxoffsetbits=32\n' +
+    (html ? 'sametypesequence=h\n' : 'sametypesequence=m\n');
+  return { ifo: enc.encode(ifo), idx: idx, dict: dict, wordcount: order.length };
+}
+
+/* ============================ sleep-screen BMP writer ============================ */
+/* CrossPoint reads wallpapers from /sleep.bmp (and /.sleep/), and a transparent
+   overlay from /sleep-overlay.bmp which must be a 32-bit BGRA BMP. The device
+   maps 0/85/170/255 straight onto its four grey levels, which is exactly the
+   palette the e-ink pipeline already produces. */
+function bmpHeader(dataSize, w, h, bpp, paletteEntries, topDown){
+  const paletteBytes = paletteEntries * 4;
+  const offset = 14 + 40 + paletteBytes;
+  const buf = new Uint8Array(offset);
+  const dv = new DataView(buf.buffer);
+  buf[0] = 0x42; buf[1] = 0x4d;                       // "BM"
+  dv.setUint32(2, offset + dataSize, true);
+  dv.setUint32(10, offset, true);
+  dv.setUint32(14, 40, true);                          // DIB header size
+  dv.setInt32(18, w, true);
+  dv.setInt32(22, topDown ? -h : h, true);             // negative height = top-down
+  dv.setUint16(26, 1, true);                           // planes
+  dv.setUint16(28, bpp, true);
+  dv.setUint32(30, 0, true);                           // BI_RGB
+  dv.setUint32(34, dataSize, true);
+  dv.setInt32(38, 2835, true); dv.setInt32(42, 2835, true);
+  dv.setUint32(46, paletteEntries, true);
+  return buf;
+}
+function greyLevels(n){                                 // evenly spaced device grey levels
+  const N = (n===2||n===16) ? n : 4;
+  const step = 255/(N-1); const out = [];
+  for(let i=0;i<N;i++) out.push(Math.round(i*step));    // 2->[0,255], 4->[0,85,170,255], 16->0..255
+  return out;
+}
+function grayToBmp8(gray, w, h, tones){
+  // 8-bit indexed BMP; palette matches the panel's grey depth (2/4/16 levels)
+  const levels = greyLevels(tones||4);
+  const rowSize = (w + 3) & ~3;                        // rows padded to 4 bytes
+  const data = new Uint8Array(rowSize * h);
+  for(let y = 0; y < h; y++){
+    for(let x = 0; x < w; x++){
+      const v = gray[y * w + x];
+      let idx = 0, best = 999;
+      for(let k = 0; k < levels.length; k++){ const d = Math.abs(levels[k] - v); if(d < best){ best = d; idx = k; } }
+      data[y * rowSize + x] = idx;
+    }
+  }
+  const head = bmpHeader(data.length, w, h, 8, 256, true);
+  const dv = new DataView(head.buffer);
+  for(let i = 0; i < 256; i++){                        // palette: BGRA
+    const v = i < levels.length ? levels[i] : 0;
+    dv.setUint8(54 + i * 4, v); dv.setUint8(55 + i * 4, v); dv.setUint8(56 + i * 4, v); dv.setUint8(57 + i * 4, 0);
+  }
+  return concatU8(head, data);
+}
+function grayToBmp32(gray, alpha, w, h){
+  // 32-bit BGRA, used for the transparent sleep overlay
+  const data = new Uint8Array(w * h * 4);
+  for(let y = 0; y < h; y++){
+    for(let x = 0; x < w; x++){
+      const i = y * w + x, o = i * 4, v = gray[i];
+      data[o] = v; data[o+1] = v; data[o+2] = v;
+      data[o+3] = alpha ? alpha[i] : 255;
+    }
+  }
+  return concatU8(bmpHeader(data.length, w, h, 32, 0, true), data);
+}
+
+/* ============================ XTC / XTCH writer (native pre-rendered) ============================ */
+/* Packs pre-rendered page bitmaps into CrossPoint's native container. Image
+   pages only (comics/images) — text reflow to XTC would require the device's
+   own renderer. Byte layout mirrors lib/Xtc (Xteink X4 480x800). Pure + tested. */
+const XTC_MAGIC=0x00435458, XTCH_MAGIC=0x48435458, XTG_MAGIC=0x00475458, XTH_MAGIC=0x00485458;
+function packXtg(gray,w,h){ // 1-bit: row-major, MSB first, 0=black 1=white
+  const rowBytes=(w+7)>>3; const out=new Uint8Array(rowBytes*h);
+  for(let y=0;y<h;y++) for(let x=0;x<w;x++){ if(gray[y*w+x]>=128) out[y*rowBytes+(x>>3)] |= (0x80>>(x&7)); }
+  return out;
+}
+function grayToXthVal(g){ // palette darkness: 3=black(0),1=dark(85),2=light(170),0=white(255)
+  if(g>=192) return 0; if(g>=128) return 2; if(g>=64) return 1; return 3;
+}
+function packXth(gray,w,h){ // 2-bit: two planes, column-major right-to-left, 8 vertical px/byte
+  const planeSize=((w*h)+7)>>3, colBytes=(h+7)>>3;
+  const out=new Uint8Array(planeSize*2);
+  for(let y=0;y<h;y++) for(let x=0;x<w;x++){
+    const v=grayToXthVal(gray[y*w+x]); const bit1=(v>>1)&1, bit2=v&1;
+    const off=(w-1-x)*colBytes+(y>>3); const bit=7-(y&7);
+    if(bit1) out[off]|=(1<<bit);
+    if(bit2) out[planeSize+off]|=(1<<bit);
+  }
+  return out;
+}
+function buildXtc(pages, opts){ // pages: [{gray,w,h}]; opts:{twoBit,title,author,chapters}
+  const twoBit=!!(opts&&opts.twoBit);
+  const enc=new TextEncoder();
+  // The reader derives the chapter count from the gap between chapterOffset and
+  // pageTableOffset, so the table must sit directly before the page table.
+  const chapters=(opts&&opts.chapters)||[];
+  const CHAP_SIZE=96;
+  const META=0x38, AUTHOR=0xB8, CH=0x138;
+  const PT=CH + chapters.length*CHAP_SIZE;            // page table follows the chapters
+  const pageBlobs=pages.map(pg=>{
+    const bmp = twoBit ? packXth(pg.gray,pg.w,pg.h) : packXtg(pg.gray,pg.w,pg.h);
+    const hdr=new Uint8Array(22); const dv=new DataView(hdr.buffer);
+    dv.setUint32(0, twoBit?XTH_MAGIC:XTG_MAGIC, true);
+    dv.setUint16(4, pg.w, true); dv.setUint16(6, pg.h, true);
+    hdr[8]=0; hdr[9]=0; dv.setUint32(10, bmp.length, true); // colorMode, compression, dataSize; md5=0
+    return { bytes:concatU8(hdr,bmp), w:pg.w, h:pg.h };
+  });
+  const dataStart=PT + pages.length*16;
+  let cur=dataStart; const entries=pageBlobsOffsets(pageBlobs, ()=>cur, (n)=>{cur+=n;});
+  const total=cur;
+  const buf=new Uint8Array(total); const dv=new DataView(buf.buffer);
+  // header
+  dv.setUint32(0x00, twoBit?XTCH_MAGIC:XTC_MAGIC, true);
+  buf[0x04]=1; buf[0x05]=0;                            // version 1.0
+  dv.setUint16(0x06, pages.length, true);             // pageCount
+  buf[0x08]=0; buf[0x09]=1; buf[0x0A]=0; buf[0x0B]=chapters.length?1:0; // readDir, hasMetadata, hasThumb, hasChapters
+  dv.setUint32(0x0C, 1, true);                        // currentPage
+  dv.setBigUint64(0x10, BigInt(META), true);          // metadataOffset
+  dv.setBigUint64(0x18, BigInt(PT), true);            // pageTableOffset
+  dv.setBigUint64(0x20, BigInt(dataStart), true);     // dataOffset
+  dv.setBigUint64(0x28, 0n, true);                    // thumbOffset
+  dv.setBigUint64(0x30, chapters.length ? BigInt(CH) : 0n, true);   // chapterOffset (read as 64-bit)
+  // metadata (fixed slots, null-terminated, zero-filled)
+  const t=enc.encode((opts&&opts.title||'').slice(0,120)); buf.set(t.subarray(0,127), META);
+  const a=enc.encode((opts&&opts.author||'').slice(0,120)); buf.set(a.subarray(0,127), AUTHOR);
+  // chapter table: name[80] + startPage(0x50) + endPage(0x52), 96 bytes each
+  chapters.forEach(function(c,i){
+    const base=CH+i*CHAP_SIZE;
+    const nm=enc.encode(String(c.name||'').slice(0,79));
+    buf.set(nm.subarray(0,79), base);
+    dv.setUint16(base+0x50, c.startPage|0, true);
+    dv.setUint16(base+0x52, c.endPage|0, true);
+  });
+  // page table + data
+  let off=dataStart;
+  for(let i=0;i<pageBlobs.length;i++){
+    const pe=PT+i*16; const pb=pageBlobs[i];
+    dv.setBigUint64(pe+0, BigInt(off), true);
+    dv.setUint32(pe+8, pb.bytes.length, true);
+    dv.setUint16(pe+12, pb.w, true); dv.setUint16(pe+14, pb.h, true);
+    buf.set(pb.bytes, off); off+=pb.bytes.length;
+  }
+  return buf;
+}
+/* Comics are often packed with one folder per chapter. Turn consecutive pages
+   that share a folder into chapter entries so the device shows a contents list.
+   A single folder (or none) means there is nothing meaningful to list. */
+function comicChaptersFromDirs(dirs){
+  if(!dirs || !dirs.length) return [];
+  const out=[];
+  let curName=dirs[0], start=0;
+  for(let i=1;i<=dirs.length;i++){
+    if(i===dirs.length || dirs[i]!==curName){
+      const label=String(curName||'').split('/').pop();
+      out.push({ name: label || ('#'+(out.length+1)), startPage: start+1, endPage: i });
+      if(i<dirs.length){ curName=dirs[i]; start=i; }
+    }
+  }
+  return out.length>1 ? out : [];
+}
+
+function concatU8(a,b){ const o=new Uint8Array(a.length+b.length); o.set(a,0); o.set(b,a.length); return o; }
+function pageBlobsOffsets(blobs, get, add){ const e=[]; for(const b of blobs){ e.push(get()); add(b.bytes.length); } return e; }
+
+// Browser wrapper: render one image to an exact panel-size greyscale page.
+async function imageToGrayPage(u8, mime, W, H, levels){
+  const blob=new Blob([u8],{type:mime||'image/png'}); const url=URL.createObjectURL(blob);
+  try{
+    const img=await loadImage(url);
+    const cv=document.createElement('canvas'); cv.width=W; cv.height=H; const ctx=cv.getContext('2d');
+    ctx.fillStyle='#fff'; ctx.fillRect(0,0,W,H);
+    const s=Math.min(W/(img.naturalWidth||img.width), H/(img.naturalHeight||img.height));
+    const dw=Math.max(1,Math.round((img.naturalWidth||img.width)*s)), dh=Math.max(1,Math.round((img.naturalHeight||img.height)*s));
+    ctx.drawImage(img,(W-dw)>>1,(H-dh)>>1,dw,dh);
+    const gray=rgbaToGray(ctx.getImageData(0,0,W,H).data,W,H);
+    floydSteinberg(gray,W,H,levels);   // dither to the target tone count
+    return { gray, w:W, h:H };
+  } finally { URL.revokeObjectURL(url); }
+}
+
+/* ============================ orchestration ============================ */
+let parsed = null; // {source book fields, raw}
+let currentFileBase = 'book';
+let lastBuiltBlob=null, lastBuiltName='';
+
+// Parses one file into a book object. No UI writes, so it can be reused for
+// batch conversion as well as the single-file flow.
+async function parseToBook(file){
+  const ext = extOf(file.name);
+  log('Reading '+file.name+' ('+fmtSize(file.size)+')');
+  const bigMB = deviceSizeWarnMB();
+  if(file.size > bigMB*1024*1024) log(t('warnLarge').replace('{n}', bigMB));
+
+  let book = { html:'', title:'', author:'', language:'', images:[], coverName:'' };
+  let fmtLabel = ext.toUpperCase();
+
+  if(ext==='txt'||ext==='text'){
+    const t=await file.text(); book.html=txtToHtml(t); fmtLabel='Plain text';
+  } else if(ext==='md'||ext==='markdown'){
+    const t=await file.text(); book.html=mdToHtml(t); fmtLabel='Markdown';
+    const firstH1=/<h1>(.*?)<\/h1>/i.exec(book.html); if(firstH1) book.title=firstH1[1].replace(/<[^>]+>/g,'').trim();
+  } else if(ext==='rtf'){
+    const t=await file.text(); const r=rtfToBook(t); book.html=r.html; book.title=r.title; book.author=r.author; book.language=r.lang; fmtLabel='Rich Text (RTF)';
+  } else if(ext==='html'||ext==='htm'||ext==='xhtml'){
+    const t=await file.text(); const r=htmlToBody(t); book.html=r.html; book.title=r.title; book.author=r.author; book.language=r.lang; fmtLabel='HTML';
+  } else if(ext==='fb2'){
+    const t=await file.text(); const r=fb2ToBook(t); book.html=r.html; book.title=r.title; book.author=r.author; book.language=r.lang; book.images=r.images; book.coverName=r.coverName; fmtLabel='FictionBook 2';
+    if(r.images.length) log('Extracted '+r.images.length+' embedded image(s)'+(r.coverName?', cover set':''));
+  } else if(ext==='odt'){
+    const buf=await file.arrayBuffer(); const r=await odtToBook(buf); book.html=r.html; book.title=r.title; book.author=r.author; book.language=r.lang; book.images=r.images; book.coverName=r.coverName; fmtLabel='OpenDocument (ODT)';
+    if(r.images.length) log('Extracted '+r.images.length+' embedded image(s)');
+  } else if(ext==='pdf'){
+    setStatus(t('stParsing')); const buf=await file.arrayBuffer(); const r=await pdfToBook(buf); book.html=r.html; book.title=r.title; book.author=r.author; fmtLabel='PDF';
+  } else if(ext==='mobi'||ext==='azw'||ext==='azw3'||ext==='prc'){
+    const buf=await file.arrayBuffer(); const r=mobiToBook(buf); book.html=r.html; book.title=r.title; book.author=r.author; book.language=r.lang; book.images=r.images; book.coverName=r.coverName; fmtLabel=ext==='mobi'?'Kindle (MOBI)':'Kindle ('+ext.toUpperCase()+')';
+    if(r.tocCount) log('Book contents found: '+r.tocCount+' chapters');
+    if(r.images.length) log('Extracted '+r.images.length+' image(s)'+(r.coverName?', cover set':''));
+  } else if(ext==='epub'){
+    throw new Error(t('errEpubInput'));
+  } else if(ext==='cbz'){
+    const buf=await file.arrayBuffer(); const r=await cbzToBook(buf); Object.assign(book,{comic:true,pages:r.pages,pageDirs:r.pageDirs,images:r.images,coverName:''}); fmtLabel='Comic (CBZ)'; log('Loaded '+r.pages.length+' page(s)');
+  } else if(ext==='cbr'){
+    throw new Error(t('errCbr'));
+  } else if(ext==='docx'){
+    fmtLabel='Word (DOCX)'; setStatus(t('stParsing'));
+    const buf=await file.arrayBuffer(); const r=await docxToBody(buf); book.html=r.html; fmtLabel='Word (DOCX)';
+  } else {
+    throw new Error(t('errUnsupported')+' .'+ext);
+  }
+
+  book.fmtLabel = fmtLabel;
+  return book;
+}
+
+async function parseFile(file){
+  logEl.textContent='';
+  currentFileBase = baseName(file.name);
+  $('fname').textContent=file.name;
+  $('fsize').textContent=fmtSize(file.size);
+  $('filecard').classList.add('show');
+  const book = await parseToBook(file);
+  $('fformat').textContent = book.fmtLabel || '';
+  finishIngest(book, currentFileBase);
+}
+
+// Shared tail: validate, store, fill metadata fields, render galley, enable build.
+function finishIngest(book, fallbackTitle){
+  if(!book.comic && (!book.html || !book.html.trim())) throw new Error(t('errEmpty'));
+  parsed = book;
+  if(book.title && !$('title').value) $('title').value=book.title;
+  if(book.author && !$('author').value) $('author').value=book.author;
+  if(book.language) $('lang').value=book.language;
+  if(!$('title').value) $('title').value = fallbackTitle || 'book';
+  const bx=$('buildXtc'); if(bx) bx.style.display = book.comic ? '' : 'none';
+  renderGalley();
+  $('build').disabled=false;
+  setStatus(t('stReady'),'ok');
+}
+
+function currentBook(){
+  if(parsed.comic){
+    const chapters = (parsed.pages||[]).map((nm,i)=>({ title:t('pageLabel')+' '+(i+1), html:'<div><img src="images/'+nm+'"/></div>' }));
+    return {
+      title: $('title').value.trim() || currentFileBase,
+      author: $('author').value.trim(),
+      language: $('lang').value.trim() || (typeof LANG!=='undefined'?LANG:'en'),
+      images: parsed.images||[], coverName:'', comic:true, cssProfile: fwProfile(), chapters
+    };
+  }
+  const mode=$('split').value;
+  const chapters = splitChapters(parsed.html, mode);
+  return {
+    title: $('title').value.trim() || currentFileBase,
+    author: $('author').value.trim(),
+    language: $('lang').value.trim() || (typeof LANG!=='undefined'?LANG:'en'),
+    images: parsed.images||[],
+    coverName: parsed.coverName||'',
+    cssProfile: fwProfile(),
+    chapters
+  };
+}
+
+function renderGalley(){
+  if(!parsed){ return; }
+  const b=currentBook();
+  $('fblocks').textContent = b.chapters.length;
+  const g=$('galley');
+  const total = b.chapters.reduce((a,c)=>a+countWords(c.html),0);
+  const rows = b.chapters.map((c,i)=>{
+    const w=countWords(c.html);
+    return `<li><span class="slug">${String(i+1).padStart(2,'0')}</span>`+
+           `<span class="title">${escXml(c.title)}</span>`+
+           `<span class="words">${w?w.toLocaleString()+' w':''}</span></li>`;
+  }).join('');
+  const foot = b.comic ? `${b.chapters.length} &middot; ${t('pageLabel').toLowerCase()}`
+                       : `${b.chapters.length} &middot; ${total.toLocaleString()} w${b.coverName?' &middot; cover':''}`;
+  g.innerHTML = `<ol>${rows}</ol><div class="foot"><span>${foot}</span></div>`;
+}
+
+function fwProfile(){ const el=document.getElementById('fwProfile'); return el ? el.value : 'universal'; }
+
+// The C3 devices (X3/X4/papermono) have ~400KB RAM and no PSRAM, so a large book
+// is risky; the S3 devices (X4 Pro / Sticky / 540x960 class) have 8MB PSRAM and
+// cope with far more. We can only *infer* the target from the chosen panel size.
+function deviceSizeWarnMB(){
+  const sz = (document.getElementById('einkSize')||{}).value || '';
+  return sz === '540x960' ? 100 : 40;   // S3 panel picked -> higher ceiling
+}
+function einkOpts(){
+  const sz=$('einkSize').value; let maxW=null,maxH=null;
+  if(sz!=='none'){ const p=sz.split('x'); maxW=parseInt(p[0],10); maxH=parseInt(p[1],10); }
+  return { levels:parseInt($('einkLevels').value,10), dither:$('einkDither').value, maxW, maxH };
+}
+async function processBookImages(book){
+  const opts=einkOpts(); const out=[]; const rename={}; let i=0;
+  for(const im of book.images){
+    i++;
+    try{
+      if(book.images.length>3) setStatus(t('stImages')+' '+i+'/'+book.images.length);
+      const u8=b64ToU8(im.b64);
+      const r=await processImageBytes(u8, im.mime, opts);
+      const newName=im.name.replace(/\.[^.]+$/,'')+'.png';
+      rename[im.name]=newName;
+      if(book.coverName===im.name) book.coverName=newName;
+      out.push({ name:newName, mime:'image/png', b64:u8ToB64(r.u8) });
+      log('image '+im.name+' \u2192 '+newName+' ('+r.w+'\u00d7'+r.h+', '+fmtSize(r.u8.length)+')');
+    }catch(e){ rename[im.name]=im.name; log('image '+im.name+' kept as-is ('+e.message+')'); out.push(im); }
+  }
+  // keep chapter <img> references in sync with renamed files
+  if(book.chapters){
+    for(const c of book.chapters){
+      for(const o in rename){ if(o!==rename[o]) c.html = c.html.split('images/'+o).join('images/'+rename[o]); }
+    }
+  }
+  return out;
+}
+
+var batchFiles = [];
+function renderBatchList(states){
+  const g = $('galley');
+  const rows = batchFiles.map(function(f, i){
+    const st = states[i] || '';
+    return '<li><span class="slug">' + String(i+1).padStart(2,'0') + '</span>' +
+           '<span class="title">' + escXml(f.name) + '</span>' +
+           '<span class="words">' + escXml(st) + '</span></li>';
+  }).join('');
+  g.innerHTML = '<ol>' + rows + '</ol><div class="foot"><span>' +
+    batchFiles.length + ' &middot; ' + escXml(t('batchFiles')) + '</span></div>';
+}
+function startBatch(files){
+  batchFiles = files; parsed = null; logEl.textContent = ''; hideDeviceCard();
+  $('filecard').classList.remove('show');
+  $('buildXtc').style.display = 'none';
+  renderBatchList(batchFiles.map(function(){ return t('batchWaiting'); }));
+  $('build').disabled = false;
+  setStatus(t('batchReady'), 'ok');
+}
+async function runBatch(){
+  const states = batchFiles.map(function(){ return t('batchWaiting'); });
+  const zip = new JSZip();
+  let done = 0, failed = 0;
+  for(let i = 0; i < batchFiles.length; i++){
+    const f = batchFiles[i];
+    states[i] = t('batchWorking'); renderBatchList(states);
+    setStatus(t('batchWorking') + ' ' + (i+1) + '/' + batchFiles.length);
+    try{
+      const b = await parseToBook(f);
+      const base = baseName(f.name);
+      const book = {
+        title: b.title || base,
+        author: b.author || '',
+        language: b.language || $('lang').value.trim() || (typeof LANG!=='undefined'?LANG:'en'),
+        images: b.images || [], coverName: b.coverName || '', comic: !!b.comic, cssProfile: fwProfile(),
+        chapters: b.comic
+          ? (b.pages||[]).map(function(nm, k){ return { title: t('pageLabel')+' '+(k+1), html: '<div><img src="images/'+nm+'"/></div>' }; })
+          : splitChapters(b.html, $('split').value)
+      };
+      if($('einkOn').value === 'on' && book.images.length) book.images = await processBookImages(book);
+      const blob = await buildEpub(book);
+      const name = (book.title || base).replace(/[^\w\-. ]+/g,'_').trim().replace(/\s+/g,'_') + '.epub';
+      zip.file(name, await blob.arrayBuffer());   // arrayBuffer works everywhere Blob does
+      states[i] = t('batchDone') + ' \u00b7 ' + book.chapters.length; done++;
+    }catch(err){
+      console.error(err);
+      log(f.name + ': ' + err.message);
+      states[i] = t('batchFailed'); failed++;
+    }
+    renderBatchList(states);
+  }
+  if(!done){ setStatus(t('batchNone'), 'err'); return; }
+  setStatus(t('stBuilding'));
+  const out = await zip.generateAsync({ type:'blob', mimeType:'application/zip' });
+  const zipName = 'read-maker-' + done + '-books.zip';
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(out); a.download = zipName;
+  document.body.appendChild(a); a.click();
+  setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 1500);
+  lastBuiltBlob = out; lastBuiltName = zipName;
+  log('Batch finished: ' + done + ' converted, ' + failed + ' failed');
+  setStatus(t('stSaved') + ' ' + zipName + (failed ? ' (' + failed + ' \u2717)' : ''), 'ok');
+  showDeviceCard(zipName);
+}
+
+async function makeSleepScreen(file, transparent){
+  const opts = einkOpts();
+  const sz = $('einkSize').value === 'none' ? '480x800' : $('einkSize').value;
+  const parts = sz.split('x');
+  const W = parseInt(parts[0],10) || 480, H = parseInt(parts[1],10) || 800;
+  const levels = parseInt($('einkLevels').value,10) || 4;
+  const u8 = new Uint8Array(await file.arrayBuffer());
+  const blob = new Blob([u8], { type: file.type || 'image/png' });
+  const url = URL.createObjectURL(blob);
+  try{
+    const img = await loadImage(url);
+    const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+    const ctx = cv.getContext('2d');
+    ctx.clearRect(0, 0, W, H);
+    if(!transparent){ ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, W, H); }
+    const iw = img.naturalWidth || img.width, ih = img.naturalHeight || img.height;
+    const scale = transparent ? Math.min(W/iw, H/ih) : Math.max(W/iw, H/ih);  // overlay fits, wallpaper fills
+    const dw = Math.round(iw*scale), dh = Math.round(ih*scale);
+    ctx.drawImage(img, (W-dw)>>1, (H-dh)>>1, dw, dh);
+    const id = ctx.getImageData(0, 0, W, H);
+    const alpha = new Uint8Array(W*H);
+    for(let i = 0, q = 3; i < alpha.length; i++, q += 4) alpha[i] = id.data[q];
+    const gray = rgbaToGray(id.data, W, H);
+    if(opts.dither === 'bayer') bayerDither(gray, W, H, levels);
+    else if(opts.dither === 'none') quantize(gray, levels);
+    else floydSteinberg(gray, W, H, levels);
+    const bytes = transparent ? grayToBmp32(gray, alpha, W, H) : grayToBmp8(gray, W, H, levels);
+    const name = transparent ? 'sleep-overlay.bmp' : 'sleep.bmp';
+    const out = new Blob([bytes], { type: 'image/bmp' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(out); a.download = name;
+    document.body.appendChild(a); a.click();
+    setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 1500);
+    lastBuiltBlob = out; lastBuiltName = name;
+    log('Sleep screen: ' + name + ' (' + W + '\u00d7' + H + ', ' + fmtSize(bytes.length) + ')');
+    setStatus(t('stSaved') + ' ' + name, 'ok');
+    showDeviceCard(name);
+  } finally { URL.revokeObjectURL(url); }
+}
+async function makeDictionary(){
+  const inp = $('dictFile');
+  const f = inp.files && inp.files[0];
+  if(!f) return;
+  try{
+    setStatus(t('stDict'));
+    const rows = parseWordlist(await f.text());
+    if(rows.length < 1){ setStatus(t('errDictEmpty'), 'err'); inp.value=''; return; }
+    const name = ($('dictName').value.trim()) || baseName(f.name);
+    const html = $('dictHtml').value === 'html';
+    const d = buildStarDict(rows, { bookname: name, html: html });
+    const stem = name.replace(/[^\w\-]+/g, '_').replace(/^_+|_+$/g, '') || 'dictionary';
+    const zip = new JSZip();
+    const folder = zip.folder('dictionaries').folder(stem);
+    folder.file(stem + '.ifo', d.ifo);
+    folder.file(stem + '.idx', d.idx);
+    folder.file(stem + '.dict', d.dict);
+    const out = await zip.generateAsync({ type:'blob', mimeType:'application/zip' });
+    const zipName = stem + '-dictionary.zip';
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(out); a.download = zipName;
+    document.body.appendChild(a); a.click();
+    setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 1500);
+    log('Dictionary: ' + d.wordcount + ' entries -> dictionaries/' + stem + '/');
+    setStatus(t('stSaved') + ' ' + zipName + ' (' + d.wordcount + ')', 'ok');
+  }catch(err){ console.error(err); log('Error: ' + err.message); setStatus(t('errPrefix') + ' ' + err.message, 'err'); }
+  inp.value = '';
+}
+var jsqrPromise=null;
+function loadJsQr(){
+  if(window.jsQR) return Promise.resolve(window.jsQR);
+  if(jsqrPromise) return jsqrPromise;
+  jsqrPromise = new Promise(function(res, rej){
+    const sc = document.createElement('script');
+    sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js';
+    sc.onload = function(){ res(window.jsQR); };
+    sc.onerror = function(){ rej(new Error(t('errQrLoad'))); };
+    document.head.appendChild(sc);
+  });
+  return jsqrPromise;
+}
+// pull a device address out of whatever the QR encodes (usually http://crosspoint.local/)
+function addressFromQr(text){
+  if(!text) return '';
+  let v = String(text).trim();
+  const m = v.match(/https?:\/\/([^/\s]+)/i);
+  if(m) return m[1];
+  return v.replace(/^https?:\/\//i,'').replace(/\/.*$/,'').trim();
+}
+async function decodeQrFromFile(file){
+  const jsQR = await loadJsQr();
+  const url = URL.createObjectURL(file);
+  try{
+    const img = await loadImage(url);
+    const w = img.naturalWidth || img.width, h = img.naturalHeight || img.height;
+    const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+    const ctx = cv.getContext('2d'); ctx.drawImage(img, 0, 0);
+    const data = ctx.getImageData(0, 0, w, h);
+    const code = jsQR(data.data, w, h);
+    return code ? code.data : '';
+  } finally { URL.revokeObjectURL(url); }
+}
+function scanDeviceQr(){
+  const inp = $('qrFile');
+  inp.value = '';
+  inp.click();                                   // opens camera on mobile, file picker on desktop
+}
+async function handleQrPick(){
+  const inp = $('qrFile');
+  const f = inp.files && inp.files[0];
+  if(!f) return;
+  const st = $('sendStatus'); st.className = 'sendstatus';
+  try{
+    st.textContent = t('qrReading');
+    const text = await decodeQrFromFile(f);
+    const addr = addressFromQr(text);
+    if(addr){ $('deviceIp').value = addr; st.textContent = t('qrFound') + ' ' + addr; st.className = 'sendstatus ok'; }
+    else { st.textContent = t('qrNone'); st.className = 'sendstatus err'; }
+  }catch(err){ console.error(err); st.textContent = t('errPrefix') + ' ' + err.message; st.className = 'sendstatus err'; }
+  inp.value = '';
+}
+function handleSleepPick(){
+  const inp = $('sleepFile');
+  const f = inp.files && inp.files[0];
+  if(!f) return;
+  const transparent = $('sleepMode').value === 'overlay';
+  setStatus(t('stSleep'));
+  makeSleepScreen(f, transparent).catch(function(err){
+    console.error(err); log('Error: ' + err.message);
+    setStatus(t('errPrefix') + ' ' + err.message, 'err');
+  });
+  inp.value = '';
+}
+
+window.__onLang = function(){ if(parsed) renderGalley(); };
+function showDeviceCard(name){ try{ $('deviceDone').textContent=t('devDone')+' '+name; $('deviceCard').classList.add('show'); }catch(e){} }
+function hideDeviceCard(){ try{ if(typeof currentSendXhr!=='undefined' && currentSendXhr){ try{ currentSendXhr.abort(); }catch(e){} currentSendXhr=null; } if(typeof currentSendTimer!=='undefined' && currentSendTimer){ clearInterval(currentSendTimer); currentSendTimer=null; } $('deviceCard').classList.remove('show'); lastBuiltBlob=null; lastBuiltName=''; const bar=$('sendBar'); if(bar) bar.classList.remove('show'); const ss=$('sendStatus'); if(ss){ ss.textContent=''; ss.className='sendstatus'; } }catch(e){} }
+
+async function exportComicToXtc(){
+  if(!parsed || !parsed.comic || !parsed.images || !parsed.images.length) return;
+  const bx=$('buildXtc'); bx.disabled=true; hideDeviceCard(); logEl.textContent='';
+  try{
+    let sz=$('einkSize').value; if(sz==='none') sz='480x800';
+    const parts=sz.split('x'); const W=parseInt(parts[0],10)||480, H=parseInt(parts[1],10)||800;
+    const twoBit = $('einkLevels').value!=='2'; const levels = twoBit?4:2;
+    setStatus(t('stXtc'));
+    const pages=[];
+    for(let i=0;i<parsed.images.length;i++){
+      const im=parsed.images[i];
+      setStatus(t('stXtc')+' '+(i+1)+'/'+parsed.images.length);
+      pages.push(await imageToGrayPage(b64ToU8(im.b64), im.mime, W, H, levels));
+    }
+    const title=$('title').value.trim()||currentFileBase, author=$('author').value.trim();
+    const chapters=comicChaptersFromDirs(parsed.pageDirs);
+    if(chapters.length) log('Chapter table: '+chapters.length+' chapter(s) from archive folders');
+    const buf=buildXtc(pages, {twoBit, title, author, chapters});
+    const name=(title||currentFileBase).replace(/[^\w\-. ]+/g,'_').trim().replace(/\s+/g,'_')+(twoBit?'.xtch':'.xtc');
+    const blob=new Blob([buf],{type:'application/octet-stream'});
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; document.body.appendChild(a); a.click();
+    setTimeout(()=>{URL.revokeObjectURL(a.href); a.remove();},1500);
+    log('Wrote '+name+' ('+pages.length+' pages, '+(twoBit?'2-bit XTCH':'1-bit XTC')+', '+W+'x'+H+', '+fmtSize(buf.length)+')');
+    lastBuiltBlob=blob; lastBuiltName=name;
+    setStatus(t('stSaved')+' '+name,'ok'); showDeviceCard(name);
+  }catch(err){ console.error(err); log('Error: '+err.message); setStatus(t('errPrefix')+' '+err.message,'err'); }
+  finally{ bx.disabled=false; }
+}
+
+function normalizeDeviceIp(v){
+  v=(v||'').trim().replace(/^https?:\/\//i,'').replace(/\/.*$/,'');
+  return v;
+}
+function normalizeDevicePath(v){
+  v=(v||'').trim().replace(/\\/g,'/');
+  if(!v) return '/';
+  if(v[0]!=='/') v='/'+v;
+  if(v.length>1 && v.endsWith('/')) v=v.slice(0,-1);
+  return v;
+}
+var currentSendXhr=null, currentSendTimer=null;
+function resetSendUi(){
+  const ipEl=$('deviceIp'), pathEl=$('devicePath'), btn=$('sendBtn'), bar=$('sendBar');
+  currentSendXhr=null;
+  if(currentSendTimer){ clearTimeout(currentSendTimer); currentSendTimer=null; }
+  btn.disabled=false; ipEl.disabled=false; if(pathEl) pathEl.disabled=false;
+  btn.textContent=t('sendBtn');
+  bar.classList.remove('show');
+}
+function sendToDevice(){
+  const ipEl=$('deviceIp'), pathEl=$('devicePath'), statusEl=$('sendStatus'), bar=$('sendBar'), fill=$('sendBarFill'), btn=$('sendBtn');
+  // second click while sending = cancel
+  if(currentSendXhr){
+    try{ currentSendXhr.abort(); }catch(e){}
+    resetSendUi();
+    statusEl.textContent=t('sendCancelled'); statusEl.className='sendstatus';
+    return;
+  }
+  const ip=normalizeDeviceIp(ipEl.value);
+  try{ if(ip) localStorage.setItem('rm_device', ip); }catch(e){}
+  statusEl.className='sendstatus';
+  if(!ip){ statusEl.textContent=t('sendErrIp'); statusEl.className='sendstatus err'; return; }
+  if(!lastBuiltBlob || !lastBuiltName){ return; }
+  // browsers block http:// requests from an https:// page (mixed content)
+  if(typeof location!=='undefined' && location.protocol==='https:'){
+    statusEl.textContent=t('sendErrMixed'); statusEl.className='sendstatus err';
+    log('Blocked: mixed content (https page -> http device)');
+    return;
+  }
+  const dest=normalizeDevicePath(pathEl?pathEl.value:'');
+  const fd=new FormData();
+  fd.append('file', lastBuiltBlob, lastBuiltName);
+  const xhr=new XMLHttpRequest();
+  currentSendXhr=xhr;
+  btn.disabled=false; btn.textContent=t('sendBtnCancel');
+  ipEl.disabled=true; if(pathEl) pathEl.disabled=true;
+  statusEl.textContent=t('sendBtnSending');
+  bar.classList.add('show'); fill.style.width='0%';
+  let lastActivity=Date.now();
+  currentSendTimer=setInterval(function(){
+    if(Date.now()-lastActivity>60000){
+      try{ xhr.abort(); }catch(e){}
+      clearInterval(currentSendTimer); currentSendTimer=null;
+      resetSendUi();
+      statusEl.textContent=t('sendErrTimeout'); statusEl.className='sendstatus err';
+    }
+  }, 2000);
+  xhr.open('POST', 'http://'+ip+'/upload?path=' + encodeURIComponent(dest), true);
+  xhr.upload.onprogress=function(e){
+    lastActivity=Date.now();
+    if(e.lengthComputable) fill.style.width=Math.round(e.loaded/e.total*100)+'%';
+  };
+  xhr.onload=function(){
+    if(currentSendTimer){ clearInterval(currentSendTimer); currentSendTimer=null; }
+    const st=xhr.status, body=xhr.responseText||'';
+    resetSendUi();
+    if(st===200){ statusEl.textContent=t('sendOk'); statusEl.className='sendstatus ok'; log('Uploaded '+lastBuiltName+' to '+ip+dest); }
+    else if(st===400 && /already exists/i.test(body)){ statusEl.textContent=t('sendErrExists'); statusEl.className='sendstatus err'; }
+    else { statusEl.textContent=t('sendErrOther')+' '+(body||st); statusEl.className='sendstatus err'; }
+  };
+  xhr.onerror=function(){
+    if(currentSendTimer){ clearInterval(currentSendTimer); currentSendTimer=null; }
+    resetSendUi();
+    statusEl.textContent=t('sendErrNet'); statusEl.className='sendstatus err';
+  };
+  xhr.onabort=function(){ if(currentSendTimer){ clearInterval(currentSendTimer); currentSendTimer=null; } };
+  xhr.send(fd);
+}
+
+/* ---------- events ---------- */
+const drop=$('drop'), fileInput=$('file');
+drop.addEventListener('click',()=>fileInput.click());
+drop.addEventListener('keydown',e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); fileInput.click(); }});
+['dragenter','dragover'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add('drag');}));
+['dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove('drag');}));
+function acceptFiles(list){
+  const files = Array.from(list || []);
+  if(!files.length) return;
+  if(files.length > 1){ batchFiles = files; startBatch(files); }
+  else { batchFiles = []; handle(files[0]); }
+}
+drop.addEventListener('drop',e=>{ if(e.dataTransfer.files.length){ fileInput.files=e.dataTransfer.files; acceptFiles(e.dataTransfer.files); }});
+fileInput.addEventListener('change',()=>acceptFiles(fileInput.files));
+
+['title','author','lang','split'].forEach(idn=>{
+  $(idn).addEventListener('input',()=>{ if(parsed) renderGalley(); });
+  $(idn).addEventListener('change',()=>{ if(parsed) renderGalley(); });
+});
+
+$('fetchBtn').addEventListener('click',()=>{ const u=$('url').value.trim(); if(u) fetchArticle(u); });
+$('url').addEventListener('keydown',e=>{ if(e.key==='Enter'){ const u=$('url').value.trim(); if(u) fetchArticle(u); }});
+$('pasteBtn').addEventListener('click',()=>{
+  const html=$('pasteHtml').value.trim(); const base=$('pasteUrl').value.trim();
+  if(!html){ setStatus(t('stPasteFirst'),'err'); return; }
+  $('build').disabled=true; parsed=null; hideDeviceCard(); logEl.textContent='';
+  try{ ingestArticle(html, base, base||'Pasted article'); }
+  catch(err){ console.error(err); log('Error: '+err.message); setStatus(t('errPrefix')+' '+err.message,'err'); }
+});
+
+async function handle(file){
+  $('build').disabled=true;
+  parsed=null; hideDeviceCard();
+  setStatus(t('stParsing'));
+  try{ await parseFile(file); }
+  catch(err){ console.error(err); log('Error: '+err.message); setStatus(t('errPrefix')+' '+err.message,'err'); $('galley').innerHTML='<div class="empty"><div class="mk">&para;</div><p>'+escXml(err.message)+'</p></div>'; }
+}
+
+function ingestArticle(htmlStr, baseUrl, sourceLabel){
+  const r = isAo3Url(baseUrl) ? extractAo3(htmlStr, baseUrl||'') : extractArticle(htmlStr, baseUrl||'');
+  if(r.ao3) log('Detected AO3 work: ' + ((r.html.match(/<h1>/g)||[]).length) + ' section(s)');
+  const book = { html:r.html, title:r.title, author:r.author, language:r.lang, images:[], coverName:'' };
+  currentFileBase = (r.title||'article').slice(0,60);
+  $('fname').textContent = sourceLabel || baseUrl || 'Web article';
+  $('fformat').textContent = 'Web article';
+  $('fsize').textContent = fmtSize(new Blob([htmlStr]).size);
+  $('filecard').classList.add('show');
+  finishIngest(book, currentFileBase);
+  log('Article extracted: '+ (r.title||'(untitled)'));
+}
+
+async function fetchArticle(url){
+  $('build').disabled=true; parsed=null; hideDeviceCard(); logEl.textContent='';
+  if(isAo3Url(url)) url = ao3FullWorkUrl(url);
+  setStatus(t('stFetching')); log('Fetching '+url);
+  let html;
+  try{
+    const ctrl = (typeof AbortController!=='undefined') ? new AbortController() : null;
+    const timer = ctrl ? setTimeout(()=>ctrl.abort(), 20000) : null;
+    let res;
+    try{ res = await fetch(url, ctrl ? {redirect:'follow', signal:ctrl.signal} : {redirect:'follow'}); }
+    finally{ if(timer) clearTimeout(timer); }
+    if(!res) throw new Error(t('errTimeout'));
+    if(!res.ok) throw new Error(t('errHttp')+' '+res.status+')');
+    html = await res.text();
+  }catch(err){
+    log('Direct fetch failed: '+err.message);
+    if(err && err.name==='AbortError') log(t('errTimeout'));
+    setStatus(t('stBlocked'), 'err');
+    $('galley').innerHTML='<div class="empty"><div class="mk">&para;</div><p>'+escXml(t('blockedT'))+'<br/>'+escXml(t('blockedD'))+'</p></div>';
+    return;
+  }
+  try{ ingestArticle(html, url, url); }
+  catch(err){ console.error(err); log('Error: '+err.message); setStatus(t('errPrefix')+' '+err.message,'err'); }
+}
+
+$('buildXtc').addEventListener('click', exportComicToXtc);
+$('sendBtn').addEventListener('click', sendToDevice);
+$('sleepFile').addEventListener('change', handleSleepPick);
+$('scanQrBtn').addEventListener('click', scanDeviceQr);
+$('qrFile').addEventListener('change', handleQrPick);
+try{ const saved=localStorage.getItem('rm_device'); if(saved) $('deviceIp').value=saved; }catch(e){}
+$('dictFile').addEventListener('change', makeDictionary);
+$('deviceIp').addEventListener('keydown', function(e){ if(e.key==='Enter') sendToDevice(); });
+$('devicePath').addEventListener('keydown', function(e){ if(e.key==='Enter') sendToDevice(); });
+$('build').addEventListener('click',async()=>{
+  if(batchFiles.length > 1){
+    const btn=$('build'); btn.disabled=true;
+    try{ await runBatch(); }
+    catch(err){ console.error(err); setStatus(t('errPrefix')+' '+err.message,'err'); }
+    finally{ btn.disabled=false; }
+    return;
+  }
+  if(!parsed) return;
+  const btn=$('build'); btn.disabled=true; setStatus(t('stBuilding'));
+  try{
+    const book=currentBook();
+    if($('einkOn').value==='on' && book.images && book.images.length){
+      setStatus(t('stImages'));
+      book.images = await processBookImages(book);
+    }
+    log('Building EPUB: '+book.chapters.length+' chapters, '+(book.images?book.images.length:0)+' images');
+    let epubWarnings=0; const blob=await buildEpub(book, function(part){ epubWarnings++; log('WARNING: malformed '+part); });
+    if(epubWarnings) log('Self-check found '+epubWarnings+' malformed part(s).'); else log('Self-check: EPUB structure valid.');
+    const name=(book.title||currentFileBase).replace(/[^\w\-. ]+/g,'_').trim().replace(/\s+/g,'_')+'.epub';
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; document.body.appendChild(a); a.click();
+    setTimeout(()=>{URL.revokeObjectURL(a.href); a.remove();},1500);
+    log('Done: '+name+' ('+fmtSize(blob.size)+')');
+    lastBuiltBlob=blob; lastBuiltName=name;
+    setStatus(t('stSaved')+' '+name,'ok'); showDeviceCard(name);
+  }catch(err){ console.error(err); log('Error: '+err.message); setStatus(t('errPrefix')+' '+err.message,'err'); }
+  finally{ btn.disabled=false; }
+});
+
+// sanity: JSZip present?
+if(typeof JSZip==='undefined'){ setStatus('JSZip failed to load (jszip.min.js must sit next to this page).','err'); }
+</script>
+</body>
+</html>
