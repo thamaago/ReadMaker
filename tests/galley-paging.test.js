@@ -1,0 +1,34 @@
+const assert=require('node:assert/strict'),fs=require('fs'),{JSDOM,VirtualConsole}=require('jsdom'),JSZip=require('jszip');
+const dom=new JSDOM(fs.readFileSync(require('path').join(__dirname,'..','index.html'),'utf8'),{runScripts:'dangerously',url:'http://localhost',virtualConsole:new VirtualConsole(),beforeParse(w){w.JSZip=JSZip;}});
+const w=dom.window,d=w.document,el=id=>d.getElementById(id);
+(async()=>{
+ await new Promise(r=>w.setTimeout(r,0));
+ w.finishIngest({html:Array.from({length:198},(_,i)=>'<h1>Section '+(i+1)+'</h1><p>Body text.</p>').join(''),images:[],sourcePageCount:500},'Collection');
+ assert.equal(d.querySelectorAll('#galley li').length,20);
+ assert.equal(el('chapterPageCount').textContent,'/ 10');
+ assert.match(el('sourcePageInfo').textContent,/500 halaman PDF sumber/);
+ el('chapterPage').value='10';el('chapterPage').dispatchEvent(new w.Event('change'));
+ assert.equal(d.querySelectorAll('#galley li').length,18);
+ assert.equal(d.querySelector('#galley .slug').textContent,'181');
+ assert.equal(el('chapterNext').disabled,true);
+ el('chapterSearch').value='Section 198';el('chapterSearch').dispatchEvent(new w.Event('input'));
+ assert.equal(d.querySelectorAll('#galley li').length,1);
+ assert.equal(d.querySelector('#galley .slug').textContent,'198');
+ const blob=await w.buildEpub(w.currentBook()),zip=await JSZip.loadAsync(await blob.arrayBuffer());
+ assert.equal(zip.file(/OEBPS\/chap\d+\.xhtml/).length,198,'search must never filter export');
+ el('chapterSearch').value='no such chapter';el('chapterSearch').dispatchEvent(new w.Event('input'));
+ assert.equal(d.querySelectorAll('#galley li').length,0);
+ assert.equal(el('chapterNext').disabled,true);
+ w.applyLang('en');assert.match(el('galley').textContent,/No matching chapters/);
+ w.finishIngest({html:'<p>this is ordinary prose.</p>',images:[]},'New');
+ assert.equal(el('chapterSearch').value,'');assert.equal(el('chapterPage').value,'1');
+ assert.equal(el('sourcePageInfo').hidden,true);
+ assert.match(el('galley').textContent,/Fallback title/);
+ assert.match(el('galley').textContent,/words/);
+ w.startBatch([{name:'a.txt'},{name:'b.txt'}]);assert.equal(el('galleyTools').hidden,true);
+ let count=0;w.pdfjsLib={getDocument:()=>({promise:Promise.resolve({numPages:7,getMetadata:async()=>({}),getPage:async()=>{count++;return {getTextContent:async()=>({items:[{str:'Unique page '+String.fromCharCode(64+count),transform:[1,0,0,12,0,100],width:60,height:12}]})}}})})};
+ const pdf=await w.parseToBook({name:'test.pdf',size:1,arrayBuffer:async()=>new ArrayBuffer(1)});
+ assert.equal(pdf.sourcePageCount,7);
+ console.log('Paging, search, export completeness, fallback labels, source counts and reset: passed');
+})().catch(e=>{console.error(e);process.exitCode=1}).finally(()=>w.close());
+

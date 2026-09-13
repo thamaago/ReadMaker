@@ -138,7 +138,7 @@
   .galley .empty{padding:40px 22px;text-align:center;color:var(--ink-faint)}
   .galley .empty .mk{font-family:var(--serif);font-size:40px;color:var(--rule);line-height:1}
   .galley .empty p{font-size:13px;margin:14px 0 0}
-  .galley ol{list-style:none;margin:0;padding:0}
+  .galley ol{max-height:60vh;overflow:auto;list-style:none;margin:0;padding:0}
   .galley li{
     display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:12px;
     padding:11px 16px;border-bottom:1px solid var(--rule-soft);
@@ -149,6 +149,10 @@
   .galley li .words{font-family:var(--mono);font-size:11px;color:var(--ink-faint);white-space:nowrap}
   .galley .foot{padding:10px 16px;font-family:var(--mono);font-size:11px;color:var(--ink-soft);letter-spacing:.06em;border-top:1px solid var(--rule);display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
 
+  .galley-tools{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:12px 0}
+  .galley-tools input{min-width:0;max-width:100%;padding:8px;border:1px solid var(--rule);background:var(--panel);color:var(--ink)}
+  .galley-tools input[type=number]{width:70px}
+  .galley-tools[hidden]{display:none}
   /* ---- Actions ---- */
   .actions{margin-top:18px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
   button.go{
@@ -380,6 +384,16 @@
   <section>
     <div class="col-label"><span class="n">3</span><span class="eyebrow" data-i18n="s3">Buat &amp; unduh</span><span class="line"></span></div>
 
+    <div id="galleyTools" class="galley-tools" hidden>
+      <label for="chapterSearch" data-i18n="chapterSearch">Cari bab</label>
+      <input id="chapterSearch" type="search" />
+      <button id="chapterPrev" class="mini" data-i18n="prevList">Sebelumnya</button>
+      <label for="chapterPage" data-i18n="listPage">Halaman daftar</label>
+      <input id="chapterPage" type="number" min="1" value="1" />
+      <span id="chapterPageCount" aria-live="polite"></span>
+      <button id="chapterNext" class="mini" data-i18n="nextList">Berikutnya</button>
+    </div>
+    <p id="sourcePageInfo" class="help" hidden></p>
     <div class="galley" id="galley">
       <div class="empty" id="galleyEmpty">
         <div class="mk">&para;</div>
@@ -482,7 +496,8 @@ var T = {
     how3t:"Buat & salin ke perangkat", how3d:"Unduh EPUB, lalu salin ke e-reader-mu.",
     s1:"Pilih sumber",
     dropBig:"Letakkan berkas di sini", dropHint:"atau klik untuk memilih \u2014 bisa beberapa berkas sekaligus", dropFormats:"Word, PDF, Kindle, komik CBZ, teks, dll.",
-    mFormat:"format", mSize:"ukuran", mParsed:"bab",
+    mFormat:"format", mSize:"ukuran", mParsed:"bab hasil",
+    chapterSearch:"Cari bab", prevList:"Sebelumnya", nextList:"Berikutnya", listPage:"Halaman daftar", wordsLabel:"kata", chaptersLabel:"bab hasil", sourcePages:"halaman PDF sumber", reflowNote:"Halaman EPUB mengikuti pengaturan pembaca.", autoTitle:"Judul pengganti", noChapters:"Tidak ada bab yang cocok.",
     orWeb:"atau dari sebuah tautan", urlPh:"Tempel alamat artikel (https://…)", fetchBtn:"Ambil artikel",
     fetchHelp:'Mengambil isi artikel, membuang menu dan iklan, menyisakan teksnya. Sebagian situs memblokir permintaan — jika gagal, pakai "Tempel HTML" di bawah.',
     pasteSummary:"Situs menolak? Tempel HTML halaman",
@@ -538,7 +553,8 @@ var T = {
     how3t:"Create & copy to device", how3d:"Download the EPUB, then copy it to your e-reader.",
     s1:"Choose a source",
     dropBig:"Drop your file here", dropHint:"or click to choose \u2014 several files at once is fine", dropFormats:"Word, PDF, Kindle, CBZ comics, text, etc.",
-    mFormat:"format", mSize:"size", mParsed:"chapters",
+    mFormat:"format", mSize:"size", mParsed:"output chapters",
+    chapterSearch:"Search chapters", prevList:"Previous", nextList:"Next", listPage:"List page", wordsLabel:"words", chaptersLabel:"output chapters", sourcePages:"source PDF pages", reflowNote:"EPUB pages follow the reader settings.", autoTitle:"Fallback title", noChapters:"No matching chapters.",
     orWeb:"or from a link", urlPh:"Paste an article address (https://…)", fetchBtn:"Fetch article",
     fetchHelp:'Pulls the article, strips menus and ads, keeps the text. Some sites block requests — if it fails, use "Paste HTML" below.',
     pasteSummary:"Blocked by the site? Paste the page HTML",
@@ -1331,7 +1347,7 @@ async function pdfToBook(arrayBuffer){
     }
   }
   html=promoteHeadings(html);
-  return { html, title, author, lang:'', images:[], coverName:'' };
+  return { html, title, author, lang:'', images:[], coverName:'', sourcePageCount:pdf.numPages };
 }
 
 /* ============================ MOBI / AZW3 ============================ */
@@ -1878,8 +1894,9 @@ function splitChapters(bodyHtml, mode){
       const firstP=wrap.querySelector('p');
       if(firstP) title=firstP.textContent.trim();
     }
+    const fallbackTitle = !title || looksLikeProse(title.replace(/^[\s\u2022\-\u2013\u2014*#]+/,'').replace(/[\s\-\u2013\u2014*#]+$/,'').trim());
     title = cleanChapterTitle(title, idx);
-    return { title, level: c.level || 1, html: wrap.innerHTML };
+    return { title, level: c.level || 1, fallbackTitle, html: wrap.innerHTML };
   });
 }
 
@@ -1957,8 +1974,33 @@ function bookCss(profile){ return profile === 'crosspoint' ? BOOK_CSS_BASE : (BO
 
 /* ============================ EPUB builder ============================ */
 function xmlOK(str, mime){ try{ return !new DOMParser().parseFromString(str, mime||'application/xml').querySelector('parsererror'); }catch(e){ return false; } }
+// Lightweight preflight inspired by EPUBCheck. These checks run before ZIP
+// creation so users get actionable warnings even in the offline browser build.
+function epubQualityWarnings(book){
+  const out=[];
+  if(!String(book.title||'').trim()) out.push('metadata: missing title');
+  if(!String(book.author||'').trim()) out.push('metadata: missing author');
+  if(!/^[a-z]{2,3}(?:-[A-Z]{2})?$/.test(String(book.language||'')) || /^(xx|zz)$/i.test(String(book.language||''))) out.push('metadata: invalid language code');
+  if(!Array.isArray(book.chapters)||!book.chapters.length) out.push('spine: no chapters');
+  const hrefs=new Set(), ids=new Set();
+  (book.images||[]).forEach((im,i)=>{
+    if(!im.name) out.push('manifest: image '+i+' has no filename');
+    const href='images/'+(im.name||''); if(hrefs.has(href)) out.push('manifest: duplicate href '+href); hrefs.add(href);
+    if(!/^(image\/(jpeg|png|gif|svg\+xml|bmp|webp))$/i.test(im.mime||'')) out.push('manifest: unsupported image type '+(im.mime||'(empty)'));
+    const ext=String(im.name||'').split('.').pop().toLowerCase(), expected={jpg:'jpeg',jpeg:'jpeg',png:'png',gif:'gif',svg:'svg+xml',bmp:'bmp',webp:'webp'}[ext];
+    if(expected && String(im.mime||'').toLowerCase()!=='image/'+expected) out.push('manifest: image type mismatch '+im.name);
+    if(book.coverName===im.name && !im.mime) out.push('cover: missing media type');
+  });
+  (book.chapters||[]).forEach((c,i)=>{
+    const id='chap'+(i+1); if(ids.has(id)) out.push('spine: duplicate id '+id); ids.add(id);
+    if(!String(c.title||'').trim()) out.push('nav: chapter '+(i+1)+' has empty title');
+    if(!String(c.html||'').trim()) out.push('content: chapter '+(i+1)+' is empty');
+  });
+  return out;
+}
 async function buildEpub(book, onWarn){
   const warn=onWarn||function(){};
+  epubQualityWarnings(book).forEach(warn);
   const zip = new JSZip();
   zip.file('mimetype','application/epub+zip',{compression:'STORE'});
   zip.file('META-INF/container.xml',
@@ -2454,7 +2496,7 @@ async function parseToBook(file){
     const buf=await file.arrayBuffer(); const r=await odtToBook(buf); book.html=r.html; book.title=r.title; book.author=r.author; book.language=r.lang; book.images=r.images; book.coverName=r.coverName; fmtLabel='OpenDocument (ODT)';
     if(r.images.length) log('Extracted '+r.images.length+' embedded image(s)');
   } else if(ext==='pdf'){
-    setStatus(t('stParsing')); const buf=await file.arrayBuffer(); const r=await pdfToBook(buf); book.html=r.html; book.title=r.title; book.author=r.author; fmtLabel='PDF';
+    setStatus(t('stParsing')); const buf=await file.arrayBuffer(); const r=await pdfToBook(buf); book.html=r.html; book.title=r.title; book.author=r.author; book.sourcePageCount=r.sourcePageCount; fmtLabel='PDF';
   } else if(ext==='mobi'||ext==='azw'||ext==='azw3'||ext==='prc'){
     const buf=await file.arrayBuffer(); const r=mobiToBook(buf); book.html=r.html; book.title=r.title; book.author=r.author; book.language=r.lang; book.images=r.images; book.coverName=r.coverName; fmtLabel=ext==='mobi'?'Kindle (MOBI)':'Kindle ('+ext.toUpperCase()+')';
     if(r.tocCount) log('Book contents found: '+r.tocCount+' chapters');
@@ -2490,6 +2532,7 @@ async function parseFile(file){
 // Shared tail: validate, store, fill metadata fields, render galley, enable build.
 function finishIngest(book, fallbackTitle){
   if(!book.comic && (!book.html || !book.html.trim())) throw new Error(t('errEmpty'));
+  resetGalleyView();
   parsed = book;
   batchFiles = [];
   $('title').value = book.title || fallbackTitle || 'book';
@@ -2524,21 +2567,40 @@ function currentBook(){
   };
 }
 
+let galleyPage = 1;
+const GALLEY_PAGE_SIZE = 20;
+function resetGalleyView(){
+  galleyPage = 1;
+  $('chapterSearch').value = '';
+  $('galleyTools').hidden = true;
+  $('sourcePageInfo').hidden = true;
+}
 function renderGalley(){
   if(!parsed){ return; }
   const b=currentBook();
   $('fblocks').textContent = b.chapters.length;
-  const g=$('galley');
-  const total = b.chapters.reduce((a,c)=>a+countWords(c.html),0);
-  const rows = b.chapters.map((c,i)=>{
+  const query=$('chapterSearch').value.trim().toLocaleLowerCase();
+  const matches=b.chapters.map((c,i)=>({c,i})).filter(({c,i})=>!query || c.title.toLocaleLowerCase().includes(query) || String(i+1)===query);
+  const pageCount=Math.max(1,Math.ceil(matches.length/GALLEY_PAGE_SIZE));
+  galleyPage=Math.max(1,Math.min(galleyPage,pageCount));
+  $('galleyTools').hidden=false;
+  $('chapterPage').value=galleyPage;
+  $('chapterPage').max=pageCount;
+  $('chapterPageCount').textContent='/ '+pageCount;
+  $('chapterPrev').disabled=galleyPage===1;
+  $('chapterNext').disabled=galleyPage===pageCount;
+  const info=$('sourcePageInfo');
+  info.hidden=!parsed.sourcePageCount;
+  info.textContent=parsed.sourcePageCount ? parsed.sourcePageCount+' '+t('sourcePages')+' · '+b.chapters.length+' '+t('chaptersLabel')+'. '+t('reflowNote') : '';
+  const total=b.chapters.reduce((a,c)=>a+countWords(c.html),0);
+  const rows=matches.slice((galleyPage-1)*GALLEY_PAGE_SIZE,galleyPage*GALLEY_PAGE_SIZE).map(({c,i})=>{
     const w=countWords(c.html);
-    return `<li><span class="slug">${String(i+1).padStart(2,'0')}</span>`+
-           `<span class="title">${escXml(c.title)}</span>`+
-           `<span class="words">${w?w.toLocaleString()+' w':''}</span></li>`;
+    return '<li><span class="slug">'+String(i+1).padStart(2,'0')+'</span><span class="title">'+escXml(c.title)+
+      (c.fallbackTitle?' <small class="help">('+escXml(t('autoTitle'))+')</small>':'')+'</span><span class="words">'+
+      (w?w.toLocaleString()+' '+t('wordsLabel'):'')+'</span></li>';
   }).join('');
-  const foot = b.comic ? `${b.chapters.length} &middot; ${t('pageLabel').toLowerCase()}`
-                       : `${b.chapters.length} &middot; ${total.toLocaleString()} w${b.coverName?' &middot; cover':''}`;
-  g.innerHTML = `<ol>${rows}</ol><div class="foot"><span>${foot}</span></div>`;
+  const foot=b.chapters.length+' '+(b.comic?t('pageLabel'):t('chaptersLabel'))+' · '+total.toLocaleString()+' '+t('wordsLabel');
+  $('galley').innerHTML=(rows?'<ol>'+rows+'</ol>':'<p class="empty">'+escXml(t('noChapters'))+'</p>')+'<div class="foot">'+escXml(foot)+'</div>';
 }
 
 function fwProfile(){ const el=document.getElementById('fwProfile'); return el ? el.value : 'universal'; }
@@ -2592,6 +2654,7 @@ function renderBatchList(states){
     batchFiles.length + ' &middot; ' + escXml(t('batchFiles')) + '</span></div>';
 }
 function startBatch(files){
+  resetGalleyView();
   batchFiles = files; parsed = null; logEl.textContent = ''; hideDeviceCard();
   $('filecard').classList.remove('show');
   $('buildXtc').style.display = 'none';
@@ -2894,6 +2957,10 @@ function sendToDevice(){
 }
 
 /* ---------- events ---------- */
+$('chapterSearch').addEventListener('input',()=>{ galleyPage=1; renderGalley(); });
+$('chapterPrev').addEventListener('click',()=>{ galleyPage--; renderGalley(); });
+$('chapterNext').addEventListener('click',()=>{ galleyPage++; renderGalley(); });
+$('chapterPage').addEventListener('change',()=>{ galleyPage=Math.floor(Number($('chapterPage').value))||1; renderGalley(); });
 const drop=$('drop'), fileInput=$('file');
 drop.addEventListener('click',()=>fileInput.click());
 drop.addEventListener('keydown',e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); fileInput.click(); }});
@@ -2918,12 +2985,14 @@ $('url').addEventListener('keydown',e=>{ if(e.key==='Enter'){ const u=$('url').v
 $('pasteBtn').addEventListener('click',()=>{
   const html=$('pasteHtml').value.trim(); const base=$('pasteUrl').value.trim();
   if(!html){ setStatus(t('stPasteFirst'),'err'); return; }
+  resetGalleyView();
   $('build').disabled=true; parsed=null; hideDeviceCard(); logEl.textContent='';
   try{ ingestArticle(html, base, base||'Pasted article'); }
   catch(err){ console.error(err); log('Error: '+err.message); setStatus(t('errPrefix')+' '+err.message,'err'); }
 });
 
 async function handle(file){
+  resetGalleyView();
   $('build').disabled=true;
   parsed=null; hideDeviceCard();
   setStatus(t('stParsing'));
@@ -2945,6 +3014,7 @@ function ingestArticle(htmlStr, baseUrl, sourceLabel){
 }
 
 async function fetchArticle(url){
+  resetGalleyView();
   $('build').disabled=true; parsed=null; hideDeviceCard(); logEl.textContent='';
   if(isAo3Url(url)) url = ao3FullWorkUrl(url);
   setStatus(t('stFetching')); log('Fetching '+url);
