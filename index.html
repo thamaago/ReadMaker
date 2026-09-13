@@ -1077,7 +1077,7 @@ function b64ToU8(b64){ const bin=atob(b64); const u=new Uint8Array(bin.length); 
 /* ============================ ODT (OpenDocument Text) ============================ */
 /* ODT is a ZIP of XML. Parse content.xml for structure, meta.xml for metadata,
    map automatic text styles to bold/italic/underline, and pull Pictures/*. */
-function mimeFromName(n){ const e=extOf(n); return e==='png'?'image/png':e==='gif'?'image/gif':e==='svg'?'image/svg+xml':e==='bmp'?'image/bmp':'image/jpeg'; }
+function mimeFromName(n){ const e=extOf(n); return e==='png'?'image/png':e==='gif'?'image/gif':e==='svg'?'image/svg+xml':e==='bmp'?'image/bmp':e==='webp'?'image/webp':'image/jpeg'; }
 async function odtToBook(arrayBuffer){
   const zip=await JSZip.loadAsync(arrayBuffer);
   const contentFile=zip.file('content.xml');
@@ -1283,7 +1283,7 @@ function loadTesseract(){
     const sc = document.createElement('script');
     sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/5.1.0/tesseract.min.js';
     sc.onload = function(){ res(window.Tesseract); };
-    sc.onerror = function(){ rej(new Error(t('errOcrLoad'))); };
+    sc.onerror = function(){ tesseractPromise=null; rej(new Error(t('errOcrLoad'))); };
     document.head.appendChild(sc);
   });
   return tesseractPromise;
@@ -1316,14 +1316,14 @@ function loadPdfjs(){
     const base='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/';
     const s=document.createElement('script'); s.src=base+'pdf.min.js';
     s.onload=()=>{ try{ window.pdfjsLib.GlobalWorkerOptions.workerSrc=base+'pdf.worker.min.js'; res(window.pdfjsLib); }catch(e){ rej(e); } };
-    s.onerror=()=>rej(new Error('Could not load the PDF helper. Check your connection.'));
+    s.onerror=()=>{ pdfjsPromise=null; rej(new Error('Could not load the PDF helper. Check your connection.')); };
     document.head.appendChild(s);
   });
   return pdfjsPromise;
 }
 async function pdfToBook(arrayBuffer){
   const pdfjsLib=await loadPdfjs();
-  const pdf=await pdfjsLib.getDocument({data:new Uint8Array(arrayBuffer)}).promise;
+  const pdf=await pdfjsLib.getDocument({data:new Uint8Array(arrayBuffer), isEvalSupported:false, enableScripting:false}).promise;
   let title='',author='';
   try{ const meta=await pdf.getMetadata(); if(meta&&meta.info){ title=(meta.info.Title||'').trim(); author=(meta.info.Author||'').trim(); } }catch(e){}
   const pages=[];
@@ -1761,7 +1761,7 @@ function loadMammoth(){
     const s=document.createElement('script');
     s.src='https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.9.0/mammoth.browser.min.js';
     s.onload=()=>res(window.mammoth);
-    s.onerror=()=>rej(new Error('Could not load the DOCX helper. Check your connection, or convert the DOCX to HTML first.'));
+    s.onerror=()=>{ mammothPromise=null; rej(new Error('Could not load the DOCX helper. Check your connection, or convert the DOCX to HTML first.')); };
     document.head.appendChild(s);
   });
   return mammothPromise;
@@ -2466,6 +2466,7 @@ async function imageToGrayPage(u8, mime, W, H, levels){
 
 /* ============================ orchestration ============================ */
 let parsed = null; // {source book fields, raw}
+let ingestToken = 0;
 let currentFileBase = 'book';
 let lastBuiltBlob=null, lastBuiltName='';
 
@@ -2518,13 +2519,14 @@ async function parseToBook(file){
   return book;
 }
 
-async function parseFile(file){
+async function parseFile(file, token){
   logEl.textContent='';
   currentFileBase = baseName(file.name);
   $('fname').textContent=file.name;
   $('fsize').textContent=fmtSize(file.size);
   $('filecard').classList.add('show');
   const book = await parseToBook(file);
+  if(token !== ingestToken) return;
   $('fformat').textContent = book.fmtLabel || '';
   finishIngest(book, currentFileBase);
 }
@@ -2654,6 +2656,7 @@ function renderBatchList(states){
     batchFiles.length + ' &middot; ' + escXml(t('batchFiles')) + '</span></div>';
 }
 function startBatch(files){
+  ++ingestToken;
   resetGalleyView();
   batchFiles = files; parsed = null; logEl.textContent = ''; hideDeviceCard();
   $('filecard').classList.remove('show');
@@ -2785,7 +2788,7 @@ function loadJsQr(){
     const sc = document.createElement('script');
     sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js';
     sc.onload = function(){ res(window.jsQR); };
-    sc.onerror = function(){ rej(new Error(t('errQrLoad'))); };
+    sc.onerror = function(){ jsqrPromise=null; rej(new Error(t('errQrLoad'))); };
     document.head.appendChild(sc);
   });
   return jsqrPromise;
@@ -2983,6 +2986,7 @@ fileInput.addEventListener('change',()=>acceptFiles(fileInput.files));
 $('fetchBtn').addEventListener('click',()=>{ const u=$('url').value.trim(); if(u) fetchArticle(u); });
 $('url').addEventListener('keydown',e=>{ if(e.key==='Enter'){ const u=$('url').value.trim(); if(u) fetchArticle(u); }});
 $('pasteBtn').addEventListener('click',()=>{
+  ++ingestToken;
   const html=$('pasteHtml').value.trim(); const base=$('pasteUrl').value.trim();
   if(!html){ setStatus(t('stPasteFirst'),'err'); return; }
   resetGalleyView();
@@ -2992,11 +2996,12 @@ $('pasteBtn').addEventListener('click',()=>{
 });
 
 async function handle(file){
+  const token = ++ingestToken;
   resetGalleyView();
   $('build').disabled=true;
   parsed=null; hideDeviceCard();
   setStatus(t('stParsing'));
-  try{ await parseFile(file); }
+  try{ await parseFile(file, token); }
   catch(err){ console.error(err); log('Error: '+err.message); setStatus(t('errPrefix')+' '+err.message,'err'); $('galley').innerHTML='<div class="empty"><div class="mk">&para;</div><p>'+escXml(err.message)+'</p></div>'; }
 }
 
@@ -3014,6 +3019,7 @@ function ingestArticle(htmlStr, baseUrl, sourceLabel){
 }
 
 async function fetchArticle(url){
+  ++ingestToken;
   resetGalleyView();
   $('build').disabled=true; parsed=null; hideDeviceCard(); logEl.textContent='';
   if(isAo3Url(url)) url = ao3FullWorkUrl(url);
@@ -3023,11 +3029,12 @@ async function fetchArticle(url){
     const ctrl = (typeof AbortController!=='undefined') ? new AbortController() : null;
     const timer = ctrl ? setTimeout(()=>ctrl.abort(), 20000) : null;
     let res;
-    try{ res = await fetch(url, ctrl ? {redirect:'follow', signal:ctrl.signal} : {redirect:'follow'}); }
-    finally{ if(timer) clearTimeout(timer); }
-    if(!res) throw new Error(t('errTimeout'));
-    if(!res.ok) throw new Error(t('errHttp')+' '+res.status+')');
-    html = await res.text();
+    try{
+      res = await fetch(url, ctrl ? {redirect:'follow', signal:ctrl.signal} : {redirect:'follow'});
+      if(!res) throw new Error(t('errTimeout'));
+      if(!res.ok) throw new Error(t('errHttp')+' '+res.status+')');
+      html = await res.text();
+    } finally{ if(timer) clearTimeout(timer); }
   }catch(err){
     log('Direct fetch failed: '+err.message);
     if(err && err.name==='AbortError') log(t('errTimeout'));

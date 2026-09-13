@@ -30,5 +30,5 @@ const w=dom.window,d=w.document,el=id=>d.getElementById(id);
  const pdf=await w.parseToBook({name:'test.pdf',size:1,arrayBuffer:async()=>new ArrayBuffer(1)});
  assert.equal(pdf.sourcePageCount,7);
  console.log('Paging, search, export completeness, fallback labels, source counts and reset: passed');
-})().catch(e=>{console.error(e);process.exitCode=1}).finally(()=>w.close());
+})().then(()=>process.exit(0)).catch(e=>{console.error(e);process.exit(1)}).finally(()=>w.close());
 
