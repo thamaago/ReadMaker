@@ -2491,10 +2491,10 @@ async function parseFile(file){
 function finishIngest(book, fallbackTitle){
   if(!book.comic && (!book.html || !book.html.trim())) throw new Error(t('errEmpty'));
   parsed = book;
-  if(book.title && !$('title').value) $('title').value=book.title;
-  if(book.author && !$('author').value) $('author').value=book.author;
-  if(book.language) $('lang').value=book.language;
-  if(!$('title').value) $('title').value = fallbackTitle || 'book';
+  batchFiles = [];
+  $('title').value = book.title || fallbackTitle || 'book';
+  $('author').value = book.author || '';
+  $('lang').value = book.language || '';
   const bx=$('buildXtc'); if(bx) bx.style.display = book.comic ? '' : 'none';
   renderGalley();
   $('build').disabled=false;
@@ -2621,7 +2621,9 @@ async function runBatch(){
       };
       if($('einkOn').value === 'on' && book.images.length) book.images = await processBookImages(book);
       const blob = await buildEpub(book);
-      const name = (book.title || base).replace(/[^\w\-. ]+/g,'_').trim().replace(/\s+/g,'_') + '.epub';
+      const stem = (book.title || base).replace(/[^\w\-. ]+/g,'_').trim().replace(/\s+/g,'_') || 'book';
+      let name = stem + '.epub', suffix = 2;
+      while(zip.file(name)) name = stem + '_' + suffix++ + '.epub';
       zip.file(name, await blob.arrayBuffer());   // arrayBuffer works everywhere Blob does
       states[i] = t('batchDone') + ' \u00b7 ' + book.chapters.length; done++;
     }catch(err){

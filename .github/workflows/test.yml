@@ -14,7 +14,7 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
-          node-version: '2x'
+          node-version: '24.19.0'
 
       - name: Install test dependencies
         working-directory: tests
@@ -23,5 +23,3 @@ jobs:
       - name: Run headless test suites
         working-directory: tests
         run: npm test
-
-npm install jsdom@24.1.0

@@ -26,8 +26,8 @@ jobs:
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
-	with:
-    		enablement: true
+        with:
+          enablement: true
 
       - name: Upload site
         uses: actions/upload-pages-artifact@v3
@@ -38,9 +38,3 @@ jobs:
       - name: Deploy
         id: deployment
         uses: actions/deploy-pages@v4
-	
-	- name: Setup Node.js
-  uses: actions/setup-node@v4
-  with:
-    node-version: '2x.x'
-  

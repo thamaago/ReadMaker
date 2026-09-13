@@ -100,6 +100,8 @@ All parsing and conversion happen locally in your browser. Files never leave you
 
 ## Development & tests
 
+Use Node.js 24.19.0 (the version used in CI) to run the test suite.
+
 Pure logic (binary MOBI/PalmDOC, PDF reconstruction, dithering, EPUB builder, sanitiser, i18n, UI wiring) is covered by headless tests. The canvas/pdf.js/mammoth paths are browser-only and not headless-tested.
 
 ```bash
