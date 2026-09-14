@@ -8,6 +8,8 @@ core=core.slice(0,core.indexOf('/* ============================ orchestration'))
 
 let p=0,f=0;const ok=(c,m)=>{c?(p++,console.log('  ok  ',m)):(f++,console.log('  FAIL',m));};
 const I=(str,x,y,w,h)=>({str,x,y,w,h});
+const dropCap=pdfItemsToHtml([[I('Mthat they were perfectly normal, thank you very much.',0,100,300,30),I('Mr. Dursley was the director of a firm.',0,70,220,12)]]);
+ok(!/^<h1>/i.test(dropCap),'pdf: prose-like drop cap line is not promoted to heading');
 
 // Page 0
 const page0=[
@@ -50,4 +52,3 @@ const book={title:'T',author:'A',language:'en',images:[],coverName:'',chapters:s
 ok(book.chapters.length===2,'h1h2 split -> title + Chapter Two ('+book.chapters.length+')');
 
 console.log('\nRESULT: '+p+' passed, '+f+' failed');process.exit(f?1:0);
-

@@ -97,6 +97,8 @@ Final words.`;
   ok(/<dc:title>Test Book<\/dc:title>/.test(opf), 'epub: opf title');
   ok(/<dc:creator>A\. Author<\/dc:creator>/.test(opf), 'epub: opf author');
   ok(/<dc:language>en<\/dc:language>/.test(opf), 'epub: opf language');
+  ok(/<dc:date>\d{4}-\d{2}-\d{2}<\/dc:date>/.test(opf), 'epub: publication date');
+  ok(/<meta name="generator" content="Read Maker"\/>/.test(opf), 'epub: generator metadata');
   ok(/<spine toc="ncx">/.test(opf), 'epub: spine references ncx');
   ok((opf.match(/<itemref/g) || []).length === 2, 'epub: spine has 2 chapter itemrefs');
 
