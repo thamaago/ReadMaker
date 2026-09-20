@@ -528,7 +528,7 @@ var T = {
     errFb2:"Berkas FB2 ini rusak (XML tidak valid).",
     errOdtBad:"Berkas ODT tidak sah (content.xml tidak ditemukan).",
     errOdtXml:"Isi berkas ODT rusak (XML tidak valid).",
-    errUnsupported:"Format belum didukung:",
+    errUnsupported:"Format belum didukung:", errPdfEncrypted:"PDF ini memakai enkripsi atau DRM yang tidak didukung. Buka kunci/ekspor ulang PDF lewat Calibre atau aplikasi sumber, lalu coba lagi.",
     errEmpty:"Tidak ada teks yang bisa dibaca di berkas ini.",
     errEpubInput:"Berkas ini sudah berformat EPUB, jadi tidak perlu dikonversi. Salin saja langsung ke perangkat.",
     errHttp:"Situs menolak permintaan (kode",
@@ -585,7 +585,7 @@ var T = {
     errFb2:"This FB2 file is damaged (invalid XML).",
     errOdtBad:"Not a valid ODT file (content.xml is missing).",
     errOdtXml:"The ODT contents are damaged (invalid XML).",
-    errUnsupported:"Format not supported yet:",
+    errUnsupported:"Format not supported yet:", errPdfEncrypted:"This PDF uses encryption or DRM that is not supported. Decrypt or re-export it with Calibre or the source app, then try again.",
     errEmpty:"No readable text was found in this file.",
     errEpubInput:"This file is already an EPUB, so it doesn't need converting. Just copy it straight to your device.",
     errHttp:"The site refused the request (code",
@@ -2543,7 +2543,10 @@ async function parseToBook(file){
     const buf=await file.arrayBuffer(); const r=await odtToBook(buf); book.html=r.html; book.title=r.title; book.author=r.author; book.language=r.lang; book.images=r.images; book.coverName=r.coverName; fmtLabel='OpenDocument (ODT)';
     if(r.images.length) log('Extracted '+r.images.length+' embedded image(s)');
   } else if(ext==='pdf'){
-    setStatus(t('stParsing')); const buf=await file.arrayBuffer(); const r=await pdfToBook(buf); book.html=r.html; book.title=r.title; book.author=r.author; book.images=r.images; book.coverName=r.coverName; book.sourcePageCount=r.sourcePageCount; fmtLabel='PDF';
+    setStatus(t('stParsing')); const buf=await file.arrayBuffer(); let r;
+    try { r=await pdfToBook(buf); }
+    catch(err){ if(/encrypt|password|drm|security/i.test(String(err && err.message || err))) throw new Error(t('errPdfEncrypted')); throw err; }
+    book.html=r.html; book.title=r.title; book.author=r.author; book.images=r.images; book.coverName=r.coverName; book.sourcePageCount=r.sourcePageCount; fmtLabel='PDF';
     if(r.images.length) log('Extracted '+r.images.length+' embedded image(s) from PDF');
   } else if(ext==='mobi'||ext==='azw'||ext==='azw3'||ext==='prc'){
     const buf=await file.arrayBuffer(); const r=mobiToBook(buf); book.html=r.html; book.title=r.title; book.author=r.author; book.language=r.lang; book.images=r.images; book.coverName=r.coverName; fmtLabel=ext==='mobi'?'Kindle (MOBI)':'Kindle ('+ext.toUpperCase()+')';
@@ -2570,6 +2573,7 @@ async function parseFile(file, token){
   logEl.textContent='';
   currentFileBase = baseName(file.name);
   $('fname').textContent=file.name;
+  $('fformat').textContent = extOf(file.name).toUpperCase();
   $('fsize').textContent=fmtSize(file.size);
   $('filecard').classList.add('show');
   const book = await parseToBook(file);
