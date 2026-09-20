@@ -236,11 +236,12 @@
   <section>
     <div class="col-label"><span class="n">1</span><span class="eyebrow" data-i18n="s1">Pilih sumber</span><span class="line"></span></div>
 
-    <div id="drop" class="drop" tabindex="0" role="button" aria-label="Pilih berkas untuk dikonversi" title="TXT, MD, RTF, HTML, FB2, ODT, DOCX, PDF, MOBI, AZW3, CBZ">
+    <div id="drop" class="drop" tabindex="0" role="button" aria-label="Pilih berkas untuk dikonversi" title="TXT, MD, RTF, HTML, FB2, ODT, DOCX, PDF, MOBI, AZW3, CBZ, CBR">
       <div class="big" data-i18n="dropBig">Letakkan berkas di sini</div>
       <div class="hint" data-i18n="dropHint">atau klik untuk memilih</div>
       <div class="formats" data-i18n="dropFormats">Word, teks, Markdown, ODT, HTML, FB2</div>
-      <input id="file" type="file" multiple accept=".txt,.md,.markdown,.text,.rtf,.html,.htm,.xhtml,.fb2,.odt,.docx,.pdf,.mobi,.azw,.azw3,.prc,.cbz" />
+      <input id="file" type="file" multiple accept=".txt,.md,.markdown,.text,.rtf,.html,.htm,.xhtml,.fb2,.odt,.docx,.pdf,.mobi,.azw,.azw3,.prc,.cbz,.cbr" />
+      <div class="help" data-i18n="runtimeHelp">PDF dan DOCX memuat pembaca tambahan saat pertama kali dipakai; koneksi internet diperlukan sekali.</div>
     </div>
 
     <div id="filecard" class="filecard">
@@ -274,11 +275,11 @@
     <fieldset>
       <div class="field">
         <label for="title" data-i18n="lblTitle">Judul</label>
-        <input id="title" type="text" placeholder="Tanpa judul" autocomplete="off" />
+        <input id="title" type="text" data-i18n-ph="titlePh" placeholder="Tanpa judul" autocomplete="off" />
       </div>
       <div class="field">
         <label for="author" data-i18n="lblAuthor">Penulis</label>
-        <input id="author" type="text" placeholder="Tidak diketahui" autocomplete="off" />
+        <input id="author" type="text" data-i18n-ph="authorPh" placeholder="Tidak diketahui" autocomplete="off" />
       </div>
       <div class="field">
         <label for="split" data-i18n="lblSplit">Pemisahan bab</label>
@@ -305,7 +306,7 @@
           </div>
           <div class="field">
             <label for="lang" data-i18n="lblLang">Kode bahasa</label>
-            <input id="lang" type="text" placeholder="id / en" autocomplete="off" />
+            <input id="lang" type="text" data-i18n-ph="langPh" placeholder="id / en" autocomplete="off" />
             <div class="help" data-i18n-html="langHelp">Contoh: <code>id</code> (Indonesia), <code>en</code> (Inggris), <code>ar</code> (Arab).</div>
           </div>
           <div class="col-label" style="margin-top:12px"><span class="eyebrow" data-i18n="ocrHead">PDF hasil pindai</span><span class="line"></span></div>
@@ -495,10 +496,10 @@ var T = {
     how2t:"Periksa judul & bab", how2d:"Judul dan penulis terisi otomatis; ubah bila perlu.",
     how3t:"Buat & salin ke perangkat", how3d:"Unduh EPUB, lalu salin ke e-reader-mu.",
     s1:"Pilih sumber",
-    dropBig:"Letakkan berkas di sini", dropHint:"atau klik untuk memilih \u2014 bisa beberapa berkas sekaligus", dropFormats:"Word, PDF, Kindle, komik CBZ, teks, dll.",
+    dropBig:"Letakkan berkas di sini", dropHint:"atau klik untuk memilih \u2014 bisa beberapa berkas sekaligus", dropFormats:"Word, PDF, Kindle, komik CBZ/CBR, teks, dll.",
     mFormat:"format", mSize:"ukuran", mParsed:"bab hasil",
     chapterSearch:"Cari bab", prevList:"Sebelumnya", nextList:"Berikutnya", listPage:"Halaman daftar", wordsLabel:"kata", chaptersLabel:"bab hasil", sourcePages:"halaman PDF sumber", reflowNote:"Halaman EPUB mengikuti pengaturan pembaca.", autoTitle:"Judul pengganti", noChapters:"Tidak ada bab yang cocok.",
-    orWeb:"atau dari sebuah tautan", urlPh:"Tempel alamat artikel (https://…)", fetchBtn:"Ambil artikel",
+    orWeb:"atau dari sebuah tautan", urlPh:"Tempel alamat artikel (https://…)", fetchBtn:"Ambil artikel", titlePh:"Tanpa judul", authorPh:"Tidak diketahui", langPh:"id / en", runtimeHelp:"PDF dan DOCX memuat pembaca tambahan saat pertama kali dipakai; koneksi internet diperlukan sekali.",
     fetchHelp:'Mengambil isi artikel, membuang menu dan iklan, menyisakan teksnya. Sebagian situs memblokir permintaan — jika gagal, pakai "Tempel HTML" di bawah.',
     pasteSummary:"Situs menolak? Tempel HTML halaman",
     pasteHelp:"Buka artikelnya, salin HTML halaman, lalu tempel di sini. Tetap berhasil walau permintaan langsung diblokir.",
@@ -552,10 +553,10 @@ var T = {
     how2t:"Check title & chapters", how2d:"Title and author are filled in automatically; edit if needed.",
     how3t:"Create & copy to device", how3d:"Download the EPUB, then copy it to your e-reader.",
     s1:"Choose a source",
-    dropBig:"Drop your file here", dropHint:"or click to choose \u2014 several files at once is fine", dropFormats:"Word, PDF, Kindle, CBZ comics, text, etc.",
+    dropBig:"Drop your file here", dropHint:"or click to choose \u2014 several files at once is fine", dropFormats:"Word, PDF, Kindle, CBZ/CBR comics, text, etc.",
     mFormat:"format", mSize:"size", mParsed:"output chapters",
     chapterSearch:"Search chapters", prevList:"Previous", nextList:"Next", listPage:"List page", wordsLabel:"words", chaptersLabel:"output chapters", sourcePages:"source PDF pages", reflowNote:"EPUB pages follow the reader settings.", autoTitle:"Fallback title", noChapters:"No matching chapters.",
-    orWeb:"or from a link", urlPh:"Paste an article address (https://…)", fetchBtn:"Fetch article",
+    orWeb:"or from a link", urlPh:"Paste an article address (https://…)", fetchBtn:"Fetch article", titlePh:"Untitled", authorPh:"Unknown", langPh:"id / en", runtimeHelp:"PDF and DOCX load an additional reader the first time they are used; an internet connection is needed once.",
     fetchHelp:'Pulls the article, strips menus and ads, keeps the text. Some sites block requests — if it fails, use "Paste HTML" below.',
     pasteSummary:"Blocked by the site? Paste the page HTML",
     pasteHelp:"Open the article, copy the page HTML, and paste it here. Works even when a direct request is blocked.",
@@ -2542,7 +2543,8 @@ async function parseToBook(file){
     const buf=await file.arrayBuffer(); const r=await odtToBook(buf); book.html=r.html; book.title=r.title; book.author=r.author; book.language=r.lang; book.images=r.images; book.coverName=r.coverName; fmtLabel='OpenDocument (ODT)';
     if(r.images.length) log('Extracted '+r.images.length+' embedded image(s)');
   } else if(ext==='pdf'){
-    setStatus(t('stParsing')); const buf=await file.arrayBuffer(); const r=await pdfToBook(buf); book.html=r.html; book.title=r.title; book.author=r.author; book.sourcePageCount=r.sourcePageCount; fmtLabel='PDF';
+    setStatus(t('stParsing')); const buf=await file.arrayBuffer(); const r=await pdfToBook(buf); book.html=r.html; book.title=r.title; book.author=r.author; book.images=r.images; book.coverName=r.coverName; book.sourcePageCount=r.sourcePageCount; fmtLabel='PDF';
+    if(r.images.length) log('Extracted '+r.images.length+' embedded image(s) from PDF');
   } else if(ext==='mobi'||ext==='azw'||ext==='azw3'||ext==='prc'){
     const buf=await file.arrayBuffer(); const r=mobiToBook(buf); book.html=r.html; book.title=r.title; book.author=r.author; book.language=r.lang; book.images=r.images; book.coverName=r.coverName; fmtLabel=ext==='mobi'?'Kindle (MOBI)':'Kindle ('+ext.toUpperCase()+')';
     if(r.tocCount) log('Book contents found: '+r.tocCount+' chapters');
@@ -3064,7 +3066,7 @@ function ingestArticle(htmlStr, baseUrl, sourceLabel){
 }
 
 async function fetchArticle(url){
-  ++ingestToken;
+  const token = ++ingestToken;
   resetGalleyView();
   $('build').disabled=true; parsed=null; hideDeviceCard(); logEl.textContent='';
   if(isAo3Url(url)) url = ao3FullWorkUrl(url);
@@ -3081,14 +3083,16 @@ async function fetchArticle(url){
       html = await res.text();
     } finally{ if(timer) clearTimeout(timer); }
   }catch(err){
+    if(token !== ingestToken) return;
     log('Direct fetch failed: '+err.message);
     if(err && err.name==='AbortError') log(t('errTimeout'));
     setStatus(t('stBlocked'), 'err');
     $('galley').innerHTML='<div class="empty"><div class="mk">&para;</div><p>'+escXml(t('blockedT'))+'<br/>'+escXml(t('blockedD'))+'</p></div>';
     return;
   }
+  if(token !== ingestToken) return;
   try{ ingestArticle(html, url, url); }
-  catch(err){ console.error(err); log('Error: '+err.message); setStatus(t('errPrefix')+' '+err.message,'err'); }
+  catch(err){ if(token !== ingestToken) return; console.error(err); log('Error: '+err.message); setStatus(t('errPrefix')+' '+err.message,'err'); }
 }
 
 $('buildXtc').addEventListener('click', exportComicToXtc);
