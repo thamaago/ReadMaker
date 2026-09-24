@@ -22,7 +22,7 @@ Converts these sources into a reflowable, chaptered EPUB the reader opens native
 | FictionBook (`.fb2`) | Metadata + embedded cover/images |
 | OpenDocument (`.odt`) | Headings, styles, lists, embedded images |
 | Word (`.docx`) | Via `mammoth.js` (loads once, needs a connection) |
-| PDF (`.pdf`) | Via `pdf.js`; reconstructs paragraphs/headings. Scanned PDFs can be read with optional OCR (Tesseract.js, Indonesian/English) |
+| PDF (`.pdf`) | Via `pdf.js`; reconstructs paragraphs/headings, or preserves each source page as a fixed-layout EPUB image for complex/illustrated PDFs. Scanned PDFs can be read with optional OCR (Tesseract.js, Indonesian/English) |
 | Kindle (`.mobi` / `.azw3`) | Non-DRM only; PalmDOC text + images + cover; **reads the book's own table of contents** to recover real chapter titles |
 | Comics (`.cbz`) | One image per page; prepared for e-ink |
 | Web articles | Paste a URL or the page HTML (reader mode). **AO3 works** are recognised: it fetches the full work and keeps title, author, summary and every chapter |
@@ -31,6 +31,7 @@ Extras:
 
 - **E-ink image pipeline** — greyscale, panel-fit resize, and dithering (Floyd–Steinberg / ordered), matching the device's 2-bit greyscale palette (`0 / 85 / 170 / 255`).
 - **Engine-tuned output** — EPUB 2/3 with both `nav.xhtml` and `toc.ncx`, well-formed XHTML, and CSS limited to the properties the reader actually honours (so the user's font/size/spacing settings win).
+- **PDF layout choice** — use *Reflow text* for adjustable e-ink typography, or *Keep original pages* for PDFs with illustrations, drop caps, tables, and complex placement. The latter produces EPUB 3 pre-paginated chapters and is intentionally larger.
 - **Bilingual UI** (Indonesian / English) with a simple 3-step flow.
 - **Chapter detection:** uses the book's built-in table of contents when there is one (MOBI `filepos` offsets, the binary NCX/INDX index, or HTML `href="#id"` anchors), the way desktop converters do, instead of guessing from heading tags — which fails on books that wrap body prose or drop caps in `<h1>`. Falls back to heading detection, then to the book's own page-break separators, then to `Chapter`/`Bab` line patterns (a marker line and the chapter name that follows it are combined, e.g. "CHAPTER ONE: THE BOY WHO LIVED"). Titles that read like running text are rejected and replaced with a numbered label.
 - **Batch conversion:** drop several files at once and get one ZIP of EPUBs back. Each file is converted independently, so a broken or unsupported file is reported in the queue and skipped rather than stopping the run.
@@ -87,6 +88,7 @@ The included `.nojekyll` file tells Pages to serve files as-is.
 - **DRM-protected** Kindle files are not supported (they're copy-protected). HUFF/CDIC-compressed MOBI isn't supported — convert with Calibre first.
 - **CBR** (RAR) isn't read directly; convert it to CBZ first.
 - **Scanned PDFs** need the optional OCR mode (Advanced options). It is off by default, downloads the OCR engine on first use, is much slower than normal conversion, and the recognised text will contain some mistakes.
+- **Fixed-layout PDF mode** preserves page appearance as rendered PNGs; it does not provide the same font resizing or reflow as normal EPUB chapters.
 - Remote images referenced by URL stay as references (won't show offline). Embed images in the source for a self-contained book.
 - **XTC/XTCH export is image-pages only** (comics/images), oriented at the X4 480x800 panel; text-to-XTC would require the device's own renderer and is out of scope here. The byte layout is round-trip verified against the reader's format, but not yet confirmed on hardware.
 - **Not yet tested on physical hardware.** Output is validated structurally and against the reader's parser/panel behaviour by reading its source, but a real X3/X4 pass is still recommended before relying on it.
