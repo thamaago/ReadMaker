@@ -403,6 +403,7 @@
       <button id="chapterNext" class="mini" data-i18n="nextList">Berikutnya</button>
     </div>
     <p id="sourcePageInfo" class="help" hidden></p>
+    <p id="pdfAnalysis" class="help" hidden aria-live="polite"></p>
     <div class="galley" id="galley">
       <div class="empty" id="galleyEmpty">
         <div class="mk">&para;</div>
@@ -506,7 +507,7 @@ var T = {
     s1:"Pilih sumber",
     dropBig:"Letakkan berkas di sini", dropHint:"atau klik untuk memilih \u2014 bisa beberapa berkas sekaligus", dropFormats:"Word, PDF, Kindle, komik CBZ/CBR, teks, dll.",
     mFormat:"format", mSize:"ukuran", mParsed:"bab hasil",
-    chapterSearch:"Cari bab", prevList:"Sebelumnya", nextList:"Berikutnya", listPage:"Halaman daftar", wordsLabel:"kata", chaptersLabel:"bab hasil", sourcePages:"halaman PDF sumber", reflowNote:"Halaman EPUB mengikuti pengaturan pembaca.", fixedNote:"Mode halaman asli mempertahankan tampilan PDF.", autoTitle:"Judul pengganti", noChapters:"Tidak ada bab yang cocok.",
+    chapterSearch:"Cari bab", prevList:"Sebelumnya", nextList:"Berikutnya", listPage:"Halaman daftar", wordsLabel:"kata", chaptersLabel:"bab hasil", sourcePages:"halaman PDF sumber", reflowNote:"Halaman EPUB mengikuti pengaturan pembaca.", fixedNote:"Mode halaman asli mempertahankan tampilan PDF.", pdfAnalysis:"Rekomendasi PDF", pdfRecommendFixed:"Pertahankan halaman asli", pdfRecommendReflow:"Coba teks mengalir", pdfConfidence:"keyakinan", pdfReasonImages:"ditemukan ilustrasi/gambar", pdfReasonColumns:"terdeteksi tata letak multi-kolom", pdfReasonSparse:"teks tidak tersedia di sebagian besar halaman", pdfReasonText:"lapisan teks cukup konsisten", autoTitle:"Judul pengganti", noChapters:"Tidak ada bab yang cocok.",
     orWeb:"atau dari sebuah tautan", urlPh:"Tempel alamat artikel (https://…)", fetchBtn:"Ambil artikel", titlePh:"Tanpa judul", authorPh:"Tidak diketahui", langPh:"id / en", runtimeHelp:"PDF dan DOCX memuat pembaca tambahan saat pertama kali dipakai; koneksi internet diperlukan sekali.",
     fetchHelp:'Mengambil isi artikel, membuang menu dan iklan, menyisakan teksnya. Sebagian situs memblokir permintaan — jika gagal, pakai "Tempel HTML" di bawah.',
     pasteSummary:"Situs menolak? Tempel HTML halaman",
@@ -563,7 +564,7 @@ var T = {
     s1:"Choose a source",
     dropBig:"Drop your file here", dropHint:"or click to choose \u2014 several files at once is fine", dropFormats:"Word, PDF, Kindle, CBZ/CBR comics, text, etc.",
     mFormat:"format", mSize:"size", mParsed:"output chapters",
-    chapterSearch:"Search chapters", prevList:"Previous", nextList:"Next", listPage:"List page", wordsLabel:"words", chaptersLabel:"output chapters", sourcePages:"source PDF pages", reflowNote:"EPUB pages follow the reader settings.", fixedNote:"Original-page mode preserves the PDF appearance.", autoTitle:"Fallback title", noChapters:"No matching chapters.",
+    chapterSearch:"Search chapters", prevList:"Previous", nextList:"Next", listPage:"List page", wordsLabel:"words", chaptersLabel:"output chapters", sourcePages:"source PDF pages", reflowNote:"EPUB pages follow the reader settings.", fixedNote:"Original-page mode preserves the PDF appearance.", pdfAnalysis:"PDF recommendation", pdfRecommendFixed:"Keep original pages", pdfRecommendReflow:"Try reflow text", pdfConfidence:"confidence", pdfReasonImages:"illustrations/images detected", pdfReasonColumns:"multi-column layout detected", pdfReasonSparse:"text is missing from most pages", pdfReasonText:"text layer is mostly consistent", autoTitle:"Fallback title", noChapters:"No matching chapters.",
     orWeb:"or from a link", urlPh:"Paste an article address (https://…)", fetchBtn:"Fetch article", titlePh:"Untitled", authorPh:"Unknown", langPh:"id / en", runtimeHelp:"PDF and DOCX load an additional reader the first time they are used; an internet connection is needed once.",
     fetchHelp:'Pulls the article, strips menus and ads, keeps the text. Some sites block requests — if it fails, use "Paste HTML" below.',
     pasteSummary:"Blocked by the site? Paste the page HTML",
@@ -1213,7 +1214,37 @@ function pdfMetadataFallback(pages){
   if(!author){ const named=joined.match(/\bRaditya\s+Dika\b/i); if(named) author='Raditya Dika'; }
   return {title,author};
 }
-function pdfItemsToHtml(pages){
+function pdfAnalyzeLayout(pages, imageCount, pageCount){
+  const ps=Array.isArray(pages)?pages:[];
+  const totalPages=pageCount||ps.length||0;
+  const textPages=ps.filter(p=>Array.isArray(p)&&p.some(it=>String(it&&it.str||'').trim())).length;
+  const textRatio=totalPages ? textPages/totalPages : 0;
+  let multiColumnPages=0;
+  ps.forEach(page=>{
+    const items=(page||[]).filter(it=>String(it&&it.str||'').trim());
+    if(items.length<8) return;
+    const sorted=items.slice().sort((a,b)=>(Number(b.y)||0)-(Number(a.y)||0)||(Number(a.x)||0)-(Number(b.x)||0));
+    const starts=[]; let line=null;
+    sorted.forEach(it=>{
+      const y=Number(it.y)||0;
+      if(line===null || Math.abs(y-line.y)>3){ starts.push(Number(it.x)||0); line={y}; }
+    });
+    if(starts.length<6) return;
+    const xs=starts.sort((a,b)=>a-b);
+    let clusters=1;
+    for(let i=1;i<xs.length;i++) if(xs[i]-xs[i-1]>120) clusters++;
+    if(clusters>=2) multiColumnPages++;
+  });
+  const reasons=[]; let score=0;
+  if((imageCount||0)>=Math.max(2,Math.ceil(totalPages*.08))){ score+=2; reasons.push('images'); }
+  if(multiColumnPages>=Math.max(1,Math.ceil(totalPages*.15))){ score+=2; reasons.push('columns'); }
+  if(textRatio<.65){ score+=2; reasons.push('sparse'); }
+  if(!reasons.length && textRatio>=.65) reasons.push('text');
+  const recommendedMode=score>=2?'fixed':'reflow';
+  const confidence=Math.round(Math.min(.98,.55+score*.12)*100);
+  return {recommendedMode,confidence,textRatio,multiColumnPages,imageCount:imageCount||0,reasons};
+}
+function pdfItemsToHtml(pages, pageImages){
   const heights=[];
   pages.forEach(p=>p.forEach(it=>{ if(it.str && it.str.trim()) heights.push(Math.round(it.h)); }));
   const bodyH = median(heights) || 12;
@@ -1276,14 +1307,25 @@ function pdfItemsToHtml(pages){
   const leftMargin=bodyX.length?Math.min(...bodyX):Math.min(...allLines.map(l=>l.x0));
   const headingLevel=(s)=> s>=bodyH*1.8?1 : s>=bodyH*1.45?2 : 3;
 
-  const out=[]; let para='', prev=null;
-  const flush=()=>{ if(para.trim()) out.push('<p>'+escHtmlText(para.trim())+'</p>'); para=''; };
+  const out=[]; let para='', prev=null, paraPages=[];
+  const usedImages=new Set();
+  const addPageImages=(pageNums)=>{
+    if(!Array.isArray(pageImages)) return;
+    (pageNums||[]).forEach(pi=>{
+      (pageImages[pi]||[]).forEach(nm=>{
+        if(!nm || usedImages.has(nm)) return;
+        usedImages.add(nm);
+        out.push('<p class="pdf-inline-image"><img src="images/'+escAttr(nm)+'" alt=""/></p>');
+      });
+    });
+  };
+  const flush=()=>{ if(para.trim()) out.push('<p>'+escHtmlText(para.trim())+'</p>'); addPageImages(paraPages); para=''; paraPages=[]; };
   for(const l of allLines){
     // Large drop caps are often emitted by PDF.js as a one-line, oversized
     // text item. Treat prose-like lines as body text even when their glyph
     // height resembles a heading (for example: "Mthat they were...").
     if(l.size>=bodyH*1.35 && l.text.length<=120 && !looksLikeProse(l.text)){
-      flush(); const lv=headingLevel(l.size); out.push('<h'+lv+'>'+escHtmlText(l.text)+'</h'+lv+'>'); prev=l; continue;
+      flush(); const lv=headingLevel(l.size); out.push('<h'+lv+'>'+escHtmlText(l.text)+'</h'+lv+'>'); addPageImages([l.page]); prev=l; continue;
     }
     let newp=false;
     if(!para) newp=true;
@@ -1292,12 +1334,14 @@ function pdfItemsToHtml(pages){
       else if(l.x0-leftMargin>bodyH*0.8) newp=true;
       else if(prev.page!==l.page && /[.!?:”"']\s*$/.test(para)) newp=true;
     }
-    if(newp){ flush(); para=l.text; }
+    if(newp){ flush(); para=l.text; paraPages=[l.page]; }
     else if(/-$/.test(para) && /^[a-z]/.test(l.text)) para=para.replace(/-$/,'')+l.text; // de-hyphenate
     else para+=(para?' ':'')+l.text;
+    if(paraPages.indexOf(l.page)<0) paraPages.push(l.page);
     prev=l;
   }
   flush();
+  addPageImages(pages.map((_,i)=>i));
   return out.join('\n');
 }
 /* Scanned PDFs hold no text layer, only page images. With OCR enabled we
@@ -1378,9 +1422,10 @@ async function pdfToBook(arrayBuffer, mode){
   let title='',author='';
   try{ const meta=await pdf.getMetadata(); if(meta&&meta.info){ title=(meta.info.Title||'').trim(); author=(meta.info.Author||'').trim(); } }catch(e){}
   const fixed=mode==='fixed';
-  const pages=[]; const metadataPages=[]; const chapters=[]; const images=[]; let imageNo=0;
+  const pages=[]; const metadataPages=[]; const pageImageRefs=[]; const chapters=[]; const images=[]; let imageNo=0;
   for(let i=1;i<=pdf.numPages;i++){
     const page=await pdf.getPage(i);
+    const pageRefs=[];
     let pageItems=null;
     if((!fixed || i<=4) && typeof page.getTextContent==='function'){
       const tc=await page.getTextContent();
@@ -1418,15 +1463,19 @@ async function pdfToBook(arrayBuffer, mode){
         if(!png) continue;
         const nm='pdf_img_'+String(imageNo++).padStart(4,'0')+'.png';
         images.push({name:nm,mime:'image/png',b64:u8ToB64(new Uint8Array(await png.arrayBuffer()))});
+        pageRefs.push(nm);
       }
     }catch(e){ /* image extraction is optional; retain text conversion */ }
+    pageImageRefs[i-1]=pageRefs;
     if(i%5===0 || i===pdf.numPages) setStatus(t('stParsing')+' '+i+'/'+pdf.numPages);
   }
   const fallback=pdfMetadataFallback(metadataPages);
   if(!title) title=fallback.title;
   if(!author) author=fallback.author;
-  if(fixed) return {html:'',chapters,title,author,lang:'',images,coverName:'',sourcePageCount:pdf.numPages,pdfMode:'fixed'};
-  let html=pdfItemsToHtml(pages);
+  const analysis=fixed ? {recommendedMode:'fixed',confidence:100,textRatio:0,multiColumnPages:0,imageCount:pdf.numPages,reasons:['images']} : pdfAnalyzeLayout(pages,images.length,pdf.numPages);
+  if(fixed) return {html:'',chapters,title,author,lang:'',images,coverName:'',sourcePageCount:pdf.numPages,pdfMode:'fixed',analysis};
+  let html=pdfItemsToHtml(pages,pageImageRefs);
+  const inlineImages=!!(html && /class="pdf-inline-image"/.test(html));
   if((!html || !html.trim())){
     const ocrEl = document.getElementById('ocrOn');
     if(ocrEl && ocrEl.value === 'on'){
@@ -1440,8 +1489,8 @@ async function pdfToBook(arrayBuffer, mode){
     }
   }
   html=promoteHeadings(html);
-  if(images.length) html += '\n' + images.map(im=>'<p><img src="images/'+escAttr(im.name)+'" alt=""/></p>').join('\n');
-  return { html, title, author, lang:'', images, coverName:'', sourcePageCount:pdf.numPages };
+  if(images.length && !inlineImages) html += '\n' + images.map(im=>'<p><img src="images/'+escAttr(im.name)+'" alt=""/></p>').join('\n');
+  return { html, title, author, lang:'', images, coverName:'', sourcePageCount:pdf.numPages, analysis };
 }
 
 /* ============================ MOBI / AZW3 ============================ */
@@ -2061,6 +2110,8 @@ ul,ol{margin:0.5em 0 0.5em 1.4em}
 hr{margin:1em 0}
 img{max-width:100%;height:auto}
 .pdf-page{margin:0;text-indent:0;text-align:center;page-break-after:always}
+.pdf-inline-image{margin:0.8em 0;text-indent:0;text-align:center}
+.pdf-inline-image img{display:block;margin:0 auto;max-width:100%;height:auto}
 .pdf-page img{display:block;margin:0 auto;width:100%;height:auto}
 pre{white-space:pre-wrap}`;
 const BOOK_CSS_UNIVERSAL = `
@@ -2622,7 +2673,7 @@ async function parseToBook(file){
     const selectedPdfMode = (document.getElementById('pdfMode')||{}).value || 'reflow';
     try { r=await pdfToBook(buf, selectedPdfMode); }
     catch(err){ if(/encrypt|password|drm|security/i.test(String(err && err.message || err))) throw new Error(t('errPdfEncrypted')); throw err; }
-    book.html=r.html; book.chapters=r.chapters; book.pdfMode=r.pdfMode || selectedPdfMode; book.title=r.title; book.author=r.author; book.images=r.images; book.coverName=r.coverName; book.sourcePageCount=r.sourcePageCount; fmtLabel='PDF';
+    book.html=r.html; book.chapters=r.chapters; book.pdfMode=r.pdfMode || selectedPdfMode; book.pdfAnalysis=r.analysis||null; book.title=r.title; book.author=r.author; book.images=r.images; book.coverName=r.coverName; book.sourcePageCount=r.sourcePageCount; fmtLabel='PDF';
     if(r.images.length) log('Extracted '+r.images.length+' embedded image(s) from PDF');
   } else if(ext==='mobi'||ext==='azw'||ext==='azw3'||ext==='prc'){
     const buf=await file.arrayBuffer(); const r=mobiToBook(buf); book.html=r.html; book.title=r.title; book.author=r.author; book.language=r.lang; book.images=r.images; book.coverName=r.coverName; fmtLabel=ext==='mobi'?'Kindle (MOBI)':'Kindle ('+ext.toUpperCase()+')';
@@ -2711,6 +2762,16 @@ function resetGalleyView(){
   $('chapterSearch').value = '';
   $('galleyTools').hidden = true;
   $('sourcePageInfo').hidden = true;
+  $('pdfAnalysis').hidden = true;
+  $('pdfAnalysis').textContent = '';
+}
+function renderPdfAnalysis(analysis){
+  const el=$('pdfAnalysis');
+  if(!el || !analysis){ if(el) el.hidden=true; return; }
+  const mode=analysis.recommendedMode==='fixed' ? t('pdfRecommendFixed') : t('pdfRecommendReflow');
+  const reasons=(analysis.reasons||[]).map(r=>t('pdfReason'+r.charAt(0).toUpperCase()+r.slice(1))).filter(Boolean).join(', ');
+  el.textContent=t('pdfAnalysis')+': '+mode+' ('+t('pdfConfidence')+' '+analysis.confidence+'%)'+(reasons?' — '+reasons+'.':'');
+  el.hidden=false;
 }
 function renderGalley(){
   if(!parsed){ return; }
@@ -2729,6 +2790,7 @@ function renderGalley(){
   const info=$('sourcePageInfo');
   info.hidden=!parsed.sourcePageCount;
   info.textContent=parsed.sourcePageCount ? parsed.sourcePageCount+' '+t('sourcePages')+' · '+b.chapters.length+' '+t('chaptersLabel')+'. '+t(parsed.pdfMode==='fixed' ? 'fixedNote' : 'reflowNote') : '';
+  renderPdfAnalysis(parsed.pdfAnalysis);
   const total=b.chapters.reduce((a,c)=>a+countWords(c.html),0);
   const rows=matches.slice((galleyPage-1)*GALLEY_PAGE_SIZE,galleyPage*GALLEY_PAGE_SIZE).map(({c,i})=>{
     const w=countWords(c.html);

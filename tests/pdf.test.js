@@ -39,6 +39,8 @@ ok(!/>1<\/p>|<p>1<\/p>/.test(out),'page number dropped');
 const line=[I("Hello",72,500,30,12), I("World",110,500,32,12)];
 const out2=pdfItemsToHtml([line]);
 ok(/Hello World/.test(out2),'intra-line space inserted from x-gap');
+const inline=pdfItemsToHtml([[I('Text before image.',72,500,120,12)],[I('Next page.',72,500,100,12)]],[['p0.png'],['p1.png']]);
+ok(/pdf-inline-image/.test(inline) && /images\/p0\.png/.test(inline) && /images\/p1\.png/.test(inline),'PDF images stay near source-page text');
 
 // scanned / empty
 ok(pdfItemsToHtml([[],[]])==='','empty pages -> empty html (scanned guard)');
@@ -63,6 +65,11 @@ const meta=pdfMetadataFallback([
 ]);
 ok(meta.title==='Marmut Merah Jambu','PDF title fallback from title page');
 ok(meta.author==='Raditya Dika','PDF author fallback from labelled metadata');
+
+const complex=pdfAnalyzeLayout(headed,4,4);
+ok(complex.recommendedMode==='fixed','PDF analysis recommends fixed when images are present');
+const plain=pdfAnalyzeLayout(headed.map((p)=>p.slice(1,2)),0,4);
+ok(plain.recommendedMode==='reflow','PDF analysis keeps clean text in reflow mode');
 
 // heading size buckets (needs body baseline present)
 const mix=[I("HUGE TITLE",72,700,200,30), I("regular body text here",72,670,180,12), I("more body text follows",72,654,180,12)];
