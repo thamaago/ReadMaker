@@ -43,6 +43,27 @@ ok(/Hello World/.test(out2),'intra-line space inserted from x-gap');
 // scanned / empty
 ok(pdfItemsToHtml([[],[]])==='','empty pages -> empty html (scanned guard)');
 
+// running headers may only appear on a subset of pages; they should not
+// become repeated chapter headings in the reflowed EPUB
+const headed=[];
+for(let i=0;i<4;i++) headed.push([
+  I('MARMUT MERAH JAMBU',72,800,180,14),
+  I('Body paragraph '+(i+1)+' remains readable.',72,760,240,12),
+  I('A |',72,730,40,18),
+  I(String(i+1),300,40,8,10)
+]);
+const headedOut=pdfItemsToHtml(headed);
+ok(!/MARMUT MERAH JAMBU/.test(headedOut),'repeated edge header removed from reflow');
+ok(!/>A \|<\/h[1-3]>/.test(headedOut),'fragment heading noise removed');
+ok((headedOut.match(/Body paragraph/g)||[]).length===4,'body text preserved after edge cleanup');
+
+const meta=pdfMetadataFallback([
+  [I('MARMUT',0,100,50,12),I('MERAH JAMBU',60,100,80,12)],
+  [I('Penulis:',0,100,50,12),I('Raditya Dika',60,100,80,12)]
+]);
+ok(meta.title==='Marmut Merah Jambu','PDF title fallback from title page');
+ok(meta.author==='Raditya Dika','PDF author fallback from labelled metadata');
+
 // heading size buckets (needs body baseline present)
 const mix=[I("HUGE TITLE",72,700,200,30), I("regular body text here",72,670,180,12), I("more body text follows",72,654,180,12)];
 ok(/<h1>HUGE TITLE<\/h1>/.test(pdfItemsToHtml([mix])),'very large vs body -> h1');

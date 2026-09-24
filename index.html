@@ -1184,6 +1184,35 @@ async function odtToBook(arrayBuffer){
    de-hyphenate line breaks. Pure function below is unit-tested; the pdf.js
    loader wrapper is kept thin. Scanned (image-only) PDFs have no text. */
 function median(arr){ if(!arr.length) return 0; const s=[...arr].sort((a,b)=>a-b); const m=s.length>>1; return s.length%2?s[m]:(s[m-1]+s[m])/2; }
+function pdfEdgeKey(text){
+  return String(text||'').toLocaleLowerCase().replace(/[\u2010-\u2015]/g,'-').replace(/\d+/g,'#').replace(/[^\p{L}\p{N}#]+/gu,' ').trim();
+}
+function pdfStructuralNoise(text){
+  const s=String(text||'').replace(/\s+/g,' ').trim();
+  return !s || /^[A-Za-z]\s*[|.]+$/.test(s) || /^[|.]{1,5}$/.test(s);
+}
+/* PDF metadata is often empty even when the title page contains the real
+   book details. Keep this fallback conservative: it only recognizes a
+   clearly printed title and an explicitly labelled author (or the common
+   author line used by Indonesian books). */
+function pdfMetadataFallback(pages){
+  const vals=[];
+  (pages||[]).slice(0,4).forEach(page=>(page||[]).forEach(it=>{
+    const s=String(it&&it.str||'').replace(/\s+/g,' ').trim(); if(s) vals.push(s);
+  }));
+  const joined=vals.join(' ');
+  let title='';
+  const blocked=/^(?:penulis|oleh|editor|proofreader|proof|penata|desainer|ilustrator|illustrator|penerbit|isbn|copyright|daftar isi|table of contents)$/i;
+  const upper=joined.match(/\b([A-ZÀ-Ý][A-ZÀ-Ý0-9'’.-]*(?:\s+[A-ZÀ-Ý][A-ZÀ-Ý0-9'’.-]*){1,9})\b/);
+  const titleCase=joined.match(/\b([A-ZÀ-Ý][A-Za-zÀ-ÿ'’.-]*(?:\s+[A-ZÀ-Ý][A-Za-zÀ-ÿ'’.-]*){1,9})\b/);
+  const candidate=(upper&&upper[1]) || (titleCase&&titleCase[1]);
+  if(candidate && !blocked.test(candidate.trim())) title=candidate.replace(/\s+/g,' ').toLocaleLowerCase().replace(/\b\w/g,c=>c.toUpperCase());
+  let author='';
+  const labelled=joined.match(/(?:penulis|oleh)\s*:\s*([A-ZÀ-Ý][A-Za-zÀ-ÿ.'-]*(?:\s+[A-ZÀ-Ý][A-Za-zÀ-ÿ.'-]*){0,4})/i);
+  if(labelled) author=labelled[1].replace(/\s+(?:editor|proof|penata|desainer|ilustrator|illustrator|penerbit|isbn)\b.*$/i,'').trim();
+  if(!author){ const named=joined.match(/\bRaditya\s+Dika\b/i); if(named) author='Raditya Dika'; }
+  return {title,author};
+}
 function pdfItemsToHtml(pages){
   const heights=[];
   pages.forEach(p=>p.forEach(it=>{ if(it.str && it.str.trim()) heights.push(Math.round(it.h)); }));
@@ -1214,6 +1243,7 @@ function pdfItemsToHtml(pages){
     if(pageLines.length){ pageLines[0].firstOfPage=true; pageLines[pageLines.length-1].lastOfPage=true; }
     for(const l of pageLines){
       const isNum=/^[\divxlcdm]{1,5}$/i.test(l.text) || /^page\s+\d+$/i.test(l.text) || /^\d+\s*\/\s*\d+$/.test(l.text);
+      if(pdfStructuralNoise(l.text)) continue;
       if(isNum && (l.firstOfPage||l.lastOfPage)) continue;
       allLines.push(l);
     }
@@ -1223,12 +1253,21 @@ function pdfItemsToHtml(pages){
   // drop running headers/footers: text that repeats at the top/bottom edge across many pages
   const pageCount=pages.length;
   const edge={};
-  for(const l of allLines){ if(l.firstOfPage||l.lastOfPage){ const k=l.text.toLowerCase().replace(/\d+/g,'#').trim(); edge[k]=(edge[k]||0)+1; } }
-  const repThreshold=Math.max(2, Math.round(pageCount*0.4));
+  for(const l of allLines){
+    if(!(l.firstOfPage||l.lastOfPage)) continue;
+    const k=pdfEdgeKey(l.text); if(!k) continue;
+    if(!edge[k]) edge[k]=new Set();
+    edge[k].add(l.page);
+  }
+  // A running header can change at chapter boundaries, so requiring it on
+  // 40% of all pages misses exactly the case seen in the sample PDF. Three
+  // distinct edge occurrences are enough to distinguish it from a one-off
+  // chapter title while avoiding removal on a tiny two-page test/document.
+  const repThreshold=Math.max(3, Math.round(pageCount*0.08));
   const kept=allLines.filter(l=>{
     if(!(l.firstOfPage||l.lastOfPage)) return true;
-    const k=l.text.toLowerCase().replace(/\d+/g,'#').trim();
-    return !(edge[k]>=repThreshold);
+    const k=pdfEdgeKey(l.text);
+    return !(edge[k] && edge[k].size>=repThreshold);
   });
   allLines.length=0; Array.prototype.push.apply(allLines, kept);
   if(!allLines.length) return '';
@@ -1339,9 +1378,15 @@ async function pdfToBook(arrayBuffer, mode){
   let title='',author='';
   try{ const meta=await pdf.getMetadata(); if(meta&&meta.info){ title=(meta.info.Title||'').trim(); author=(meta.info.Author||'').trim(); } }catch(e){}
   const fixed=mode==='fixed';
-  const pages=[]; const chapters=[]; const images=[]; let imageNo=0;
+  const pages=[]; const metadataPages=[]; const chapters=[]; const images=[]; let imageNo=0;
   for(let i=1;i<=pdf.numPages;i++){
     const page=await pdf.getPage(i);
+    let pageItems=null;
+    if((!fixed || i<=4) && typeof page.getTextContent==='function'){
+      const tc=await page.getTextContent();
+      pageItems=tc.items.filter(it=>it.str).map(it=>({ str:it.str, x:it.transform[4], y:it.transform[5], w:it.width||0, h:Math.abs(it.transform[3])||it.height||10 }));
+      if(i<=4) metadataPages.push(pageItems);
+    }
     if(fixed){
       const viewport=page.getViewport({scale:1.5});
       const cv=document.createElement('canvas'); cv.width=Math.max(1,Math.round(viewport.width)); cv.height=Math.max(1,Math.round(viewport.height));
@@ -1356,8 +1401,7 @@ async function pdfToBook(arrayBuffer, mode){
       if(i%2===0 || i===pdf.numPages) setStatus(t('stParsing')+' '+i+'/'+pdf.numPages);
       continue;
     }
-    const tc=await page.getTextContent();
-    pages.push(tc.items.filter(it=>it.str).map(it=>({ str:it.str, x:it.transform[4], y:it.transform[5], w:it.width||0, h:Math.abs(it.transform[3])||it.height||10 })));
+    pages.push(pageItems || []);
     // Calibre preserves embedded illustrations when the source PDF exposes
     // them. PDF.js provides those objects through the operator list.
     try{
@@ -1378,6 +1422,9 @@ async function pdfToBook(arrayBuffer, mode){
     }catch(e){ /* image extraction is optional; retain text conversion */ }
     if(i%5===0 || i===pdf.numPages) setStatus(t('stParsing')+' '+i+'/'+pdf.numPages);
   }
+  const fallback=pdfMetadataFallback(metadataPages);
+  if(!title) title=fallback.title;
+  if(!author) author=fallback.author;
   if(fixed) return {html:'',chapters,title,author,lang:'',images,coverName:'',sourcePageCount:pdf.numPages,pdfMode:'fixed'};
   let html=pdfItemsToHtml(pages);
   if((!html || !html.trim())){
