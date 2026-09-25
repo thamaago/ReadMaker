@@ -24,7 +24,10 @@ w.pdfjsLib={getDocument:()=>({promise:Promise.resolve({
   assert.match(opf,/rendition:viewport">width=600,height=800/);
   assert.match(opf,/itemref idref="chap1" properties="rendition:layout-pre-paginated"/);
   assert.match(ch,/name="viewport"/);
-  assert.match(await zip.file('OEBPS/style.css').async('string'),/html,body\{margin:0;padding:0;width:100%;height:100%/);
+  assert.match(ch,/content="width=600,height=800"/);
+  assert.match(ch,/style="margin:0;padding:0"/);
+  assert.match(ch,/style="display:block;width:100%;height:auto"/);
+  assert.match(await zip.file('OEBPS/style.css').async('string'),/html,body\{margin:0;padding:0;background:#fff/);
   assert.ok(zip.file('OEBPS/images/pdf_page_0001.png'));
   console.log('PDF fixed-layout mode: passed');
 })().then(()=>process.exit(0)).catch(e=>{console.error(e);process.exit(1)}).finally(()=>w.close());
