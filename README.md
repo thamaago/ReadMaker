@@ -33,6 +33,7 @@ Extras:
 - **Engine-tuned output** — EPUB 2/3 with both `nav.xhtml` and `toc.ncx`, well-formed XHTML, and CSS limited to the properties the reader actually honours (so the user's font/size/spacing settings win).
 - **PDF layout choice** — use *Reflow text* for adjustable e-ink typography, or *Keep original pages* for PDFs with illustrations, drop caps, tables, and complex placement. After parsing, Read Maker shows a recommendation based on the text layer, image count, and detected layout; the choice remains yours. The latter produces EPUB 3 pre-paginated chapters and is intentionally larger.
 - **Bilingual UI** (Indonesian / English) with a simple 3-step flow.
+- **Review before build** — edit chapter titles, move chapters up/down, inspect a compact output summary, and preview the first chapter before downloading. The EPUB export uses the edited order and titles.
 - **Chapter detection:** uses the book's built-in table of contents when there is one (MOBI `filepos` offsets, the binary NCX/INDX index, or HTML `href="#id"` anchors), the way desktop converters do, instead of guessing from heading tags — which fails on books that wrap body prose or drop caps in `<h1>`. Falls back to heading detection, then to the book's own page-break separators, then to `Chapter`/`Bab` line patterns (a marker line and the chapter name that follows it are combined, e.g. "CHAPTER ONE: THE BOY WHO LIVED"). Titles that read like running text are rejected and replaced with a numbered label.
 - **Batch conversion:** drop several files at once and get one ZIP of EPUBs back. Each file is converted independently, so a broken or unsupported file is reported in the queue and skipped rather than stopping the run.
 - **Hierarchical contents:** when a book splits on headings and sub-headings, the EPUB gets a nested `nav.xhtml` and `toc.ncx` so the reader shows sub-chapters under their parent instead of one flat list.
@@ -102,6 +103,8 @@ All parsing and conversion happen locally in your browser. Files never leave you
 ---
 
 ## Development & tests
+
+Repo pembanding dan keputusan adopsi dicatat di [REPO_RESEARCH.md](REPO_RESEARCH.md); matriks fitur saat ini ada di [FEATURE_COMPARISON.md](FEATURE_COMPARISON.md); roadmap teknis ada di [DEVELOPMENT_PLAN.md](DEVELOPMENT_PLAN.md).
 
 Use Node.js 24.19.0 (the version used in CI) to run the test suite.
 

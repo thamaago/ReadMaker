@@ -140,19 +140,35 @@
   .galley .empty p{font-size:13px;margin:14px 0 0}
   .galley ol{max-height:60vh;overflow:auto;list-style:none;margin:0;padding:0}
   .galley li{
-    display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:12px;
+    display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;align-items:center;gap:12px;
     padding:11px 16px;border-bottom:1px solid var(--rule-soft);
   }
   .galley li:last-child{border-bottom:none}
   .galley li .slug{font-family:var(--mono);font-size:11px;color:var(--proof);font-weight:700;min-width:26px}
-  .galley li .title{font-family:var(--serif);font-size:15px;color:var(--ink);line-height:1.25;word-break:break-word}
+  .galley li .title{font-family:var(--serif);font-size:15px;color:var(--ink);line-height:1.25;word-break:break-word;min-width:0}
+  .galley li input.title{width:100%;font:inherit;color:var(--ink);background:#fff;border:1px solid var(--rule);border-radius:3px;padding:5px 7px}
+  .galley li input.title:focus{outline:2px solid var(--focus);outline-offset:1px;border-color:var(--ink)}
   .galley li .words{font-family:var(--mono);font-size:11px;color:var(--ink-faint);white-space:nowrap}
+  .chapter-actions{display:flex;gap:4px;align-items:center}
+  .chapter-actions button{font-family:var(--mono);font-size:12px;line-height:1;padding:4px 6px;color:var(--ink);background:var(--panel);border:1px solid var(--rule);border-radius:2px;cursor:pointer}
+  .chapter-actions button:hover{background:var(--ink);color:var(--paper)}
+  .chapter-actions button:disabled{color:var(--ink-faint);background:var(--panel);cursor:not-allowed}
+  .chapter-actions button:focus-visible{outline:2px solid var(--focus);outline-offset:1px}
   .galley .foot{padding:10px 16px;font-family:var(--mono);font-size:11px;color:var(--ink-soft);letter-spacing:.06em;border-top:1px solid var(--rule);display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
 
   .galley-tools{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:12px 0}
   .galley-tools input{min-width:0;max-width:100%;padding:8px;border:1px solid var(--rule);background:var(--panel);color:var(--ink)}
   .galley-tools input[type=number]{width:70px}
   .galley-tools[hidden]{display:none}
+  .review{margin:12px 0;border:1px solid var(--rule);border-radius:3px;background:var(--panel);padding:10px 12px;color:var(--ink-soft);font-family:var(--mono);font-size:11px;line-height:1.5}
+  .review[hidden]{display:none}
+  .review b{color:var(--ink);font-weight:600}
+  .preview{margin-top:12px;border:1px solid var(--rule);border-radius:3px;background:#fff;display:none;max-height:360px;overflow:auto;padding:22px 24px}
+  .preview.show{display:block}
+  .preview h1,.preview h2,.preview h3,.preview h4,.preview h5,.preview h6{font-family:var(--serif);line-height:1.2}
+  .preview p{font-family:var(--serif);font-size:16px;line-height:1.55;margin:0 0 1em}
+  .preview img{max-width:100%;height:auto}
+  .preview .preview-label{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-faint);margin:0 0 12px}
   /* ---- Actions ---- */
   .actions{margin-top:18px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
   button.go{
@@ -404,6 +420,9 @@
     </div>
     <p id="sourcePageInfo" class="help" hidden></p>
     <p id="pdfAnalysis" class="help" hidden aria-live="polite"></p>
+    <div id="reviewSummary" class="review" hidden aria-live="polite"></div>
+    <button id="previewBtn" class="mini" type="button" hidden data-i18n="previewBtn">Pratinjau bab pertama</button>
+    <div id="preview" class="preview" aria-live="polite"></div>
     <div class="galley" id="galley">
       <div class="empty" id="galleyEmpty">
         <div class="mk">&para;</div>
@@ -507,7 +526,7 @@ var T = {
     s1:"Pilih sumber",
     dropBig:"Letakkan berkas di sini", dropHint:"atau klik untuk memilih \u2014 bisa beberapa berkas sekaligus", dropFormats:"Word, PDF, Kindle, komik CBZ/CBR, teks, dll.",
     mFormat:"format", mSize:"ukuran", mParsed:"bab hasil",
-    chapterSearch:"Cari bab", prevList:"Sebelumnya", nextList:"Berikutnya", listPage:"Halaman daftar", wordsLabel:"kata", chaptersLabel:"bab hasil", sourcePages:"halaman PDF sumber", reflowNote:"Halaman EPUB mengikuti pengaturan pembaca.", fixedNote:"Mode halaman asli mempertahankan tampilan PDF.", pdfAnalysis:"Rekomendasi PDF", pdfRecommendFixed:"Pertahankan halaman asli", pdfRecommendReflow:"Coba teks mengalir", pdfConfidence:"keyakinan", pdfReasonImages:"ditemukan ilustrasi/gambar", pdfReasonColumns:"terdeteksi tata letak multi-kolom", pdfReasonSparse:"teks tidak tersedia di sebagian besar halaman", pdfReasonText:"lapisan teks cukup konsisten", autoTitle:"Judul pengganti", noChapters:"Tidak ada bab yang cocok.",
+    chapterSearch:"Cari bab", prevList:"Sebelumnya", nextList:"Berikutnya", listPage:"Halaman daftar", wordsLabel:"kata", chaptersLabel:"bab hasil", sourcePages:"halaman PDF sumber", reflowNote:"Halaman EPUB mengikuti pengaturan pembaca.", fixedNote:"Mode halaman asli mempertahankan tampilan PDF.", pdfAnalysis:"Rekomendasi PDF", pdfRecommendFixed:"Pertahankan halaman asli", pdfRecommendReflow:"Coba teks mengalir", pdfConfidence:"keyakinan", pdfReasonImages:"ditemukan ilustrasi/gambar", pdfReasonColumns:"terdeteksi tata letak multi-kolom", pdfReasonSparse:"teks tidak tersedia di sebagian besar halaman", pdfReasonText:"lapisan teks cukup konsisten", autoTitle:"Judul pengganti", noChapters:"Tidak ada bab yang cocok.", previewBtn:"Pratinjau bab pertama", previewClose:"Tutup pratinjau", previewLabel:"Pratinjau hasil", editChapter:"Judul bab", moveUp:"Naikkan bab", moveDown:"Turunkan bab", reviewLabel:"Ringkasan hasil", reviewMode:"mode", reviewChapters:"bab", reviewWords:"kata", reviewImages:"gambar", reviewSourcePages:"halaman sumber",
     orWeb:"atau dari sebuah tautan", urlPh:"Tempel alamat artikel (https://…)", fetchBtn:"Ambil artikel", titlePh:"Tanpa judul", authorPh:"Tidak diketahui", langPh:"id / en", runtimeHelp:"PDF dan DOCX memuat pembaca tambahan saat pertama kali dipakai; koneksi internet diperlukan sekali.",
     fetchHelp:'Mengambil isi artikel, membuang menu dan iklan, menyisakan teksnya. Sebagian situs memblokir permintaan — jika gagal, pakai "Tempel HTML" di bawah.',
     pasteSummary:"Situs menolak? Tempel HTML halaman",
@@ -564,7 +583,7 @@ var T = {
     s1:"Choose a source",
     dropBig:"Drop your file here", dropHint:"or click to choose \u2014 several files at once is fine", dropFormats:"Word, PDF, Kindle, CBZ/CBR comics, text, etc.",
     mFormat:"format", mSize:"size", mParsed:"output chapters",
-    chapterSearch:"Search chapters", prevList:"Previous", nextList:"Next", listPage:"List page", wordsLabel:"words", chaptersLabel:"output chapters", sourcePages:"source PDF pages", reflowNote:"EPUB pages follow the reader settings.", fixedNote:"Original-page mode preserves the PDF appearance.", pdfAnalysis:"PDF recommendation", pdfRecommendFixed:"Keep original pages", pdfRecommendReflow:"Try reflow text", pdfConfidence:"confidence", pdfReasonImages:"illustrations/images detected", pdfReasonColumns:"multi-column layout detected", pdfReasonSparse:"text is missing from most pages", pdfReasonText:"text layer is mostly consistent", autoTitle:"Fallback title", noChapters:"No matching chapters.",
+    chapterSearch:"Search chapters", prevList:"Previous", nextList:"Next", listPage:"List page", wordsLabel:"words", chaptersLabel:"output chapters", sourcePages:"source PDF pages", reflowNote:"EPUB pages follow the reader settings.", fixedNote:"Original-page mode preserves the PDF appearance.", pdfAnalysis:"PDF recommendation", pdfRecommendFixed:"Keep original pages", pdfRecommendReflow:"Try reflow text", pdfConfidence:"confidence", pdfReasonImages:"illustrations/images detected", pdfReasonColumns:"multi-column layout detected", pdfReasonSparse:"text is missing from most pages", pdfReasonText:"text layer is mostly consistent", autoTitle:"Fallback title", noChapters:"No matching chapters.", previewBtn:"Preview first chapter", previewClose:"Close preview", previewLabel:"Output preview", editChapter:"Chapter title", moveUp:"Move chapter up", moveDown:"Move chapter down", reviewLabel:"Output summary", reviewMode:"mode", reviewChapters:"chapters", reviewWords:"words", reviewImages:"images", reviewSourcePages:"source pages",
     orWeb:"or from a link", urlPh:"Paste an article address (https://…)", fetchBtn:"Fetch article", titlePh:"Untitled", authorPh:"Unknown", langPh:"id / en", runtimeHelp:"PDF and DOCX load an additional reader the first time they are used; an internet connection is needed once.",
     fetchHelp:'Pulls the article, strips menus and ads, keeps the text. Some sites block requests — if it fails, use "Paste HTML" below.',
     pasteSummary:"Blocked by the site? Paste the page HTML",
@@ -2713,6 +2732,7 @@ async function parseFile(file, token){
 function finishIngest(book, fallbackTitle){
   if(!book.comic && (!book.html || !book.html.trim()) && !Array.isArray(book.chapters)) throw new Error(t('errEmpty'));
   resetGalleyView();
+  delete book._editableChapters; delete book._chapterEditKey;
   parsed = book;
   batchFiles = [];
   $('title').value = book.title || fallbackTitle || 'book';
@@ -2724,9 +2744,23 @@ function finishIngest(book, fallbackTitle){
   setStatus(t('stReady'),'ok');
 }
 
+function copyChapter(c){ return Object.assign({}, c, { title:String(c.title||'') }); }
+function editableChapters(){
+  if(!parsed) return [];
+  const key = parsed.comic ? 'comic' : (parsed.pdfMode==='fixed' ? 'pdf-fixed' : $('split').value);
+  if(parsed._chapterEditKey !== key || !Array.isArray(parsed._editableChapters)){
+    let source;
+    if(parsed.comic) source=(parsed.pages||[]).map((nm,i)=>({ title:t('pageLabel')+' '+(i+1), html:'<div><img src="images/'+nm+'"/></div>' }));
+    else if(parsed.pdfMode==='fixed' && Array.isArray(parsed.chapters)) source=parsed.chapters;
+    else source=splitChapters(parsed.html, $('split').value);
+    parsed._editableChapters=source.map(copyChapter);
+    parsed._chapterEditKey=key;
+  }
+  return parsed._editableChapters;
+}
 function currentBook(){
   if(parsed.comic){
-    const chapters = (parsed.pages||[]).map((nm,i)=>({ title:t('pageLabel')+' '+(i+1), html:'<div><img src="images/'+nm+'"/></div>' }));
+    const chapters = editableChapters();
     return {
       title: $('title').value.trim() || currentFileBase,
       author: $('author').value.trim(),
@@ -2739,11 +2773,10 @@ function currentBook(){
       title:$('title').value.trim() || currentFileBase,
       author:$('author').value.trim(),
       language:$('lang').value.trim() || (typeof LANG!=='undefined'?LANG:'en'),
-      images:parsed.images||[], coverName:'', pdfMode:'fixed', cssProfile:fwProfile(), chapters:parsed.chapters
+      images:parsed.images||[], coverName:'', pdfMode:'fixed', cssProfile:fwProfile(), chapters:editableChapters()
     };
   }
-  const mode=$('split').value;
-  const chapters = splitChapters(parsed.html, mode);
+  const chapters = editableChapters();
   return {
     title: $('title').value.trim() || currentFileBase,
     author: $('author').value.trim(),
@@ -2764,6 +2797,9 @@ function resetGalleyView(){
   $('sourcePageInfo').hidden = true;
   $('pdfAnalysis').hidden = true;
   $('pdfAnalysis').textContent = '';
+  const review=$('reviewSummary'); if(review){ review.hidden=true; review.textContent=''; }
+  const preview=$('preview'); if(preview){ preview.classList.remove('show'); preview.innerHTML=''; }
+  const previewBtn=$('previewBtn'); if(previewBtn) previewBtn.hidden=true;
 }
 function renderPdfAnalysis(analysis){
   const el=$('pdfAnalysis');
@@ -2792,14 +2828,54 @@ function renderGalley(){
   info.textContent=parsed.sourcePageCount ? parsed.sourcePageCount+' '+t('sourcePages')+' · '+b.chapters.length+' '+t('chaptersLabel')+'. '+t(parsed.pdfMode==='fixed' ? 'fixedNote' : 'reflowNote') : '';
   renderPdfAnalysis(parsed.pdfAnalysis);
   const total=b.chapters.reduce((a,c)=>a+countWords(c.html),0);
+  const review=$('reviewSummary');
+  if(review){
+    const mode=parsed.pdfMode==='fixed' ? t('pdfFixed') : t('pdfReflow');
+    review.innerHTML='<b>'+escXml(t('reviewLabel'))+'</b>: '+escXml(mode)+' · '+b.chapters.length+' '+escXml(t('reviewChapters'))+' · '+total.toLocaleString()+' '+escXml(t('reviewWords'))+' · '+(b.images||[]).length+' '+escXml(t('reviewImages'))+(parsed.sourcePageCount?' · '+parsed.sourcePageCount+' '+escXml(t('reviewSourcePages')):'');
+    review.hidden=false;
+  }
+  const previewBtn=$('previewBtn'); if(previewBtn) previewBtn.hidden=!b.chapters.length;
   const rows=matches.slice((galleyPage-1)*GALLEY_PAGE_SIZE,galleyPage*GALLEY_PAGE_SIZE).map(({c,i})=>{
     const w=countWords(c.html);
-    return '<li><span class="slug">'+String(i+1).padStart(2,'0')+'</span><span class="title">'+escXml(c.title)+
+    const up='<button type="button" class="chapter-up" data-chapter-action="up" data-index="'+i+'" aria-label="'+escAttr(t('moveUp'))+'" title="'+escAttr(t('moveUp'))+'"'+(i===0?' disabled':'')+'>↑</button>';
+    const down='<button type="button" class="chapter-down" data-chapter-action="down" data-index="'+i+'" aria-label="'+escAttr(t('moveDown'))+'" title="'+escAttr(t('moveDown'))+'"'+(i===b.chapters.length-1?' disabled':'')+'>↓</button>';
+    return '<li><span class="slug">'+String(i+1).padStart(2,'0')+'</span><span class="title"><input class="title" type="text" data-chapter-title="'+i+'" value="'+escAttr(c.title)+'" aria-label="'+escAttr(t('editChapter'))+' '+String(i+1)+'"/>'+
       (c.fallbackTitle?' <small class="help">('+escXml(t('autoTitle'))+')</small>':'')+'</span><span class="words">'+
-      (w?w.toLocaleString()+' '+t('wordsLabel'):'')+'</span></li>';
+      (w?w.toLocaleString()+' '+t('wordsLabel'):'')+'</span><span class="chapter-actions">'+up+down+'</span></li>';
   }).join('');
   const foot=b.chapters.length+' '+(b.comic?t('pageLabel'):t('chaptersLabel'))+' · '+total.toLocaleString()+' '+t('wordsLabel');
   $('galley').innerHTML=(rows?'<ol>'+rows+'</ol>':'<p class="empty">'+escXml(t('noChapters'))+'</p>')+'<div class="foot">'+escXml(foot)+'</div>';
+  if($('preview') && $('preview').classList.contains('show')) renderPreview();
+}
+function renderPreview(){
+  const el=$('preview'), btn=$('previewBtn');
+  if(!el || !parsed) return;
+  const b=currentBook(), c=b.chapters[0];
+  if(!c){ el.classList.remove('show'); el.innerHTML=''; return; }
+  if(el.classList.contains('show')){
+    let body=normalizeForEngine(c.html||'<p>&nbsp;</p>');
+    (b.images||[]).forEach(function(im){ body=body.split('images/'+im.name).join('data:'+(im.mime||'image/png')+';base64,'+im.b64); });
+    el.innerHTML='<div class="preview-label">'+escXml(t('previewLabel'))+' · '+escXml(c.title)+'</div>'+body;
+    if(btn) btn.textContent=t('previewClose');
+  } else if(btn) btn.textContent=t('previewBtn');
+}
+function togglePreview(){
+  const el=$('preview'); if(!el) return;
+  el.classList.toggle('show'); renderPreview();
+}
+function chapterTitleChanged(input){
+  const i=Number(input.getAttribute('data-chapter-title'));
+  const chapters=editableChapters();
+  if(!Number.isInteger(i) || !chapters[i]) return;
+  const value=input.value.trim();
+  chapters[i].title=value || (t('chapterLabel')+' '+(i+1));
+  renderGalley(); renderPreview();
+}
+function moveChapter(index, direction){
+  const chapters=editableChapters(), to=index+direction;
+  if(!Number.isInteger(index) || to<0 || to>=chapters.length) return;
+  const tmp=chapters[index]; chapters[index]=chapters[to]; chapters[to]=tmp;
+  renderGalley(); renderPreview();
 }
 
 function fwProfile(){ const el=document.getElementById('fwProfile'); return el ? el.value : 'universal'; }
@@ -3162,6 +3238,13 @@ $('chapterSearch').addEventListener('input',()=>{ galleyPage=1; renderGalley(); 
 $('chapterPrev').addEventListener('click',()=>{ galleyPage--; renderGalley(); });
 $('chapterNext').addEventListener('click',()=>{ galleyPage++; renderGalley(); });
 $('chapterPage').addEventListener('change',()=>{ galleyPage=Math.floor(Number($('chapterPage').value))||1; renderGalley(); });
+$('galley').addEventListener('change',e=>{ if(e.target.matches('input[data-chapter-title]')) chapterTitleChanged(e.target); });
+$('galley').addEventListener('click',e=>{
+  const btn=e.target.closest('button[data-chapter-action]');
+  if(!btn || btn.disabled) return;
+  moveChapter(Number(btn.getAttribute('data-index')), btn.getAttribute('data-chapter-action')==='up' ? -1 : 1);
+});
+$('previewBtn').addEventListener('click',togglePreview);
 const drop=$('drop'), fileInput=$('file');
 drop.addEventListener('click',()=>fileInput.click());
 drop.addEventListener('keydown',e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); fileInput.click(); }});

@@ -1,0 +1,23 @@
+const assert=require('node:assert/strict'),fs=require('fs'),{JSDOM,VirtualConsole}=require('jsdom'),JSZip=require('jszip');
+const html=fs.readFileSync(require('path').join(__dirname,'..','index.html'),'utf8');
+const dom=new JSDOM(html,{runScripts:'dangerously',url:'http://localhost',pretendToBeVisual:true,virtualConsole:new VirtualConsole(),beforeParse(w){w.JSZip=JSZip;}});
+const w=dom.window,d=w.document,el=id=>d.getElementById(id);
+(async()=>{
+  await new Promise(r=>w.setTimeout(r,0));
+  w.finishIngest({html:'<h1>One</h1><p>First body.</p><h1>Two</h1><p>Second body.</p>',images:[]},'Review book');
+  assert.equal(d.querySelectorAll('#galley input[data-chapter-title]').length,2);
+  const first=d.querySelector('input[data-chapter-title="0"]');
+  first.value='Introduction'; first.dispatchEvent(new w.Event('change',{bubbles:true}));
+  assert.equal(w.currentBook().chapters[0].title,'Introduction');
+  d.querySelector('button[data-chapter-action="down"][data-index="0"]').click();
+  assert.equal(Array.from(w.currentBook().chapters,c=>c.title).join('|'),'Two|Introduction');
+  el('previewBtn').click();
+  assert.equal(el('preview').classList.contains('show'),true);
+  assert.match(el('preview').textContent,/Two/);
+  const blob=await w.buildEpub(w.currentBook()),zip=await JSZip.loadAsync(await blob.arrayBuffer());
+  const nav=await zip.file('OEBPS/nav.xhtml').async('string');
+  assert.ok(nav.indexOf('Two')<nav.indexOf('Introduction'),'edited order is written to nav');
+  const ch=await zip.file('OEBPS/chap001.xhtml').async('string');
+  assert.match(ch,/Second body/);
+  console.log('TOC title editing, reorder, preview and EPUB export: passed');
+})().then(()=>process.exit(0)).catch(e=>{console.error(e);process.exit(1)}).finally(()=>w.close());
