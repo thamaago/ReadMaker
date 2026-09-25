@@ -43,5 +43,7 @@ w.pdfjsLib={getDocument:()=>({promise:Promise.resolve({
   assert.equal(detailViewport.width,771); assert.equal(detailViewport.height,1182);
   const detailOpts=w.einkOpts({pdfMode:'fixed',fixedViewport:detailViewport});
   assert.equal(detailOpts.maxW,771); assert.equal(detailOpts.maxH,1182);
+  assert.equal(detailOpts.levels,16);
+  assert.equal(detailOpts.dither,'none');
   console.log('PDF fixed-layout mode: passed');
 })().then(()=>process.exit(0)).catch(e=>{console.error(e);process.exit(1)}).finally(()=>w.close());
