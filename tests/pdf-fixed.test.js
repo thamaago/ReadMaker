@@ -29,5 +29,14 @@ w.pdfjsLib={getDocument:()=>({promise:Promise.resolve({
   assert.match(ch,/style="display:block;width:100%;height:auto"/);
   assert.match(await zip.file('OEBPS/style.css').async('string'),/html,body\{margin:0;padding:0;background:#fff/);
   assert.ok(zip.file('OEBPS/images/pdf_page_0001.png'));
+  d.getElementById('einkOn').value='on';
+  d.getElementById('pdfQuality').value='source';
+  const sourceViewport=w.selectedFixedViewport({width:771,height:1182});
+  assert.equal(sourceViewport.width,771); assert.equal(sourceViewport.height,1182);
+  assert.equal(w.shouldProcessBookImages({pdfMode:'fixed',images:[{}]}),false);
+  d.getElementById('pdfQuality').value='eink';
+  const einkViewport=w.selectedFixedViewport({width:771,height:1182});
+  assert.equal(einkViewport.width,480); assert.equal(einkViewport.height,800);
+  assert.equal(w.shouldProcessBookImages({pdfMode:'fixed',images:[{}]}),true);
   console.log('PDF fixed-layout mode: passed');
 })().then(()=>process.exit(0)).catch(e=>{console.error(e);process.exit(1)}).finally(()=>w.close());
