@@ -1441,7 +1441,7 @@ async function pdfToBook(arrayBuffer, mode){
   let title='',author='';
   try{ const meta=await pdf.getMetadata(); if(meta&&meta.info){ title=(meta.info.Title||'').trim(); author=(meta.info.Author||'').trim(); } }catch(e){}
   const fixed=mode==='fixed';
-  const pages=[]; const metadataPages=[]; const pageImageRefs=[]; const chapters=[]; const images=[]; let imageNo=0;
+  const pages=[]; const metadataPages=[]; const pageImageRefs=[]; const chapters=[]; const images=[]; let imageNo=0; let fixedViewport=null;
   for(let i=1;i<=pdf.numPages;i++){
     const page=await pdf.getPage(i);
     const pageRefs=[];
@@ -1453,6 +1453,7 @@ async function pdfToBook(arrayBuffer, mode){
     }
     if(fixed){
       const viewport=page.getViewport({scale:1.5});
+      if(!fixedViewport) fixedViewport={width:Math.max(1,Math.round(viewport.width)),height:Math.max(1,Math.round(viewport.height))};
       const cv=document.createElement('canvas'); cv.width=Math.max(1,Math.round(viewport.width)); cv.height=Math.max(1,Math.round(viewport.height));
       const ctx=cv.getContext('2d'); if(!ctx) throw new Error('Canvas is not available for fixed PDF pages.');
       ctx.fillStyle='#fff'; ctx.fillRect(0,0,cv.width,cv.height);
@@ -1492,7 +1493,7 @@ async function pdfToBook(arrayBuffer, mode){
   if(!title) title=fallback.title;
   if(!author) author=fallback.author;
   const analysis=fixed ? {recommendedMode:'fixed',confidence:100,textRatio:0,multiColumnPages:0,imageCount:pdf.numPages,reasons:['images']} : pdfAnalyzeLayout(pages,images.length,pdf.numPages);
-  if(fixed) return {html:'',chapters,title,author,lang:'',images,coverName:'',sourcePageCount:pdf.numPages,pdfMode:'fixed',analysis};
+  if(fixed) return {html:'',chapters,title,author,lang:'',images,coverName:'',sourcePageCount:pdf.numPages,pdfMode:'fixed',fixedViewport,analysis};
   let html=pdfItemsToHtml(pages,pageImageRefs);
   const inlineImages=!!(html && /class="pdf-inline-image"/.test(html));
   if((!html || !html.trim())){
@@ -2137,7 +2138,18 @@ const BOOK_CSS_UNIVERSAL = `
 h1{font-size:1.6em;line-height:1.25}
 h2{font-size:1.35em;line-height:1.25}
 h3{font-size:1.15em;line-height:1.3}`;
-function bookCss(profile){ return profile === 'crosspoint' ? BOOK_CSS_BASE : (BOOK_CSS_BASE + BOOK_CSS_UNIVERSAL); }
+/* ADE's older EPUB3 engine is happier when an image-only page has an explicit
+   zero-margin canvas. Keep this block deliberately old-school: no flexbox,
+   object-fit, or other features that can make the page disappear in legacy
+   readers. */
+const BOOK_CSS_FIXED = `
+html,body{margin:0;padding:0;width:100%;height:100%;background:#fff}
+.pdf-page{margin:0;padding:0;width:100%;height:100%;text-indent:0}
+.pdf-page img{display:block;margin:0;width:100%;height:auto;max-width:none}`;
+function bookCss(profile, fixed){
+  const base = profile === 'crosspoint' ? BOOK_CSS_BASE : (BOOK_CSS_BASE + BOOK_CSS_UNIVERSAL);
+  return fixed ? (base + BOOK_CSS_FIXED) : base;
+}
 
 // Keep very large source chapters from becoming a single oversized XHTML flow.
 // Split only between block elements so text and inline markup remain intact.
@@ -2184,6 +2196,10 @@ function epubQualityWarnings(book){
 async function buildEpub(book, onWarn){
   const warn=onWarn||function(){};
   epubQualityWarnings(book).forEach(warn);
+  const fixed = book.pdfMode === 'fixed';
+  const requestedViewport = book.fixedViewport || {};
+  const viewportWidth = Math.max(1, Math.round(Number(requestedViewport.width) || 480));
+  const viewportHeight = Math.max(1, Math.round(Number(requestedViewport.height) || 800));
   const zip = new JSZip();
   zip.file('mimetype','application/epub+zip',{compression:'STORE'});
   zip.file('META-INF/container.xml',
@@ -2193,7 +2209,7 @@ async function buildEpub(book, onWarn){
     {compression:'DEFLATE'});
 
   const oebps = zip.folder('OEBPS');
-  oebps.file('style.css', bookCss(book.cssProfile || 'universal'), {compression:'DEFLATE'});
+  oebps.file('style.css', bookCss(book.cssProfile || 'universal', fixed), {compression:'DEFLATE'});
 
   const rtl = isRtlLang(book.language);
   const id = 'urn:uuid:'+uuid();
@@ -2228,7 +2244,7 @@ async function buildEpub(book, onWarn){
     const c=entry.source;
     const fname='chap'+String(i+1).padStart(3,'0')+'.xhtml';
     const inner = entry.flow;
-    const cx=toXhtml(c.title, inner, rtl, book.pdfMode==='fixed');
+    const cx=toXhtml(c.title, inner, rtl, fixed);
     if(!xmlOK(cx,'application/xhtml+xml')) warn(fname);
     oebps.file(fname, cx, {compression:'DEFLATE'});
     chapItems.push({ id:'chap'+(i+1), href:fname, title:entry.j ? (c.title+' ('+(entry.j+1)+')') : c.title, level: c.level || 1 });
@@ -2298,9 +2314,10 @@ async function buildEpub(book, onWarn){
   chapItems.forEach(c=> manifestItems.push(`<item id="${c.id}" href="${escAttr(c.href)}" media-type="application/xhtml+xml"/>`));
 
   const spineDir = rtl ? ' page-progression-direction="rtl"' : '';
+  const fixedItemProps = fixed ? ' properties="rendition:layout-pre-paginated"' : '';
   const spineItems=[];
   if(coverPageItem) spineItems.push('<itemref idref="coverpage"/>');
-  chapItems.forEach(c=> spineItems.push(`<itemref idref="${c.id}"/>`));
+  chapItems.forEach(c=> spineItems.push(`<itemref idref="${c.id}"${fixedItemProps}/>`));
 
   const coverMeta = coverItem ? `<meta name="cover" content="${coverItem.id}"/>` : '';
   const opf = '<?xml version="1.0" encoding="utf-8"?>\n'+
@@ -2312,7 +2329,7 @@ async function buildEpub(book, onWarn){
     `<dc:language>${escXml(book.language||'en')}</dc:language>`+
     `<dc:date>${now.slice(0,10)}</dc:date>`+
     '<meta name="generator" content="Read Maker"/>'+
-    (book.pdfMode==='fixed' ? '<meta property="rendition:layout">pre-paginated</meta><meta property="rendition:orientation">portrait</meta><meta property="rendition:spread">none</meta>' : '')+
+    (fixed ? '<meta property="rendition:layout">pre-paginated</meta><meta property="rendition:orientation">portrait</meta><meta property="rendition:spread">none</meta><meta property="rendition:viewport">width='+viewportWidth+',height='+viewportHeight+'</meta>' : '')+
     `<meta property="dcterms:modified">${now}</meta>`+
     coverMeta+
     '</metadata>'+
@@ -2745,6 +2762,21 @@ function finishIngest(book, fallbackTitle){
 }
 
 function copyChapter(c){ return Object.assign({}, c, { title:String(c.title||'') }); }
+function selectedFixedViewport(fallback){
+  /* When e-ink fitting is enabled, the selected panel is the viewport that a
+     reader should use. If fitting is disabled, preserve the PDF render size so
+     the fixed page keeps its original aspect and scale. */
+  const fitOn = $('einkOn') && $('einkOn').value === 'on';
+  const size = $('einkSize') && $('einkSize').value;
+  if(fitOn && size && size !== 'none'){
+    const parts = size.split('x').map(function(v){ return parseInt(v,10); });
+    if(parts.length===2 && parts[0]>0 && parts[1]>0) return {width:parts[0],height:parts[1]};
+  }
+  return fallback || null;
+}
+function fixedViewportForBook(){
+  return selectedFixedViewport(parsed && parsed.fixedViewport);
+}
 function editableChapters(){
   if(!parsed) return [];
   const key = parsed.comic ? 'comic' : (parsed.pdfMode==='fixed' ? 'pdf-fixed' : $('split').value);
@@ -2773,7 +2805,7 @@ function currentBook(){
       title:$('title').value.trim() || currentFileBase,
       author:$('author').value.trim(),
       language:$('lang').value.trim() || (typeof LANG!=='undefined'?LANG:'en'),
-      images:parsed.images||[], coverName:'', pdfMode:'fixed', cssProfile:fwProfile(), chapters:editableChapters()
+      images:parsed.images||[], coverName:'', pdfMode:'fixed', fixedViewport:fixedViewportForBook(), cssProfile:fwProfile(), chapters:editableChapters()
     };
   }
   const chapters = editableChapters();
@@ -2954,6 +2986,7 @@ async function runBatch(){
         author: b.author || '',
         language: b.language || $('lang').value.trim() || (typeof LANG!=='undefined'?LANG:'en'),
         images: b.images || [], coverName: b.coverName || '', comic: !!b.comic, cssProfile: fwProfile(),
+        fixedViewport: b.pdfMode==='fixed' ? selectedFixedViewport(b.fixedViewport) : undefined,
         chapters: b.pdfMode==='fixed' && Array.isArray(b.chapters) ? b.chapters
           : b.comic
           ? (b.pages||[]).map(function(nm, k){ return { title: t('pageLabel')+' '+(k+1), html: '<div><img src="images/'+nm+'"/></div>' }; })

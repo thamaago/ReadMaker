@@ -15,13 +15,16 @@ w.pdfjsLib={getDocument:()=>({promise:Promise.resolve({
   assert.equal(book.pdfMode,'fixed');
   assert.equal(book.chapters.length,2);
   assert.equal(book.images.length,2);
-  const epub=await w.buildEpub({title:book.title,author:book.author,language:'en',pdfMode:'fixed',images:book.images,chapters:book.chapters,cssProfile:'universal'});
+  const epub=await w.buildEpub({title:book.title,author:book.author,language:'en',pdfMode:'fixed',fixedViewport:book.fixedViewport,images:book.images,chapters:book.chapters,cssProfile:'universal'});
   const zip=await JSZip.loadAsync(await epub.arrayBuffer());
   const opf=await zip.file('OEBPS/content.opf').async('string');
   const ch=await zip.file('OEBPS/chap001.xhtml').async('string');
   assert.match(opf,/rendition:layout/);
   assert.match(opf,/pre-paginated/);
+  assert.match(opf,/rendition:viewport">width=600,height=800/);
+  assert.match(opf,/itemref idref="chap1" properties="rendition:layout-pre-paginated"/);
   assert.match(ch,/name="viewport"/);
+  assert.match(await zip.file('OEBPS/style.css').async('string'),/html,body\{margin:0;padding:0;width:100%;height:100%/);
   assert.ok(zip.file('OEBPS/images/pdf_page_0001.png'));
   console.log('PDF fixed-layout mode: passed');
 })().then(()=>process.exit(0)).catch(e=>{console.error(e);process.exit(1)}).finally(()=>w.close());
