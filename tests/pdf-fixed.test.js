@@ -15,6 +15,10 @@ w.pdfjsLib={getDocument:()=>({promise:Promise.resolve({
   assert.equal(book.pdfMode,'fixed');
   assert.equal(book.chapters.length,2);
   assert.equal(book.images.length,2);
+  d.getElementById('pdfMode').value='fixed';
+  const parsed=await w.parseToBook({name:'viewport.pdf',size:1,arrayBuffer:async()=>new ArrayBuffer(1)});
+  assert.equal(parsed.fixedViewport.width,600);
+  assert.equal(parsed.fixedViewport.height,800);
   const epub=await w.buildEpub({title:book.title,author:book.author,language:'en',pdfMode:'fixed',fixedViewport:book.fixedViewport,images:book.images,chapters:book.chapters,cssProfile:'universal'});
   const zip=await JSZip.loadAsync(await epub.arrayBuffer());
   const opf=await zip.file('OEBPS/content.opf').async('string');

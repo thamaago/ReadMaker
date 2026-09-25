@@ -11,6 +11,8 @@ let p=0,f=0;const ok=(c,m)=>{c?(p++,console.log('  ok  ',m)):(f++,console.log(' 
 // nearestLevel
 ok(nearestLevel(200,2)===255 && nearestLevel(100,2)===0,'nearestLevel 1-bit thresholds');
 ok(nearestLevel(0,4)===0 && nearestLevel(255,4)===255,'nearestLevel 2-bit extremes');
+const samplingCtx={}; setHighQualityImageSampling(samplingCtx);
+ok(samplingCtx.imageSmoothingEnabled===true && samplingCtx.imageSmoothingQuality==='high','image resize requests high-quality sampling');
 const lv4=[0,85,170,255];
 ok(lv4.includes(nearestLevel(90,4)),'nearestLevel 2-bit snaps to palette ('+nearestLevel(90,4)+')');
 

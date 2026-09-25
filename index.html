@@ -252,7 +252,7 @@
   <section>
     <div class="col-label"><span class="n">1</span><span class="eyebrow" data-i18n="s1">Pilih sumber</span><span class="line"></span></div>
 
-    <div id="drop" class="drop" tabindex="0" role="button" aria-label="Pilih berkas untuk dikonversi" title="TXT, MD, RTF, HTML, FB2, ODT, DOCX, PDF, MOBI, AZW3, CBZ, CBR">
+    <div id="drop" class="drop" tabindex="0" role="button" aria-label="Pilih berkas untuk dikonversi" title="TXT, MD, RTF, HTML, FB2, ODT, DOCX, PDF, MOBI, AZW3, CBZ (CBR ubah dulu ke CBZ)">
       <div class="big" data-i18n="dropBig">Letakkan berkas di sini</div>
       <div class="hint" data-i18n="dropHint">atau klik untuk memilih</div>
       <div class="formats" data-i18n="dropFormats">Word, teks, Markdown, ODT, HTML, FB2</div>
@@ -533,7 +533,7 @@ var T = {
     how2t:"Periksa judul & bab", how2d:"Judul dan penulis terisi otomatis; ubah bila perlu.",
     how3t:"Buat & salin ke perangkat", how3d:"Unduh EPUB, lalu salin ke e-reader-mu.",
     s1:"Pilih sumber",
-    dropBig:"Letakkan berkas di sini", dropHint:"atau klik untuk memilih \u2014 bisa beberapa berkas sekaligus", dropFormats:"Word, PDF, Kindle, komik CBZ/CBR, teks, dll.",
+    dropBig:"Letakkan berkas di sini", dropHint:"atau klik untuk memilih \u2014 bisa beberapa berkas sekaligus", dropFormats:"Word, PDF, Kindle, komik CBZ (CBR ubah dulu ke CBZ), teks, dll.",
     mFormat:"format", mSize:"ukuran", mParsed:"bab hasil",
     chapterSearch:"Cari bab", prevList:"Sebelumnya", nextList:"Berikutnya", listPage:"Halaman daftar", wordsLabel:"kata", chaptersLabel:"bab hasil", sourcePages:"halaman PDF sumber", reflowNote:"Halaman EPUB mengikuti pengaturan pembaca.", fixedNote:"Mode halaman asli mempertahankan tampilan PDF.", pdfAnalysis:"Rekomendasi PDF", pdfRecommendFixed:"Pertahankan halaman asli", pdfRecommendReflow:"Coba teks mengalir", pdfConfidence:"keyakinan", pdfReasonImages:"ditemukan ilustrasi/gambar", pdfReasonColumns:"terdeteksi tata letak multi-kolom", pdfReasonSparse:"teks tidak tersedia di sebagian besar halaman", pdfReasonText:"lapisan teks cukup konsisten", autoTitle:"Judul pengganti", noChapters:"Tidak ada bab yang cocok.", previewBtn:"Pratinjau bab pertama", previewClose:"Tutup pratinjau", previewLabel:"Pratinjau hasil", editChapter:"Judul bab", moveUp:"Naikkan bab", moveDown:"Turunkan bab", reviewLabel:"Ringkasan hasil", reviewMode:"mode", reviewChapters:"bab", reviewWords:"kata", reviewImages:"gambar", reviewSourcePages:"halaman sumber",
     orWeb:"atau dari sebuah tautan", urlPh:"Tempel alamat artikel (https://…)", fetchBtn:"Ambil artikel", titlePh:"Tanpa judul", authorPh:"Tidak diketahui", langPh:"id / en", runtimeHelp:"PDF dan DOCX memuat pembaca tambahan saat pertama kali dipakai; koneksi internet diperlukan sekali.",
@@ -590,7 +590,7 @@ var T = {
     how2t:"Check title & chapters", how2d:"Title and author are filled in automatically; edit if needed.",
     how3t:"Create & copy to device", how3d:"Download the EPUB, then copy it to your e-reader.",
     s1:"Choose a source",
-    dropBig:"Drop your file here", dropHint:"or click to choose \u2014 several files at once is fine", dropFormats:"Word, PDF, Kindle, CBZ/CBR comics, text, etc.",
+    dropBig:"Drop your file here", dropHint:"or click to choose \u2014 several files at once is fine", dropFormats:"Word, PDF, Kindle, CBZ comics (convert CBR to CBZ first), text, etc.",
     mFormat:"format", mSize:"size", mParsed:"output chapters",
     chapterSearch:"Search chapters", prevList:"Previous", nextList:"Next", listPage:"List page", wordsLabel:"words", chaptersLabel:"output chapters", sourcePages:"source PDF pages", reflowNote:"EPUB pages follow the reader settings.", fixedNote:"Original-page mode preserves the PDF appearance.", pdfAnalysis:"PDF recommendation", pdfRecommendFixed:"Keep original pages", pdfRecommendReflow:"Try reflow text", pdfConfidence:"confidence", pdfReasonImages:"illustrations/images detected", pdfReasonColumns:"multi-column layout detected", pdfReasonSparse:"text is missing from most pages", pdfReasonText:"text layer is mostly consistent", autoTitle:"Fallback title", noChapters:"No matching chapters.", previewBtn:"Preview first chapter", previewClose:"Close preview", previewLabel:"Output preview", editChapter:"Chapter title", moveUp:"Move chapter up", moveDown:"Move chapter down", reviewLabel:"Output summary", reviewMode:"mode", reviewChapters:"chapters", reviewWords:"words", reviewImages:"images", reviewSourcePages:"source pages",
     orWeb:"or from a link", urlPh:"Paste an article address (https://…)", fetchBtn:"Fetch article", titlePh:"Untitled", authorPh:"Unknown", langPh:"id / en", runtimeHelp:"PDF and DOCX load an additional reader the first time they are used; an internet connection is needed once.",
@@ -2418,6 +2418,15 @@ function fitSize(w, h, maxW, maxH){
 function u8ToB64(u8){ let s=''; const CH=0x8000; for(let i=0;i<u8.length;i+=CH){ s+=String.fromCharCode.apply(null,u8.subarray(i,i+CH)); } return btoa(s); }
 function loadImage(url){ return new Promise((res,rej)=>{ const im=new Image(); im.onload=()=>res(im); im.onerror=()=>rej(new Error('image decode failed')); im.src=url; }); }
 
+/* Canvas defaults vary between browsers and can select a low-quality resize
+   kernel.  Always request the highest available filter before shrinking an
+   image; this matters for thin glyph strokes in scanned pages and comics. */
+function setHighQualityImageSampling(ctx){
+  if(!ctx) return;
+  ctx.imageSmoothingEnabled=true;
+  try{ ctx.imageSmoothingQuality='high'; }catch(e){}
+}
+
 // Browser wrapper: bytes in -> processed PNG bytes out.
 async function processImageBytes(u8, mime, opts){
   const blob=new Blob([u8],{type:mime||'image/png'});
@@ -2429,6 +2438,7 @@ async function processImageBytes(u8, mime, opts){
     const cv=document.createElement('canvas'); cv.width=w; cv.height=h;
     const ctx=cv.getContext('2d');
     ctx.fillStyle='#fff'; ctx.fillRect(0,0,w,h);
+    setHighQualityImageSampling(ctx);
     ctx.drawImage(img,0,0,w,h);
     const id=ctx.getImageData(0,0,w,h);
     const gray=rgbaToGray(id.data,w,h);
@@ -2681,6 +2691,7 @@ async function imageToGrayPage(u8, mime, W, H, levels){
     const img=await loadImage(url);
     const cv=document.createElement('canvas'); cv.width=W; cv.height=H; const ctx=cv.getContext('2d');
     ctx.fillStyle='#fff'; ctx.fillRect(0,0,W,H);
+    setHighQualityImageSampling(ctx);
     const s=Math.min(W/(img.naturalWidth||img.width), H/(img.naturalHeight||img.height));
     const dw=Math.max(1,Math.round((img.naturalWidth||img.width)*s)), dh=Math.max(1,Math.round((img.naturalHeight||img.height)*s));
     ctx.drawImage(img,(W-dw)>>1,(H-dh)>>1,dw,dh);
@@ -2727,7 +2738,7 @@ async function parseToBook(file){
     const selectedPdfMode = (document.getElementById('pdfMode')||{}).value || 'reflow';
     try { r=await pdfToBook(buf, selectedPdfMode); }
     catch(err){ if(/encrypt|password|drm|security/i.test(String(err && err.message || err))) throw new Error(t('errPdfEncrypted')); throw err; }
-    book.html=r.html; book.chapters=r.chapters; book.pdfMode=r.pdfMode || selectedPdfMode; book.pdfAnalysis=r.analysis||null; book.title=r.title; book.author=r.author; book.images=r.images; book.coverName=r.coverName; book.sourcePageCount=r.sourcePageCount; fmtLabel='PDF';
+    book.html=r.html; book.chapters=r.chapters; book.pdfMode=r.pdfMode || selectedPdfMode; book.pdfAnalysis=r.analysis||null; book.title=r.title; book.author=r.author; book.images=r.images; book.coverName=r.coverName; book.sourcePageCount=r.sourcePageCount; book.fixedViewport=r.fixedViewport || null; fmtLabel='PDF';
     if(r.images.length) log('Extracted '+r.images.length+' embedded image(s) from PDF');
   } else if(ext==='mobi'||ext==='azw'||ext==='azw3'||ext==='prc'){
     const buf=await file.arrayBuffer(); const r=mobiToBook(buf); book.html=r.html; book.title=r.title; book.author=r.author; book.language=r.lang; book.images=r.images; book.coverName=r.coverName; fmtLabel=ext==='mobi'?'Kindle (MOBI)':'Kindle ('+ext.toUpperCase()+')';
