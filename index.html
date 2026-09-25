@@ -259,6 +259,7 @@
       <input id="file" type="file" multiple accept=".txt,.md,.markdown,.text,.rtf,.html,.htm,.xhtml,.fb2,.odt,.docx,.pdf,.mobi,.azw,.azw3,.prc,.cbz,.cbr" />
       <div class="help" data-i18n="runtimeHelp">PDF dan DOCX memuat pembaca tambahan saat pertama kali dipakai; koneksi internet diperlukan sekali.</div>
     </div>
+    <p class="help quick-help" data-i18n="quickHelp">Cukup pilih berkas. Read Maker memilih setelan aman secara otomatis; buka Opsi lanjutan hanya bila perlu.</p>
 
     <div id="filecard" class="filecard">
       <div class="fname" id="fname">&mdash;</div>
@@ -287,7 +288,8 @@
     </details>
 
     <div style="height:26px"></div>
-    <div class="col-label"><span class="n">2</span><span class="eyebrow" data-i18n="s2">Periksa detail</span><span class="line"></span></div>
+    <div class="col-label"><span class="n">2</span><span class="eyebrow" data-i18n="s2">Tinjau hasil</span><span class="line"></span></div>
+    <p class="help" data-i18n="reviewHelp">Judul, penulis, dan pembagian bab sudah diisi otomatis. Biasanya kamu bisa langsung membuat EPUB.</p>
     <fieldset>
       <div class="field">
         <label for="title" data-i18n="lblTitle">Judul</label>
@@ -530,10 +532,10 @@ var T = {
     sub:"Pilih sebuah berkas atau tempel tautan artikel, lalu dapatkan buku EPUB rapi yang siap dibaca di perangkatmu. Semua diproses di peramban — tidak ada yang diunggah ke mana pun.",
     tagOffline:"tanpa internet · EPUB",
     how1t:"Masukkan tulisan", how1d:"Word, teks, Markdown, artikel web, dan lainnya.",
-    how2t:"Periksa judul & bab", how2d:"Judul dan penulis terisi otomatis; ubah bila perlu.",
+    how2t:"Tinjau hasil", how2d:"Read Maker memilih setelan aman; ubah judul bila perlu.",
     how3t:"Buat & salin ke perangkat", how3d:"Unduh EPUB, lalu salin ke e-reader-mu.",
     s1:"Pilih sumber",
-    dropBig:"Letakkan berkas di sini", dropHint:"atau klik untuk memilih \u2014 bisa beberapa berkas sekaligus", dropFormats:"Word, PDF, Kindle, komik CBZ (CBR ubah dulu ke CBZ), teks, dll.",
+    dropBig:"Letakkan berkas di sini", dropHint:"atau klik untuk memilih \u2014 bisa beberapa berkas sekaligus", dropFormats:"Word, PDF, Kindle, komik CBZ (CBR ubah dulu ke CBZ), teks, dll.", quickHelp:"Cukup pilih berkas. Read Maker memakai setelan aman bawaan; buka Opsi lanjutan hanya bila perlu.",
     mFormat:"format", mSize:"ukuran", mParsed:"bab hasil",
     chapterSearch:"Cari bab", prevList:"Sebelumnya", nextList:"Berikutnya", listPage:"Halaman daftar", wordsLabel:"kata", chaptersLabel:"bab hasil", sourcePages:"halaman PDF sumber", reflowNote:"Halaman EPUB mengikuti pengaturan pembaca.", fixedNote:"Mode halaman asli mempertahankan tampilan PDF.", pdfAnalysis:"Rekomendasi PDF", pdfRecommendFixed:"Pertahankan halaman asli", pdfRecommendReflow:"Coba teks mengalir", pdfConfidence:"keyakinan", pdfReasonImages:"ditemukan ilustrasi/gambar", pdfReasonColumns:"terdeteksi tata letak multi-kolom", pdfReasonSparse:"teks tidak tersedia di sebagian besar halaman", pdfReasonText:"lapisan teks cukup konsisten", autoTitle:"Judul pengganti", noChapters:"Tidak ada bab yang cocok.", previewBtn:"Pratinjau bab pertama", previewClose:"Tutup pratinjau", previewLabel:"Pratinjau hasil", editChapter:"Judul bab", moveUp:"Naikkan bab", moveDown:"Turunkan bab", reviewLabel:"Ringkasan hasil", reviewMode:"mode", reviewChapters:"bab", reviewWords:"kata", reviewImages:"gambar", reviewSourcePages:"halaman sumber",
     orWeb:"atau dari sebuah tautan", urlPh:"Tempel alamat artikel (https://…)", fetchBtn:"Ambil artikel", titlePh:"Tanpa judul", authorPh:"Tidak diketahui", langPh:"id / en", runtimeHelp:"PDF dan DOCX memuat pembaca tambahan saat pertama kali dipakai; koneksi internet diperlukan sekali.",
@@ -541,7 +543,7 @@ var T = {
     pasteSummary:"Situs menolak? Tempel HTML halaman",
     pasteHelp:"Buka artikelnya, salin HTML halaman, lalu tempel di sini. Tetap berhasil walau permintaan langsung diblokir.",
     pasteUrlPh:"Alamat asli (opsional, memperbaiki tautan gambar)", pasteHtmlPh:"Tempel HTML halaman di sini…", pasteBtn:"Gunakan HTML ini",
-    s2:"Periksa detail", lblTitle:"Judul", lblAuthor:"Penulis", lblSplit:"Pemisahan bab",
+    s2:"Tinjau hasil", reviewHelp:"Judul, penulis, dan pembagian bab sudah diisi otomatis. Biasanya kamu bisa langsung membuat EPUB.", lblTitle:"Judul", lblAuthor:"Penulis", lblSplit:"Pemisahan bab",
     splitAuto:"Otomatis (deteksi judul)", splitToc:"Ikuti daftar isi buku", splitH1:"Tiap judul besar", splitH1H2:"Tiap judul & sub-judul", splitSingle:"Jangan dipisah",
     splitHelp:'"Otomatis" memakai daftar isi bawaan buku bila ada, dan mengenali baris seperti "Bab" atau "Chapter" pada teks biasa.',
     adv:"Opsi lanjutan", lblLang:"Kode bahasa", lblFw:"Perangkat lunak e-reader", fwUniversal:"Semua (aman untuk OS bawaan & firmware lain)", fwCrossPoint:"CrossPoint (paling ramping)", fwHelp:"\u201cSemua\u201d menambahkan aturan gaya yang diabaikan CrossPoint tetapi membantu OS bawaan Xteink dan firmware lain menskalakan gambar serta memperbesar judul bab.",
@@ -587,10 +589,10 @@ var T = {
     sub:"Choose a file or paste an article link, and get a clean EPUB ready to read on your device. Everything runs in your browser — nothing is uploaded anywhere.",
     tagOffline:"offline · EPUB",
     how1t:"Add your writing", how1d:"Word, text, Markdown, web articles and more.",
-    how2t:"Check title & chapters", how2d:"Title and author are filled in automatically; edit if needed.",
+    how2t:"Review the result", how2d:"Read Maker chooses safe settings; edit the title if needed.",
     how3t:"Create & copy to device", how3d:"Download the EPUB, then copy it to your e-reader.",
     s1:"Choose a source",
-    dropBig:"Drop your file here", dropHint:"or click to choose \u2014 several files at once is fine", dropFormats:"Word, PDF, Kindle, CBZ comics (convert CBR to CBZ first), text, etc.",
+    dropBig:"Drop your file here", dropHint:"or click to choose \u2014 several files at once is fine", dropFormats:"Word, PDF, Kindle, CBZ comics (convert CBR to CBZ first), text, etc.", quickHelp:"Just choose a file. Read Maker uses safe defaults; open Advanced options only when needed.",
     mFormat:"format", mSize:"size", mParsed:"output chapters",
     chapterSearch:"Search chapters", prevList:"Previous", nextList:"Next", listPage:"List page", wordsLabel:"words", chaptersLabel:"output chapters", sourcePages:"source PDF pages", reflowNote:"EPUB pages follow the reader settings.", fixedNote:"Original-page mode preserves the PDF appearance.", pdfAnalysis:"PDF recommendation", pdfRecommendFixed:"Keep original pages", pdfRecommendReflow:"Try reflow text", pdfConfidence:"confidence", pdfReasonImages:"illustrations/images detected", pdfReasonColumns:"multi-column layout detected", pdfReasonSparse:"text is missing from most pages", pdfReasonText:"text layer is mostly consistent", autoTitle:"Fallback title", noChapters:"No matching chapters.", previewBtn:"Preview first chapter", previewClose:"Close preview", previewLabel:"Output preview", editChapter:"Chapter title", moveUp:"Move chapter up", moveDown:"Move chapter down", reviewLabel:"Output summary", reviewMode:"mode", reviewChapters:"chapters", reviewWords:"words", reviewImages:"images", reviewSourcePages:"source pages",
     orWeb:"or from a link", urlPh:"Paste an article address (https://…)", fetchBtn:"Fetch article", titlePh:"Untitled", authorPh:"Unknown", langPh:"id / en", runtimeHelp:"PDF and DOCX load an additional reader the first time they are used; an internet connection is needed once.",
@@ -598,7 +600,7 @@ var T = {
     pasteSummary:"Blocked by the site? Paste the page HTML",
     pasteHelp:"Open the article, copy the page HTML, and paste it here. Works even when a direct request is blocked.",
     pasteUrlPh:"Original address (optional, fixes image links)", pasteHtmlPh:"Paste the page HTML here…", pasteBtn:"Use this HTML",
-    s2:"Check the details", lblTitle:"Title", lblAuthor:"Author", lblSplit:"Split chapters",
+    s2:"Review the result", reviewHelp:"The title, author, and chapter split are filled in automatically. You can usually create the EPUB right away.", lblTitle:"Title", lblAuthor:"Author", lblSplit:"Split chapters",
     splitAuto:"Automatic (detect headings)", splitToc:"Follow the book's contents", splitH1:"On every big heading", splitH1H2:"On heading & sub-heading", splitSingle:"Don't split",
     splitHelp:'"Automatic" uses the book\'s own contents when it has one, and recognises lines like "Chapter" or "Bab" in plain text.',
     adv:"Advanced options", lblLang:"Language code", lblFw:"E-reader software", fwUniversal:"Any (safe on stock OS and other firmware)", fwCrossPoint:"CrossPoint (leanest)", fwHelp:"\u201cAny\u201d adds style rules CrossPoint ignores but which help the stock Xteink OS and other firmware scale images and size chapter headings.",
