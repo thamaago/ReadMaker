@@ -38,5 +38,10 @@ w.pdfjsLib={getDocument:()=>({promise:Promise.resolve({
   const einkViewport=w.selectedFixedViewport({width:771,height:1182});
   assert.equal(einkViewport.width,480); assert.equal(einkViewport.height,800);
   assert.equal(w.shouldProcessBookImages({pdfMode:'fixed',images:[{}]}),true);
+  d.getElementById('pdfQuality').value='eink-detail';
+  const detailViewport=w.selectedFixedViewport({width:771,height:1182});
+  assert.equal(detailViewport.width,771); assert.equal(detailViewport.height,1182);
+  const detailOpts=w.einkOpts({pdfMode:'fixed',fixedViewport:detailViewport});
+  assert.equal(detailOpts.maxW,771); assert.equal(detailOpts.maxH,1182);
   console.log('PDF fixed-layout mode: passed');
 })().then(()=>process.exit(0)).catch(e=>{console.error(e);process.exit(1)}).finally(()=>w.close());
