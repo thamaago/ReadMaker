@@ -313,7 +313,17 @@
       </div>
 
       <details class="paste" style="margin-top:6px">
-        <summary data-i18n="adv">Opsi lanjutan</summary>
+      <summary data-i18n="adv">Opsi lanjutan</summary>
+      <div class="field" style="margin-top:12px">
+        <label for="outputPreset" data-i18n="lblPreset">Preset hasil</label>
+        <select id="outputPreset">
+          <option value="auto" selected data-i18n="presetAuto">Otomatis aman (disarankan)</option>
+          <option value="text" data-i18n="presetText">Teks paling ringan</option>
+          <option value="layout" data-i18n="presetLayout">Pertahankan tata letak</option>
+          <option value="comic" data-i18n="presetComic">Komik untuk e-ink</option>
+        </select>
+        <div class="help" data-i18n="presetHelp">Preset otomatis memilih reflow, halaman asli, atau komik berdasarkan berkas yang dipilih. Opsi lain tetap bisa diubah setelahnya.</div>
+      </div>
         <div class="pastebody">
           <div class="field" style="margin-top:6px">
             <label for="fwProfile" data-i18n="lblFw">Perangkat lunak e-reader</label>
@@ -553,7 +563,7 @@ var T = {
     s2:"Tinjau hasil", reviewHelp:"Judul, penulis, dan pembagian bab sudah diisi otomatis. Biasanya kamu bisa langsung membuat EPUB.", lblTitle:"Judul", lblAuthor:"Penulis", lblSplit:"Pemisahan bab",
     splitAuto:"Otomatis (deteksi judul)", splitToc:"Ikuti daftar isi buku", splitH1:"Tiap judul besar", splitH1H2:"Tiap judul & sub-judul", splitSingle:"Jangan dipisah",
     splitHelp:'"Otomatis" memakai daftar isi bawaan buku bila ada, dan mengenali baris seperti "Bab" atau "Chapter" pada teks biasa.',
-    adv:"Opsi lanjutan", lblLang:"Kode bahasa", lblFw:"Perangkat lunak e-reader", fwUniversal:"Semua (aman untuk OS bawaan & firmware lain)", fwCrossPoint:"CrossPoint (paling ramping)", fwHelp:"\u201cSemua\u201d menambahkan aturan gaya yang diabaikan CrossPoint tetapi membantu OS bawaan Xteink dan firmware lain menskalakan gambar serta memperbesar judul bab.",
+    adv:"Opsi lanjutan", lblPreset:"Preset hasil", presetAuto:"Otomatis aman (disarankan)", presetText:"Teks paling ringan", presetLayout:"Pertahankan tata letak", presetComic:"Komik untuk e-ink", presetHelp:"Otomatis memakai reflow yang paling ringan; pilih Pertahankan tata letak untuk PDF bergambar atau kompleks. Opsi lain tetap bisa diubah setelahnya.", lblLang:"Kode bahasa", lblFw:"Perangkat lunak e-reader", fwUniversal:"Semua (aman untuk OS bawaan & firmware lain)", fwCrossPoint:"CrossPoint (paling ramping)", fwHelp:"\u201cSemua\u201d menambahkan aturan gaya yang diabaikan CrossPoint tetapi membantu OS bawaan Xteink dan firmware lain menskalakan gambar serta memperbesar judul bab.",
     langHelp:"Contoh: <code>id</code> (Indonesia), <code>en</code> (Inggris), <code>ar</code> (Arab).",
     imgHead:"Gambar · untuk layar e-ink", lblEink:"Pemrosesan", einkOnOpt:"Aktif (disarankan)", einkOffOpt:"Mati (biarkan asli)",
     lblTones:"Tingkat warna", tone2:"2 · hitam-putih", tone4:"4 · abu-abu", tone16:"16 · abu halus",
@@ -588,7 +598,7 @@ var T = {
     blockedD:"Buka artikelnya, salin HTML halaman, lalu pakai \u201cTempel HTML\u201d.",
     footer:"Mengubah teks, Markdown, RTF, HTML, FictionBook (FB2), OpenDocument (ODT), Word (DOCX), PDF (berteks), Kindle (MOBI/AZW3), komik (CBZ), dan artikel web menjadi EPUB yang menyesuaikan layar. Gambar disiapkan untuk layar e-ink. Alat ini tidak mengubah firmware perangkat.", pdfMode:"Tata letak PDF", pdfReflow:"Teks mengalir (reflow)", pdfFixed:"Pertahankan halaman asli", pdfModeHelp:"Pilih halaman asli untuk PDF dengan ilustrasi, drop cap, tabel, atau tata letak kompleks. Hasilnya lebih besar dan tidak mengikuti ukuran font pembaca. ADE versi lama kadang tidak menampilkan EPUB fixed-layout; gunakan ADE terbaru atau pilih Teks mengalir.", pdfQuality:"Kualitas halaman PDF", pdfQualitySource:"Asli (warna & resolusi)", pdfQualityEink:"Optimalkan untuk e-ink", pdfQualityEinkDetail:"E-ink detail (abu-abu halus, resolusi tinggi)", pdfQualityHelp:"Berlaku untuk mode Pertahankan halaman asli. Asli menyimpan warna dan resolusi PDF; E-ink mengecilkan gambar; E-ink detail mempertahankan resolusi dengan 16 tingkat abu-abu halus agar huruf tidak berbintik.",
     stReady:"Siap dibuat.", stParsing:"Membaca berkas…", stBuilding:"Membuat EPUB…", stImages:"Memproses gambar…",
-    stFetching:"Mengambil…", stBlocked:"Diblokir situs (kemungkinan CORS). Pakai \u201cTempel HTML\u201d.", stPasteFirst:"Tempel HTML dulu.", errPasteUrlOnly:"Yang ditempel hanya alamat URL. Masukkan URL lengkap di kolom alamat atas; untuk fallback, buka artikel lalu salin HTML halaman (Ctrl+U, Ctrl+A, Ctrl+C) ke kotak ini.",
+    stFetching:"Mengambil…", stBlocked:"Diblokir situs (kemungkinan CORS). Pakai \u201cTempel HTML\u201d.", stPasteFirst:"Tempel HTML dulu.", errPasteUrlOnly:"Yang ditempel hanya alamat URL. Masukkan URL lengkap di kolom alamat atas; untuk fallback, buka artikel lalu salin HTML halaman (Ctrl+U, Ctrl+A, Ctrl+C) ke kotak ini.", warnImageFormat:"Gambar ini mungkin tidak dibaca sebagian firmware; aktifkan pemrosesan e-ink agar diubah ke PNG.",
     stSaved:"Tersimpan:", devDone:"Berhasil dibuat:", errPrefix:"Gagal:", warnLarge:"Berkas besar (>{n} MB) — proses mungkin lambat, dan pada perangkat RAM kecil (X3/X4) bisa gagal dibuka.", btnXtc:"Ekspor .xtc (native)", stXtc:"Membuat .xtc…", credits:"Memakai JSZip (MIT); PDF via pdf.js (Apache-2.0), DOCX via mammoth.js (BSD) dimuat saat diperlukan.", errScanned:"PDF ini sepertinya hasil pemindaian (tanpa teks yang bisa disalin). Aktifkan OCR di \u201cOpsi lanjutan\u201d untuk membacanya.", errMobi:"Berkas Kindle ini tidak bisa dibaca. Mungkin ber-DRM (terkunci) atau rusak; berkas ber-DRM tidak didukung.", errHuff:"Berkas Kindle ini memakai kompresi HUFF/CDIC yang belum didukung. Coba konversi dulu lewat Calibre.", errCbz:"Tidak ada gambar di dalam berkas CBZ ini.", errCbr:"Berkas CBR memakai format RAR yang belum didukung. Ubah dulu ke CBZ (mis. lewat Calibre), lalu coba lagi.", pageLabel:"Halaman", chapterLabel:"Bab", batchFiles:"berkas dalam antrean", batchWaiting:"menunggu", batchWorking:"memproses", batchDone:"selesai", batchFailed:"gagal", batchReady:"Siap. Semua berkas akan dijadikan satu berkas ZIP.", batchNone:"Tidak ada berkas yang berhasil dikonversi.", ocrHead:"PDF hasil pindai", lblOcr:"Baca teks dari gambar (OCR)", ocrOff:"Mati", ocrOnOpt:"Aktif", lblOcrLang:"Bahasa teks", ocrHelp:"Hanya dipakai bila PDF tidak punya teks yang bisa disalin. Prosesnya lambat dan butuh koneksi sekali untuk memuat mesin OCR; hasilnya bisa mengandung salah baca.", stOcr:"Membaca teks dari gambar\u2026", errOcrLoad:"Mesin OCR gagal dimuat. Periksa koneksi internet.", errOcrEmpty:"OCR tidak menemukan teks yang bisa dibaca pada PDF ini.", sleepHead:"Buat gambar layar tidur (wallpaper) \u00b7 CrossPoint", sleepHelp:"Ubah foto menjadi berkas BMP yang dipakai perangkat saat layar tidur. Salin hasilnya ke akar kartu SD. Ukuran layar dan tingkat warna mengikuti \u201cOpsi lanjutan\u201d.", lblSleepMode:"Jenis", sleepFull:"Latar penuh (sleep.bmp)", sleepOverlay:"Tempelan transparan (sleep-overlay.bmp)", lblSleepFile:"Gambar", stSleep:"Membuat gambar layar tidur\u2026", dictHead:"Buat kamus untuk perangkat \u00b7 CrossPoint / SUMI", dictHelp:"Ubah daftar kata menjadi kamus StarDict yang bisa dipakai perangkat saat menekan lama sebuah kata. Salin folder dictionaries/ hasil unduhan ke akar kartu SD.", lblDictName:"Nama kamus", dictNamePh:"mis. Inggris-Indonesia", lblDictFmt:"Format definisi", dictPlain:"Teks biasa", dictHtmlOpt:"HTML (tebal/miring)", lblDictFile:"Berkas daftar kata (.txt / .tsv / .csv)", stDict:"Membuat kamus\u2026", errDictEmpty:"Daftar kata kosong atau formatnya tidak dikenali (pakai kata[TAB]definisi)."
   },
   en: {
@@ -611,7 +621,7 @@ var T = {
     s2:"Review the result", reviewHelp:"The title, author, and chapter split are filled in automatically. You can usually create the EPUB right away.", lblTitle:"Title", lblAuthor:"Author", lblSplit:"Split chapters",
     splitAuto:"Automatic (detect headings)", splitToc:"Follow the book's contents", splitH1:"On every big heading", splitH1H2:"On heading & sub-heading", splitSingle:"Don't split",
     splitHelp:'"Automatic" uses the book\'s own contents when it has one, and recognises lines like "Chapter" or "Bab" in plain text.',
-    adv:"Advanced options", lblLang:"Language code", lblFw:"E-reader software", fwUniversal:"Any (safe on stock OS and other firmware)", fwCrossPoint:"CrossPoint (leanest)", fwHelp:"\u201cAny\u201d adds style rules CrossPoint ignores but which help the stock Xteink OS and other firmware scale images and size chapter headings.",
+    adv:"Advanced options", lblPreset:"Output preset", presetAuto:"Safe automatic (recommended)", presetText:"Lightest text", presetLayout:"Keep original layout", presetComic:"Comic for e-ink", presetHelp:"Automatic uses the lightest reflow; choose Keep original layout for illustrated or complex PDFs. You can still adjust individual options afterwards.", lblLang:"Language code", lblFw:"E-reader software", fwUniversal:"Any (safe on stock OS and other firmware)", fwCrossPoint:"CrossPoint (leanest)", fwHelp:"\u201cAny\u201d adds style rules CrossPoint ignores but which help the stock Xteink OS and other firmware scale images and size chapter headings.",
     langHelp:"e.g. <code>en</code> (English), <code>id</code> (Indonesian), <code>ar</code> (Arabic).",
     imgHead:"Images · for e-ink screens", lblEink:"Processing", einkOnOpt:"On (recommended)", einkOffOpt:"Off (keep original)",
     lblTones:"Tones", tone2:"2 · black & white", tone4:"4 · greyscale", tone16:"16 · fine grey",
@@ -646,7 +656,7 @@ var T = {
     blockedD:"Open the article, copy its page HTML, and use \u201cPaste page HTML\u201d.",
     footer:"Converts text, Markdown, RTF, HTML, FictionBook (FB2), OpenDocument (ODT), Word (DOCX), text-based PDF, Kindle (MOBI/AZW3), comics (CBZ) and web articles into reflowable EPUB. Images are prepared for e-ink screens. This tool does not modify device firmware.", pdfMode:"PDF layout", pdfReflow:"Reflow text", pdfFixed:"Keep original pages", pdfModeHelp:"Choose original pages for PDFs with illustrations, drop caps, tables, or complex layout. The result is larger and does not follow the reader's font size. Older ADE versions may show fixed-layout EPUBs as blank; use the latest ADE or choose Reflow text.", pdfQuality:"PDF page quality", pdfQualitySource:"Source (colour & resolution)", pdfQualityEink:"Optimise for e-ink", pdfQualityEinkDetail:"E-ink detail (smooth greyscale, high resolution)", pdfQualityHelp:"Applies to Keep original pages. Source preserves the PDF's colour and resolution; E-ink resizes pages; E-ink detail preserves resolution with smooth 16-level greyscale so small text stays clean.",
     stReady:"Ready to build.", stBuilding:"Building EPUB…", stParsing:"Reading file…", stImages:"Processing images…",
-    stFetching:"Fetching…", stBlocked:"Blocked by the site (likely CORS). Use \u201cPaste HTML\u201d.", stPasteFirst:"Paste some HTML first.", errPasteUrlOnly:"You pasted only a URL. Put the complete URL in the address field above; for the fallback, open the article and copy its page HTML (Ctrl+U, Ctrl+A, Ctrl+C) into this box.",
+    stFetching:"Fetching…", stBlocked:"Blocked by the site (likely CORS). Use \u201cPaste HTML\u201d.", stPasteFirst:"Paste some HTML first.", errPasteUrlOnly:"You pasted only a URL. Put the complete URL in the address field above; for the fallback, open the article and copy its page HTML (Ctrl+U, Ctrl+A, Ctrl+C) into this box.", warnImageFormat:"Some firmware may not read these image formats; turn on e-ink processing to convert them to PNG.",
     stSaved:"Saved:", devDone:"Created:", errPrefix:"Failed:", warnLarge:"Large file (>{n} MB) — this may be slow, and may fail to open on low-RAM devices (X3/X4).", btnXtc:"Export .xtc (native)", stXtc:"Building .xtc…", credits:"Uses JSZip (MIT); PDF via pdf.js (Apache-2.0) and DOCX via mammoth.js (BSD) loaded on demand.", errScanned:"This PDF looks scanned (no selectable text). Turn on OCR under \u201cAdvanced options\u201d to read it.", errMobi:"This Kindle file can't be read. It may be DRM-protected (locked) or corrupt; DRM files are not supported.", errHuff:"This Kindle file uses HUFF/CDIC compression, which isn't supported yet. Try converting it with Calibre first.", errCbz:"No images were found inside this CBZ.", errCbr:"CBR uses the RAR format, which isn't supported directly. Convert it to CBZ first (e.g. with Calibre), then try again.", pageLabel:"Page", chapterLabel:"Chapter", batchFiles:"files queued", batchWaiting:"waiting", batchWorking:"working", batchDone:"done", batchFailed:"failed", batchReady:"Ready. All files will be delivered as one ZIP.", batchNone:"No file could be converted.", ocrHead:"Scanned PDFs", lblOcr:"Read text from images (OCR)", ocrOff:"Off", ocrOnOpt:"On", lblOcrLang:"Text language", ocrHelp:"Only used when a PDF has no selectable text. It is slow and needs a connection once to load the OCR engine; results may contain misreadings.", stOcr:"Reading text from images\u2026", errOcrLoad:"The OCR engine could not be loaded. Check your connection.", errOcrEmpty:"OCR found no readable text in this PDF.", sleepHead:"Make a sleep-screen image (wallpaper) \u00b7 CrossPoint", sleepHelp:"Turn a photo into the BMP the device shows while asleep. Copy the result to the root of the SD card. Screen size and tone count follow \u201cAdvanced options\u201d.", lblSleepMode:"Type", sleepFull:"Full wallpaper (sleep.bmp)", sleepOverlay:"Transparent overlay (sleep-overlay.bmp)", lblSleepFile:"Image", stSleep:"Making the sleep screen\u2026", dictHead:"Make a device dictionary \u00b7 CrossPoint / SUMI", dictHelp:"Turn a word list into a StarDict dictionary the device can use when you long-press a word. Copy the downloaded dictionaries/ folder to the SD card root.", lblDictName:"Dictionary name", dictNamePh:"e.g. English-Indonesian", lblDictFmt:"Definition format", dictPlain:"Plain text", dictHtmlOpt:"HTML (bold/italic)", lblDictFile:"Word list file (.txt / .tsv / .csv)", stDict:"Building the dictionary\u2026", errDictEmpty:"The word list is empty or in an unrecognised format (use word[TAB]definition)."
   }
 };
@@ -2853,6 +2863,7 @@ async function parseFile(file, token){
   $('fsize').textContent=fmtSize(file.size);
   $('filecard').classList.add('show');
   const book = await parseToBook(file);
+  book._sourceFile = file;
   if(token !== ingestToken) return;
   $('fformat').textContent = book.fmtLabel || '';
   finishIngest(book, currentFileBase);
@@ -2865,6 +2876,7 @@ function finishIngest(book, fallbackTitle){
   delete book._editableChapters; delete book._chapterEditKey;
   parsed = book;
   batchFiles = [];
+  if($('outputPreset') && $('outputPreset').value==='auto') applyOutputPreset(true);
   $('title').value = book.title || fallbackTitle || 'book';
   $('author').value = book.author || '';
   $('lang').value = book.language || '';
@@ -3031,6 +3043,47 @@ function moveChapter(index, direction){
 
 function fwProfile(){ const el=document.getElementById('fwProfile'); return el ? el.value : 'universal'; }
 
+/* Beginner-friendly output presets. Automatic is the safe reflow default;
+   manual presets remain stable when the user wants a predictable export
+   target. Comics still use the native image-friendly values automatically. */
+async function applyOutputPreset(skipReparse){
+  const sel=$('outputPreset'); if(!sel) return;
+  let mode=sel.value;
+  const b=parsed||{};
+  if(mode==='auto') mode=b.comic ? 'comic' : 'text';
+  const preset={
+    text:{pdfMode:'reflow',pdfQuality:'source',einkOn:'on',einkLevels:'4',einkDither:'fs',einkSize:'480x800',fwProfile:'universal'},
+    layout:{pdfMode:'fixed',pdfQuality:'eink-detail',einkOn:'on',einkLevels:'16',einkDither:'none',einkSize:'480x800',fwProfile:'universal'},
+    comic:{pdfMode:'reflow',pdfQuality:'source',einkOn:'on',einkLevels:'4',einkDither:'fs',einkSize:'480x800',fwProfile:'universal'}
+  }[mode] || null;
+  if(!preset) return;
+  Object.keys(preset).forEach(function(id){ const el=$(id); if(el) el.value=preset[id]; });
+  if(!skipReparse && parsed && parsed._sourceFile && extOf(parsed._sourceFile.name)==='pdf'){
+    const token=++ingestToken; const file=parsed._sourceFile;
+    $('build').disabled=true; hideDeviceCard(); setStatus(t('stParsing'));
+    try{
+      const book=await parseToBook(file); book._sourceFile=file;
+      if(token===ingestToken) finishIngest(book,currentFileBase);
+    }catch(e){ if(token===ingestToken){ log('Error: '+e.message); setStatus(t('errPrefix')+' '+e.message,'err'); } }
+    return;
+  }
+  if(parsed){ delete parsed._editableChapters; delete parsed._chapterEditKey; renderGalley(); }
+}
+
+function validateOutputOptions(book){
+  const errors=[], warnings=[];
+  const chapters=book && Array.isArray(book.chapters) ? book.chapters : [];
+  if(!book) errors.push(t('errEmpty'));
+  else if(book.comic && (!book.images||!book.images.length)) errors.push(t('errCbz'));
+  else if(!chapters.length && !(book.html&&book.html.trim())) errors.push(t('errEmpty'));
+  if(book && book.pdfMode==='fixed' && !chapters.length) errors.push(t('errEmpty'));
+  if(book && book.images && book.images.length && $('einkOn') && $('einkOn').value==='off'){
+    const risky=book.images.some(function(im){ return !/^image\/(?:jpe?g|png)$/i.test(String(im.mime||'')); });
+    if(risky) warnings.push(t('warnImageFormat'));
+  }
+  return {errors,warnings};
+}
+
 // The C3 devices (X3/X4/papermono) have ~400KB RAM and no PSRAM, so a large book
 // is risky; the S3 devices (X4 Pro / Sticky / 540x960 class) have 8MB PSRAM and
 // cope with far more. We can only *infer* the target from the chosen panel size.
@@ -3135,6 +3188,9 @@ async function runBatch(){
           : Array.isArray(b.outlineChapters) && ($('split').value==='auto'||$('split').value==='toc') ? b.outlineChapters
           : splitChapters(b.html, $('split').value)
       };
+      const check=validateOutputOptions(book);
+      if(check.errors.length) throw new Error(check.errors.join(' '));
+      check.warnings.forEach(function(w){ log('WARNING: '+w); });
       if(shouldProcessBookImages(book)) book.images = await processBookImages(book);
       const blob = await buildEpub(book);
       const stem = (book.title || base).replace(/[^\w\-. ]+/g,'_').trim().replace(/\s+/g,'_') || 'book';
@@ -3490,6 +3546,7 @@ fileInput.addEventListener('change',()=>acceptFiles(fileInput.files));
   $(idn).addEventListener('input',()=>{ if(parsed) renderGalley(); });
   $(idn).addEventListener('change',()=>{ if(parsed) renderGalley(); });
 });
+if($('outputPreset')) $('outputPreset').addEventListener('change',applyOutputPreset);
 
 $('fetchBtn').addEventListener('click',()=>{ const u=$('url').value.trim(); if(u) fetchArticle(u); });
 $('url').addEventListener('keydown',e=>{ if(e.key==='Enter'){ const u=$('url').value.trim(); if(u) fetchArticle(u); }});
@@ -3606,6 +3663,9 @@ $('build').addEventListener('click',async()=>{
   const btn=$('build'); btn.disabled=true; setStatus(t('stBuilding'));
   try{
     const book=currentBook();
+    const check=validateOutputOptions(book);
+    if(check.errors.length) throw new Error(check.errors.join(' '));
+    check.warnings.forEach(function(w){ log('WARNING: '+w); });
     if(shouldProcessBookImages(book)){
       setStatus(t('stImages'));
       book.images = await processBookImages(book);

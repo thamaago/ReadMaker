@@ -44,6 +44,7 @@ Dokumen ini membandingkan fitur yang benar-benar ada di Read Maker dengan kemamp
 | Device | Sleep screen BMP/overlay | ✅ | Indexed 4-tone dan BGRA overlay |
 | Device | Upload Wi-Fi langsung | ◐ | Profil otomatis/CrossPoint/stock/generic, WebSocket dengan fallback HTTP, QR, cancel, timeout; belum lulus uji hardware nyata |
 | Operasional | Batch conversion | ✅ | File rusak/unsupported dilewati dan dilaporkan per item |
+| UX | Preset hasil dan validasi sebelum build | ✅ | Preset teks, tata letak, komik, reparse PDF saat preset berubah, serta pemeriksaan isi/gambar sebelum EPUB dibuat |
 | Operasional | Worker/progress/cancel untuk parsing berat | ◐ | Progress/error UI ada di beberapa jalur; parser utama masih berjalan di main thread |
 | Operasional | Offline penuh tanpa dependensi jaringan | ◐ | Core offline; PDF.js, Mammoth, OCR, QR decoder dimuat saat diperlukan |
 | Kualitas | Corpus benchmark dan metrik fidelity | ❌ | Test fungsional banyak, tetapi belum ada expected word/chapter/image metrics lintas corpus |
