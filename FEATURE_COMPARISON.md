@@ -17,7 +17,7 @@ Dokumen ini membandingkan fitur yang benar-benar ada di Read Maker dengan kemamp
 | Sumber | PDF text-based | ✅ | pdf.js, reflow dan fixed-layout |
 | Sumber | PDF scan | ◐ | OCR Tesseract opt-in; hasil dapat salah dan bergantung pemuatan engine |
 | Sumber | MOBI/AZW3 non-DRM | ✅ | PalmDOC, gambar, cover, dan TOC bawaan |
-| Sumber | CBZ | ✅ | Halaman gambar, chapter dari folder, ekspor XTC/XTCH |
+| Sumber | CBZ | ✅ | Halaman gambar, urutan numerik, filter metadata arsip, chapter dari folder, ekspor XTC/XTCH |
 | Sumber | CBR/RAR | ❌ | Pengguna diarahkan mengubahnya ke CBZ terlebih dahulu |
 | Sumber | Artikel web dan AO3 | ◐ | Fetch/paste HTML; fetch tetap dibatasi CORS dan jaringan |
 | Struktur | Deteksi chapter dan TOC bawaan | ✅ | TOC MOBI/HTML diprioritaskan, fallback heading/page-break/marker |
@@ -39,10 +39,10 @@ Dokumen ini membandingkan fitur yang benar-benar ada di Read Maker dengan kemamp
 | EPUB | Memecah chapter XHTML besar | ◐ | Pemisahan berbasis chapter tersedia; split ukuran/byte untuk RAM firmware belum ada |
 | Gambar | Grayscale, fit panel, dithering | ✅ | 2/4 tone dan Floyd–Steinberg/ordered dithering |
 | Device | Profil CrossPoint/Universal | ✅ | CSS profile dan batas markup target tersedia |
-| Device | XTC/XTCH native image pages | ✅ | Untuk CBZ/image pages; text-to-XTC memang di luar scope |
+| Device | XTC/XTCH native image pages | ✅ | Untuk CBZ/image pages; mengikuti panel, tone, fit, dan dithering terpilih; text-to-XTC memang di luar scope |
 | Device | Dictionary StarDict | ✅ | `.ifo`, `.idx`, `.dict` untuk CrossPoint/SUMI |
 | Device | Sleep screen BMP/overlay | ✅ | Indexed 4-tone dan BGRA overlay |
-| Device | Upload Wi-Fi langsung | ◐ | Endpoint upload, QR, cancel, timeout; belum lulus uji hardware nyata |
+| Device | Upload Wi-Fi langsung | ◐ | Profil otomatis/CrossPoint/stock/generic, WebSocket dengan fallback HTTP, QR, cancel, timeout; belum lulus uji hardware nyata |
 | Operasional | Batch conversion | ✅ | File rusak/unsupported dilewati dan dilaporkan per item |
 | Operasional | Worker/progress/cancel untuk parsing berat | ◐ | Progress/error UI ada di beberapa jalur; parser utama masih berjalan di main thread |
 | Operasional | Offline penuh tanpa dependensi jaringan | ◐ | Core offline; PDF.js, Mammoth, OCR, QR decoder dimuat saat diperlukan |

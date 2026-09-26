@@ -11,6 +11,7 @@ let p=0,f=0;const ok=(c,m)=>{c?(p++):(f++,0);console.log((c?'  ok  ':'  FAIL')+'
     await new Promise(r=>setTimeout(r,60));
     w.eval("lastBuiltBlob=new Blob(['x']); lastBuiltName='b.epub';");
     d.getElementById('deviceIp').value='192.168.3.3';
+    d.getElementById('deviceProfile').value='http';
     let sent=false; w.XMLHttpRequest=function(){ this.upload={}; this.open=()=>{}; this.send=()=>{sent=true;}; };
     d.getElementById('sendBtn').dispatchEvent(new w.Event('click',{bubbles:true}));
     ok(!sent,'https page: upload not attempted (blocked early)');
@@ -25,6 +26,7 @@ let p=0,f=0;const ok=(c,m)=>{c?(p++):(f++,0);console.log((c?'  ok  ':'  FAIL')+'
     await new Promise(r=>setTimeout(r,60));
     w.eval("lastBuiltBlob=new Blob(['x']); lastBuiltName='b.epub';");
     d.getElementById('deviceIp').value='192.168.3.3';
+    d.getElementById('deviceProfile').value='http';
     ok(!!d.getElementById('devicePath'),'destination folder field exists');
 
     // B1: folder normalization -> path query

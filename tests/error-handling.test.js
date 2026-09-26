@@ -30,6 +30,21 @@ setTimeout(async()=>{
   ok(/memblokir permintaan langsung/.test(g),'blocked message localized in galley');
   ok(!/The site blocked a direct request/.test(g),'no hardcoded English left in galley');
 
+  // 3b) invalid URL input must not be misreported as CORS; domain-only input
+  // is repaired when it is unambiguous.
+  let fetchCalls=0; window.fetch=()=>{ fetchCalls++; return Promise.reject(new Error('should not fetch')); };
+  doc.getElementById('url').value='wafat-megawati-otw-dari-sulsel-ke-rumah-duka-di-jakarta';
+  doc.getElementById('fetchBtn').dispatchEvent(new window.Event('click',{bubbles:true}));
+  await new Promise(r=>setTimeout(r,10));
+  ok(/alamat artikel lengkap/.test(doc.getElementById('status').textContent),'bare slug gets a clear complete-URL message');
+  ok(fetchCalls===0,'bare slug is rejected before network access');
+  ok(window.eval("normalizeArticleUrl('example.com/artikel')")==='https://example.com/artikel','domain-only URL is upgraded to HTTPS');
+
+  doc.getElementById('pasteHtml').value='https://example.com/article';
+  doc.getElementById('pasteBtn').dispatchEvent(new window.Event('click',{bubbles:true}));
+  await new Promise(r=>setTimeout(r,10));
+  ok(/Yang ditempel hanya alamat URL/.test(doc.getElementById('status').textContent),'URL pasted into HTML field gets a direct instruction');
+
   // 4) fetch timeout wiring present (AbortController used with 20s)
   ok(/AbortController/.test(html) && /20000/.test(html),'fetch has an abort timeout');
 

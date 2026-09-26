@@ -79,4 +79,14 @@ ok(/<h1>HUGE TITLE<\/h1>/.test(pdfItemsToHtml([mix])),'very large vs body -> h1'
 const book={title:'T',author:'A',language:'en',images:[],coverName:'',chapters:splitChapters(promoteHeadings(out),'h1h2')};
 ok(book.chapters.length===2,'h1h2 split -> title + Chapter Two ('+book.chapters.length+')');
 
+const outlinePages=[
+  [I('Chapter One',72,800,120,18),I('First body text stays here.',72,770,220,12)],
+  [I('Chapter Two',72,800,120,18),I('Second body text stays here.',72,770,220,12)]
+];
+const outlined=chaptersFromPdfOutline([
+  {title:'Chapter One',page:0,level:2,hasChildren:false},
+  {title:'Chapter Two',page:1,level:2,hasChildren:false}
+],outlinePages,[[],[]]);
+ok(outlined.length===2 && outlined[0].title==='Chapter One' && /First body/.test(outlined[0].html),'PDF outline chapters use bookmark titles and page ranges');
+
 console.log('\nRESULT: '+p+' passed, '+f+' failed');process.exit(f?1:0);

@@ -214,8 +214,9 @@
   .card .method .t{font-size:13.5px;line-height:1.4}
   .card .method .t b{font-weight:600}
   .card .sendrow{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;align-items:center}
-  .card .sendrow input{flex:1;min-width:140px;font-family:var(--mono);font-size:13px;color:var(--ink);background:#fff;border:1px solid var(--rule);border-radius:3px;padding:7px 9px}
-  .card .sendrow input:focus{outline:2px solid var(--focus);outline-offset:1px;border-color:var(--ink)}
+  .card .sendrow input,.card .sendrow select{flex:1;min-width:140px;font-family:var(--mono);font-size:13px;color:var(--ink);background:#fff;border:1px solid var(--rule);border-radius:3px;padding:7px 9px}
+  .card .sendrow select{flex:0 1 145px;min-width:125px}
+  .card .sendrow input:focus,.card .sendrow select:focus{outline:2px solid var(--focus);outline-offset:1px;border-color:var(--ink)}
   .card .sendstatus{font-family:var(--mono);font-size:11px;color:var(--ink-soft);margin-top:6px;min-height:14px}
   .card .sendstatus.ok{color:var(--ok)} .card .sendstatus.err{color:var(--proof)}
   .card .bar{height:4px;background:var(--rule-soft);border-radius:2px;overflow:hidden;margin-top:6px;display:none}
@@ -259,14 +260,14 @@
       <input id="file" type="file" multiple accept=".txt,.md,.markdown,.text,.rtf,.html,.htm,.xhtml,.fb2,.odt,.docx,.pdf,.mobi,.azw,.azw3,.prc,.cbz,.cbr" />
       <div class="help" data-i18n="runtimeHelp">PDF dan DOCX memuat pembaca tambahan saat pertama kali dipakai; koneksi internet diperlukan sekali.</div>
     </div>
-    <p class="help quick-help" data-i18n="quickHelp">Cukup pilih berkas. Read Maker memilih setelan aman secara otomatis; buka Opsi lanjutan hanya bila perlu.</p>
+    <p class="help quick-help" data-i18n="quickHelp">Cukup pilih berkas. Read Maker memakai setelan aman bawaan; buka Opsi lanjutan hanya bila perlu.</p>
 
     <div id="filecard" class="filecard">
       <div class="fname" id="fname">&mdash;</div>
       <div class="fmeta">
         <span><span data-i18n="mFormat">format</span> <b id="fformat">&mdash;</b></span>
         <span><span data-i18n="mSize">ukuran</span> <b id="fsize">&mdash;</b></span>
-        <span><span data-i18n="mParsed">bab</span> <b id="fblocks">&mdash;</b></span>
+        <span><span id="mParsedLabel" data-i18n="mParsed">bab hasil</span> <b id="fblocks">&mdash;</b></span>
       </div>
     </div>
 
@@ -280,7 +281,7 @@
     <details class="paste">
       <summary data-i18n="pasteSummary">Situs menolak? Tempel HTML halaman</summary>
       <div class="pastebody">
-        <p class="help" style="margin-top:0" data-i18n="pasteHelp">Buka artikelnya, salin HTML halaman, lalu tempel di sini. Tetap berhasil walau permintaan langsung diblokir.</p>
+        <p class="help" style="margin-top:0" data-i18n="pasteHelp">Buka artikelnya, salin HTML halaman (bukan hanya alamat URL), lalu tempel di sini. Tetap berhasil walau permintaan langsung diblokir.</p>
         <input id="pasteUrl" type="url" data-i18n-ph="pasteUrlPh" placeholder="Alamat asli (opsional, memperbaiki tautan gambar)" autocomplete="off" />
         <textarea id="pasteHtml" data-i18n-ph="pasteHtmlPh" placeholder="Tempel HTML halaman di sini…" rows="5"></textarea>
         <button id="pasteBtn" class="mini" data-i18n="pasteBtn">Gunakan HTML ini</button>
@@ -456,6 +457,12 @@
         <div class="sendrow">
           <input id="deviceIp" type="text" value="crosspoint.local" data-i18n-ph="ipPh" placeholder="crosspoint.local atau alamat IP" autocomplete="off" />
           <input id="devicePath" type="text" style="max-width:120px" data-i18n-ph="sendFolderLbl" placeholder="Folder tujuan" autocomplete="off" />
+          <select id="deviceProfile" aria-label="Profil perangkat" data-i18n-aria="sendProfileLabel">
+            <option value="auto" selected data-i18n="sendProfileAuto">Otomatis</option>
+            <option value="crosspoint" data-i18n="sendProfileCrossPoint">CrossPoint</option>
+            <option value="stock" data-i18n="sendProfileStock">Xteink bawaan</option>
+            <option value="http" data-i18n="sendProfileHttp">HTTP umum</option>
+          </select>
           <button id="scanQrBtn" class="mini" type="button" data-i18n="scanQr" title="Pindai kode QR dari layar perangkat">QR</button>
           <button id="sendBtn" class="mini" data-i18n="sendBtn">Kirim</button>
         </div>
@@ -541,7 +548,7 @@ var T = {
     orWeb:"atau dari sebuah tautan", urlPh:"Tempel alamat artikel (https://…)", fetchBtn:"Ambil artikel", titlePh:"Tanpa judul", authorPh:"Tidak diketahui", langPh:"id / en", runtimeHelp:"PDF dan DOCX memuat pembaca tambahan saat pertama kali dipakai; koneksi internet diperlukan sekali.",
     fetchHelp:'Mengambil isi artikel, membuang menu dan iklan, menyisakan teksnya. Sebagian situs memblokir permintaan — jika gagal, pakai "Tempel HTML" di bawah.',
     pasteSummary:"Situs menolak? Tempel HTML halaman",
-    pasteHelp:"Buka artikelnya, salin HTML halaman, lalu tempel di sini. Tetap berhasil walau permintaan langsung diblokir.",
+    pasteHelp:"Buka artikelnya, salin HTML halaman (bukan hanya alamat URL), lalu tempel di sini. Tetap berhasil walau permintaan langsung diblokir.",
     pasteUrlPh:"Alamat asli (opsional, memperbaiki tautan gambar)", pasteHtmlPh:"Tempel HTML halaman di sini…", pasteBtn:"Gunakan HTML ini",
     s2:"Tinjau hasil", reviewHelp:"Judul, penulis, dan pembagian bab sudah diisi otomatis. Biasanya kamu bisa langsung membuat EPUB.", lblTitle:"Judul", lblAuthor:"Penulis", lblSplit:"Pemisahan bab",
     splitAuto:"Otomatis (deteksi judul)", splitToc:"Ikuti daftar isi buku", splitH1:"Tiap judul besar", splitH1H2:"Tiap judul & sub-judul", splitSingle:"Jangan dipisah",
@@ -559,7 +566,7 @@ var T = {
     devM1t:"Lewat kartu SD.", devM1d:"Salin berkas .epub ke kartu SD e-reader (folder mana pun), pasang kembali, lalu buka dari daftar berkas.",
     devM2t:"Lewat Wi-Fi.", devM2d:"Aktifkan berbagi Wi-Fi di e-reader, buka halaman webnya di peramban, lalu unggah berkas .epub di halaman Files.",
     devM3t:"Kirim langsung dari sini.", devM3d:"Jika perangkat dan komputer/HP ini berada di Wi-Fi yang sama, masukkan alamat IP e-reader untuk mengunggah tanpa berpindah aplikasi.",
-    ipPh:"crosspoint.local atau alamat IP", scanQr:"QR", sendHint:"Biasanya cukup biarkan crosspoint.local. Kalau tak berhasil, buka layar berbagi Wi-Fi di perangkat lalu pindai kode QR-nya, atau ketik alamat IP yang tertera di sana.", qrReading:"Membaca kode QR\u2026", qrFound:"Alamat terisi:", qrNone:"Kode QR tidak terbaca. Coba foto lebih dekat/terang.", errQrLoad:"Pembaca QR gagal dimuat. Periksa koneksi internet.", sendBtn:"Kirim", sendBtnSending:"Mengirim…",
+    ipPh:"crosspoint.local atau alamat IP", sendProfileLabel:"Profil perangkat", sendProfileAuto:"Otomatis (coba cepat lalu cadangan)", sendProfileCrossPoint:"CrossPoint (WebSocket)", sendProfileStock:"Xteink bawaan (HTTP)", sendProfileHttp:"HTTP umum", scanQr:"QR", sendHint:"Biasanya cukup biarkan crosspoint.local. Kalau tak berhasil, buka layar berbagi Wi-Fi di perangkat lalu pindai kode QR-nya, atau ketik alamat IP yang tertera di sana. Profil Otomatis mencoba transfer cepat lalu turun ke HTTP bila perlu.", qrReading:"Membaca kode QR\u2026", qrFound:"Alamat terisi:", qrNone:"Kode QR tidak terbaca. Coba foto lebih dekat/terang.", errQrLoad:"Pembaca QR gagal dimuat. Periksa koneksi internet.", sendBtn:"Kirim", sendBtnSending:"Mengirim…",
     sendOk:"Terkirim ke perangkat.", sendErrIp:"Masukkan alamat IP dulu.",
     sendErrNet:"Tidak bisa terhubung. Pastikan perangkat menyala, Wi-Fi berbagi aktif, dan HP/komputer ini berada di jaringan Wi-Fi yang sama.",
     sendErrExists:"Berkas dengan nama itu sudah ada di perangkat.", sendErrOther:"Pengiriman gagal:",
@@ -571,6 +578,7 @@ var T = {
     errEmpty:"Tidak ada teks yang bisa dibaca di berkas ini.",
     errEpubInput:"Berkas ini sudah berformat EPUB, jadi tidak perlu dikonversi. Salin saja langsung ke perangkat.",
     errHttp:"Situs menolak permintaan (kode",
+    errUrlInvalid:"Masukkan alamat artikel lengkap, misalnya https://contoh.com/artikel.",
     errTimeout:"Situs terlalu lama merespons.",
     sendBtnCancel:"Batal", sendCancelled:"Pengiriman dibatalkan.",
     sendErrTimeout:"Perangkat tidak merespons (batas waktu habis). Coba lagi, atau pakai cara kartu SD.",
@@ -580,7 +588,7 @@ var T = {
     blockedD:"Buka artikelnya, salin HTML halaman, lalu pakai \u201cTempel HTML\u201d.",
     footer:"Mengubah teks, Markdown, RTF, HTML, FictionBook (FB2), OpenDocument (ODT), Word (DOCX), PDF (berteks), Kindle (MOBI/AZW3), komik (CBZ), dan artikel web menjadi EPUB yang menyesuaikan layar. Gambar disiapkan untuk layar e-ink. Alat ini tidak mengubah firmware perangkat.", pdfMode:"Tata letak PDF", pdfReflow:"Teks mengalir (reflow)", pdfFixed:"Pertahankan halaman asli", pdfModeHelp:"Pilih halaman asli untuk PDF dengan ilustrasi, drop cap, tabel, atau tata letak kompleks. Hasilnya lebih besar dan tidak mengikuti ukuran font pembaca. ADE versi lama kadang tidak menampilkan EPUB fixed-layout; gunakan ADE terbaru atau pilih Teks mengalir.", pdfQuality:"Kualitas halaman PDF", pdfQualitySource:"Asli (warna & resolusi)", pdfQualityEink:"Optimalkan untuk e-ink", pdfQualityEinkDetail:"E-ink detail (abu-abu halus, resolusi tinggi)", pdfQualityHelp:"Berlaku untuk mode Pertahankan halaman asli. Asli menyimpan warna dan resolusi PDF; E-ink mengecilkan gambar; E-ink detail mempertahankan resolusi dengan 16 tingkat abu-abu halus agar huruf tidak berbintik.",
     stReady:"Siap dibuat.", stParsing:"Membaca berkas…", stBuilding:"Membuat EPUB…", stImages:"Memproses gambar…",
-    stFetching:"Mengambil…", stBlocked:"Diblokir situs (kemungkinan CORS). Pakai \u201cTempel HTML\u201d.", stPasteFirst:"Tempel HTML dulu.",
+    stFetching:"Mengambil…", stBlocked:"Diblokir situs (kemungkinan CORS). Pakai \u201cTempel HTML\u201d.", stPasteFirst:"Tempel HTML dulu.", errPasteUrlOnly:"Yang ditempel hanya alamat URL. Buka halaman artikelnya, salin HTML halaman, lalu tempel HTML tersebut.",
     stSaved:"Tersimpan:", devDone:"Berhasil dibuat:", errPrefix:"Gagal:", warnLarge:"Berkas besar (>{n} MB) — proses mungkin lambat, dan pada perangkat RAM kecil (X3/X4) bisa gagal dibuka.", btnXtc:"Ekspor .xtc (native)", stXtc:"Membuat .xtc…", credits:"Memakai JSZip (MIT); PDF via pdf.js (Apache-2.0), DOCX via mammoth.js (BSD) dimuat saat diperlukan.", errScanned:"PDF ini sepertinya hasil pemindaian (tanpa teks yang bisa disalin). Aktifkan OCR di \u201cOpsi lanjutan\u201d untuk membacanya.", errMobi:"Berkas Kindle ini tidak bisa dibaca. Mungkin ber-DRM (terkunci) atau rusak; berkas ber-DRM tidak didukung.", errHuff:"Berkas Kindle ini memakai kompresi HUFF/CDIC yang belum didukung. Coba konversi dulu lewat Calibre.", errCbz:"Tidak ada gambar di dalam berkas CBZ ini.", errCbr:"Berkas CBR memakai format RAR yang belum didukung. Ubah dulu ke CBZ (mis. lewat Calibre), lalu coba lagi.", pageLabel:"Halaman", chapterLabel:"Bab", batchFiles:"berkas dalam antrean", batchWaiting:"menunggu", batchWorking:"memproses", batchDone:"selesai", batchFailed:"gagal", batchReady:"Siap. Semua berkas akan dijadikan satu berkas ZIP.", batchNone:"Tidak ada berkas yang berhasil dikonversi.", ocrHead:"PDF hasil pindai", lblOcr:"Baca teks dari gambar (OCR)", ocrOff:"Mati", ocrOnOpt:"Aktif", lblOcrLang:"Bahasa teks", ocrHelp:"Hanya dipakai bila PDF tidak punya teks yang bisa disalin. Prosesnya lambat dan butuh koneksi sekali untuk memuat mesin OCR; hasilnya bisa mengandung salah baca.", stOcr:"Membaca teks dari gambar\u2026", errOcrLoad:"Mesin OCR gagal dimuat. Periksa koneksi internet.", errOcrEmpty:"OCR tidak menemukan teks yang bisa dibaca pada PDF ini.", sleepHead:"Buat gambar layar tidur (wallpaper) \u00b7 CrossPoint", sleepHelp:"Ubah foto menjadi berkas BMP yang dipakai perangkat saat layar tidur. Salin hasilnya ke akar kartu SD. Ukuran layar dan tingkat warna mengikuti \u201cOpsi lanjutan\u201d.", lblSleepMode:"Jenis", sleepFull:"Latar penuh (sleep.bmp)", sleepOverlay:"Tempelan transparan (sleep-overlay.bmp)", lblSleepFile:"Gambar", stSleep:"Membuat gambar layar tidur\u2026", dictHead:"Buat kamus untuk perangkat \u00b7 CrossPoint / SUMI", dictHelp:"Ubah daftar kata menjadi kamus StarDict yang bisa dipakai perangkat saat menekan lama sebuah kata. Salin folder dictionaries/ hasil unduhan ke akar kartu SD.", lblDictName:"Nama kamus", dictNamePh:"mis. Inggris-Indonesia", lblDictFmt:"Format definisi", dictPlain:"Teks biasa", dictHtmlOpt:"HTML (tebal/miring)", lblDictFile:"Berkas daftar kata (.txt / .tsv / .csv)", stDict:"Membuat kamus\u2026", errDictEmpty:"Daftar kata kosong atau formatnya tidak dikenali (pakai kata[TAB]definisi)."
   },
   en: {
@@ -598,7 +606,7 @@ var T = {
     orWeb:"or from a link", urlPh:"Paste an article address (https://…)", fetchBtn:"Fetch article", titlePh:"Untitled", authorPh:"Unknown", langPh:"id / en", runtimeHelp:"PDF and DOCX load an additional reader the first time they are used; an internet connection is needed once.",
     fetchHelp:'Pulls the article, strips menus and ads, keeps the text. Some sites block requests — if it fails, use "Paste HTML" below.',
     pasteSummary:"Blocked by the site? Paste the page HTML",
-    pasteHelp:"Open the article, copy the page HTML, and paste it here. Works even when a direct request is blocked.",
+    pasteHelp:"Open the article, copy the page HTML (not just its URL), and paste it here. Works even when a direct request is blocked.",
     pasteUrlPh:"Original address (optional, fixes image links)", pasteHtmlPh:"Paste the page HTML here…", pasteBtn:"Use this HTML",
     s2:"Review the result", reviewHelp:"The title, author, and chapter split are filled in automatically. You can usually create the EPUB right away.", lblTitle:"Title", lblAuthor:"Author", lblSplit:"Split chapters",
     splitAuto:"Automatic (detect headings)", splitToc:"Follow the book's contents", splitH1:"On every big heading", splitH1H2:"On heading & sub-heading", splitSingle:"Don't split",
@@ -616,7 +624,7 @@ var T = {
     devM1t:"Via SD card.", devM1d:"Copy the .epub to the e-reader's SD card (any folder), reinsert it, then open it from the file list.",
     devM2t:"Via Wi-Fi.", devM2d:"Turn on Wi-Fi sharing on the e-reader, open its web page in a browser, then upload the .epub on the Files page.",
     devM3t:"Send it directly from here.", devM3d:"If this device and your e-reader are on the same Wi-Fi, enter the reader's IP address to upload without switching apps.",
-    ipPh:"crosspoint.local or IP address", scanQr:"QR", sendHint:"Usually just leave crosspoint.local. If it does not work, open the Wi-Fi sharing screen on the device and scan its QR code, or type the IP shown there.", qrReading:"Reading the QR code\u2026", qrFound:"Address filled in:", qrNone:"Could not read the QR code. Try a closer/brighter photo.", errQrLoad:"The QR reader could not be loaded. Check your connection.", sendBtn:"Send", sendBtnSending:"Sending…",
+    ipPh:"crosspoint.local or IP address", sendProfileLabel:"Device profile", sendProfileAuto:"Automatic (try fast, then fallback)", sendProfileCrossPoint:"CrossPoint (WebSocket)", sendProfileStock:"Stock Xteink (HTTP)", sendProfileHttp:"Generic HTTP", scanQr:"QR", sendHint:"Usually just leave crosspoint.local. If it does not work, open the Wi-Fi sharing screen on the device and scan its QR code, or type the IP shown there. Automatic mode tries the faster transfer first and falls back to HTTP when needed.", qrReading:"Reading the QR code\u2026", qrFound:"Address filled in:", qrNone:"Could not read the QR code. Try a closer/brighter photo.", errQrLoad:"The QR reader could not be loaded. Check your connection.", sendBtn:"Send", sendBtnSending:"Sending…",
     sendOk:"Sent to the device.", sendErrIp:"Enter an IP address first.",
     sendErrNet:"Could not connect. Make sure the device is on, Wi-Fi sharing is enabled, and this device is on the same Wi-Fi network.",
     sendErrExists:"A file with that name already exists on the device.", sendErrOther:"Send failed:",
@@ -628,6 +636,7 @@ var T = {
     errEmpty:"No readable text was found in this file.",
     errEpubInput:"This file is already an EPUB, so it doesn't need converting. Just copy it straight to your device.",
     errHttp:"The site refused the request (code",
+    errUrlInvalid:"Enter the complete article address, for example https://example.com/article.",
     errTimeout:"The site took too long to respond.",
     sendBtnCancel:"Cancel", sendCancelled:"Sending cancelled.",
     sendErrTimeout:"The device did not respond in time. Try again, or use the SD-card method.",
@@ -637,7 +646,7 @@ var T = {
     blockedD:"Open the article, copy its page HTML, and use \u201cPaste page HTML\u201d.",
     footer:"Converts text, Markdown, RTF, HTML, FictionBook (FB2), OpenDocument (ODT), Word (DOCX), text-based PDF, Kindle (MOBI/AZW3), comics (CBZ) and web articles into reflowable EPUB. Images are prepared for e-ink screens. This tool does not modify device firmware.", pdfMode:"PDF layout", pdfReflow:"Reflow text", pdfFixed:"Keep original pages", pdfModeHelp:"Choose original pages for PDFs with illustrations, drop caps, tables, or complex layout. The result is larger and does not follow the reader's font size. Older ADE versions may show fixed-layout EPUBs as blank; use the latest ADE or choose Reflow text.", pdfQuality:"PDF page quality", pdfQualitySource:"Source (colour & resolution)", pdfQualityEink:"Optimise for e-ink", pdfQualityEinkDetail:"E-ink detail (smooth greyscale, high resolution)", pdfQualityHelp:"Applies to Keep original pages. Source preserves the PDF's colour and resolution; E-ink resizes pages; E-ink detail preserves resolution with smooth 16-level greyscale so small text stays clean.",
     stReady:"Ready to build.", stBuilding:"Building EPUB…", stParsing:"Reading file…", stImages:"Processing images…",
-    stFetching:"Fetching…", stBlocked:"Blocked by the site (likely CORS). Use \u201cPaste HTML\u201d.", stPasteFirst:"Paste some HTML first.",
+    stFetching:"Fetching…", stBlocked:"Blocked by the site (likely CORS). Use \u201cPaste HTML\u201d.", stPasteFirst:"Paste some HTML first.", errPasteUrlOnly:"You pasted only a URL. Open the article, copy the page HTML, then paste that HTML here.",
     stSaved:"Saved:", devDone:"Created:", errPrefix:"Failed:", warnLarge:"Large file (>{n} MB) — this may be slow, and may fail to open on low-RAM devices (X3/X4).", btnXtc:"Export .xtc (native)", stXtc:"Building .xtc…", credits:"Uses JSZip (MIT); PDF via pdf.js (Apache-2.0) and DOCX via mammoth.js (BSD) loaded on demand.", errScanned:"This PDF looks scanned (no selectable text). Turn on OCR under \u201cAdvanced options\u201d to read it.", errMobi:"This Kindle file can't be read. It may be DRM-protected (locked) or corrupt; DRM files are not supported.", errHuff:"This Kindle file uses HUFF/CDIC compression, which isn't supported yet. Try converting it with Calibre first.", errCbz:"No images were found inside this CBZ.", errCbr:"CBR uses the RAR format, which isn't supported directly. Convert it to CBZ first (e.g. with Calibre), then try again.", pageLabel:"Page", chapterLabel:"Chapter", batchFiles:"files queued", batchWaiting:"waiting", batchWorking:"working", batchDone:"done", batchFailed:"failed", batchReady:"Ready. All files will be delivered as one ZIP.", batchNone:"No file could be converted.", ocrHead:"Scanned PDFs", lblOcr:"Read text from images (OCR)", ocrOff:"Off", ocrOnOpt:"On", lblOcrLang:"Text language", ocrHelp:"Only used when a PDF has no selectable text. It is slow and needs a connection once to load the OCR engine; results may contain misreadings.", stOcr:"Reading text from images\u2026", errOcrLoad:"The OCR engine could not be loaded. Check your connection.", errOcrEmpty:"OCR found no readable text in this PDF.", sleepHead:"Make a sleep-screen image (wallpaper) \u00b7 CrossPoint", sleepHelp:"Turn a photo into the BMP the device shows while asleep. Copy the result to the root of the SD card. Screen size and tone count follow \u201cAdvanced options\u201d.", lblSleepMode:"Type", sleepFull:"Full wallpaper (sleep.bmp)", sleepOverlay:"Transparent overlay (sleep-overlay.bmp)", lblSleepFile:"Image", stSleep:"Making the sleep screen\u2026", dictHead:"Make a device dictionary \u00b7 CrossPoint / SUMI", dictHelp:"Turn a word list into a StarDict dictionary the device can use when you long-press a word. Copy the downloaded dictionaries/ folder to the SD card root.", lblDictName:"Dictionary name", dictNamePh:"e.g. English-Indonesian", lblDictFmt:"Definition format", dictPlain:"Plain text", dictHtmlOpt:"HTML (bold/italic)", lblDictFile:"Word list file (.txt / .tsv / .csv)", stDict:"Building the dictionary\u2026", errDictEmpty:"The word list is empty or in an unrecognised format (use word[TAB]definition)."
   }
 };
@@ -649,6 +658,7 @@ function applyLang(lang){
   document.querySelectorAll("[data-i18n]").forEach(function(el){ el.textContent = t(el.getAttribute("data-i18n")); });
   document.querySelectorAll("[data-i18n-html]").forEach(function(el){ el.innerHTML = t(el.getAttribute("data-i18n-html")); });
   document.querySelectorAll("[data-i18n-ph]").forEach(function(el){ el.setAttribute("placeholder", t(el.getAttribute("data-i18n-ph"))); });
+  document.querySelectorAll("[data-i18n-aria]").forEach(function(el){ el.setAttribute("aria-label", t(el.getAttribute("data-i18n-aria"))); });
   document.querySelectorAll(".langtoggle button").forEach(function(b){ b.setAttribute("aria-pressed", b.getAttribute("data-lang")===LANG ? "true":"false"); });
   if(typeof window.__onLang==="function"){ try{ window.__onLang(); }catch(e){} }
 }
@@ -1398,6 +1408,52 @@ function ocrTextToHtml(pageTexts){
   flush();
   return promoteHeadings(paras.join('\n'));
 }
+
+/* PDF bookmarks are more reliable than guessing chapter headings from
+   positioned glyphs. Resolve named destinations and indirect page references
+   before flattening the outline into page ranges. */
+async function pdfOutlineEntries(pdf){
+  if(!pdf || typeof pdf.getOutline!=='function') return [];
+  let outline;
+  try{ outline=await pdf.getOutline(); }catch(e){ return []; }
+  const out=[];
+  async function walk(items, level){
+    for(const item of (items||[])){
+      let dest=item && item.dest;
+      try{ if(typeof dest==='string' && typeof pdf.getDestination==='function') dest=await pdf.getDestination(dest); }catch(e){ dest=null; }
+      let page=-1;
+      try{
+        const ref=Array.isArray(dest) ? dest[0] : null;
+        if(ref && typeof pdf.getPageIndex==='function') page=await pdf.getPageIndex(ref);
+      }catch(e){ page=-1; }
+      const title=String(item && item.title || '').replace(/\s+/g,' ').trim();
+      const children=Array.isArray(item && item.items) ? item.items : [];
+      if(title && page>=0) out.push({title,page,level:Math.min(6,Math.max(1,level)),hasChildren:children.length>0});
+      if(children.length) await walk(children,Math.min(6,level+1));
+    }
+  }
+  await walk(outline,1);
+  return out.sort((a,b)=>a.page-b.page || a.level-b.level);
+}
+
+function chaptersFromPdfOutline(entries, pages, pageImageRefs){
+  const leaves=(entries||[]).filter(e=>!e.hasChildren && Number.isInteger(e.page) && e.page>=0 && e.page<pages.length);
+  if(leaves.length<2) return [];
+  const out=[]; let previous=-1;
+  for(let i=0;i<leaves.length;i++){
+    const entry=leaves[i];
+    if(entry.page<=previous) continue;
+    const next=i+1<leaves.length ? Math.max(entry.page+1,leaves[i+1].page) : pages.length;
+    const slice=pages.slice(entry.page,next);
+    const refs=Array.isArray(pageImageRefs) ? pageImageRefs.slice(entry.page,next) : [];
+    let body=pdfItemsToHtml(slice,refs);
+    if(!body || !body.trim()) continue;
+    body=promoteHeadings(body);
+    out.push({title:entry.title,level:entry.level,html:body});
+    previous=entry.page;
+  }
+  return out;
+}
 var OCR_LANGS = ['ind','eng','ind+eng','ara','chi_sim','chi_tra','jpn','kor','rus','deu','fra','spa'];
 function ocrLangCode(v){ return OCR_LANGS.indexOf(v) !== -1 ? v : 'eng'; }
 let tesseractPromise=null;
@@ -1509,6 +1565,12 @@ async function pdfToBook(arrayBuffer, mode){
   const analysis=fixed ? {recommendedMode:'fixed',confidence:100,textRatio:0,multiColumnPages:0,imageCount:pdf.numPages,reasons:['images']} : pdfAnalyzeLayout(pages,images.length,pdf.numPages);
   if(fixed) return {html:'',chapters,title,author,lang:'',images,coverName:'',sourcePageCount:pdf.numPages,pdfMode:'fixed',fixedViewport,analysis};
   let html=pdfItemsToHtml(pages,pageImageRefs);
+  let outlineChapters=[];
+  try{
+    const entries=await pdfOutlineEntries(pdf);
+    outlineChapters=chaptersFromPdfOutline(entries,pages,pageImageRefs);
+    if(outlineChapters.length>=2) log('PDF bookmarks used: '+outlineChapters.length+' chapter(s)');
+  }catch(e){ outlineChapters=[]; }
   const inlineImages=!!(html && /class="pdf-inline-image"/.test(html));
   if((!html || !html.trim())){
     const ocrEl = document.getElementById('ocrOn');
@@ -1524,7 +1586,7 @@ async function pdfToBook(arrayBuffer, mode){
   }
   html=promoteHeadings(html);
   if(images.length && !inlineImages) html += '\n' + images.map(im=>'<p><img src="images/'+escAttr(im.name)+'" alt=""/></p>').join('\n');
-  return { html, title, author, lang:'', images, coverName:'', sourcePageCount:pdf.numPages, analysis };
+  return { html, outlineChapters:outlineChapters.length>=2 ? outlineChapters : null, title, author, lang:'', images, coverName:'', sourcePageCount:pdf.numPages, analysis };
 }
 
 /* ============================ MOBI / AZW3 ============================ */
@@ -2383,6 +2445,19 @@ function rgbaToGray(rgba, w, h){
   return g;
 }
 function quantize(gray, levels){ for(let i=0;i<gray.length;i++) gray[i]=nearestLevel(gray[i],levels); return gray; }
+function sleepDitherMode(gray, levels, requested){
+  if(requested==='none' || levels>4 || !gray || !gray.length) return requested;
+  /* Text cards and line drawings are mostly white/black with only a small
+     anti-aliased band. Error diffusion turns that band into visible speckle,
+     so quantise it directly; photographs keep the requested dither. */
+  let mid=0, dark=0;
+  for(let i=0;i<gray.length;i++){
+    const v=gray[i];
+    if(v>24 && v<232) mid++;
+    if(v<64) dark++;
+  }
+  return mid/gray.length<0.16 && dark/gray.length<0.38 ? 'none' : requested;
+}
 function floydSteinberg(gray, w, h, levels){
   const err = new Float32Array(gray.length);
   for(let y=0;y<h;y++){
@@ -2680,14 +2755,19 @@ function comicChaptersFromDirs(dirs){
       if(i<dirs.length){ curName=dirs[i]; start=i; }
     }
   }
-  return out.length>1 ? out : [];
+  /* Pages at the archive root are usually a cover/front matter, not a real
+     chapter. Do not expose them as a synthetic "#1" entry when named chapter
+     folders follow them. Keep the original page ranges for named folders so
+     the native reader still jumps to the correct page. */
+  const named=out.filter(c=>String(c.name||'').trim() && !/^#\d+$/.test(c.name));
+  return named.length>1 ? named : [];
 }
 
 function concatU8(a,b){ const o=new Uint8Array(a.length+b.length); o.set(a,0); o.set(b,a.length); return o; }
 function pageBlobsOffsets(blobs, get, add){ const e=[]; for(const b of blobs){ e.push(get()); add(b.bytes.length); } return e; }
 
 // Browser wrapper: render one image to an exact panel-size greyscale page.
-async function imageToGrayPage(u8, mime, W, H, levels){
+async function imageToGrayPage(u8, mime, W, H, levels, dither){
   const blob=new Blob([u8],{type:mime||'image/png'}); const url=URL.createObjectURL(blob);
   try{
     const img=await loadImage(url);
@@ -2698,7 +2778,9 @@ async function imageToGrayPage(u8, mime, W, H, levels){
     const dw=Math.max(1,Math.round((img.naturalWidth||img.width)*s)), dh=Math.max(1,Math.round((img.naturalHeight||img.height)*s));
     ctx.drawImage(img,(W-dw)>>1,(H-dh)>>1,dw,dh);
     const gray=rgbaToGray(ctx.getImageData(0,0,W,H).data,W,H);
-    floydSteinberg(gray,W,H,levels);   // dither to the target tone count
+    if(dither==='bayer') bayerDither(gray,W,H,levels);
+    else if(dither==='none') quantize(gray,levels);
+    else floydSteinberg(gray,W,H,levels);   // dither to the target tone count
     return { gray, w:W, h:H };
   } finally { URL.revokeObjectURL(url); }
 }
@@ -2740,7 +2822,7 @@ async function parseToBook(file){
     const selectedPdfMode = (document.getElementById('pdfMode')||{}).value || 'reflow';
     try { r=await pdfToBook(buf, selectedPdfMode); }
     catch(err){ if(/encrypt|password|drm|security/i.test(String(err && err.message || err))) throw new Error(t('errPdfEncrypted')); throw err; }
-    book.html=r.html; book.chapters=r.chapters; book.pdfMode=r.pdfMode || selectedPdfMode; book.pdfAnalysis=r.analysis||null; book.title=r.title; book.author=r.author; book.images=r.images; book.coverName=r.coverName; book.sourcePageCount=r.sourcePageCount; book.fixedViewport=r.fixedViewport || null; fmtLabel='PDF';
+    book.html=r.html; book.chapters=r.chapters; book.outlineChapters=r.outlineChapters||null; book.pdfMode=r.pdfMode || selectedPdfMode; book.pdfAnalysis=r.analysis||null; book.title=r.title; book.author=r.author; book.images=r.images; book.coverName=r.coverName; book.sourcePageCount=r.sourcePageCount; book.fixedViewport=r.fixedViewport || null; fmtLabel='PDF';
     if(r.images.length) log('Extracted '+r.images.length+' embedded image(s) from PDF');
   } else if(ext==='mobi'||ext==='azw'||ext==='azw3'||ext==='prc'){
     const buf=await file.arrayBuffer(); const r=mobiToBook(buf); book.html=r.html; book.title=r.title; book.author=r.author; book.language=r.lang; book.images=r.images; book.coverName=r.coverName; fmtLabel=ext==='mobi'?'Kindle (MOBI)':'Kindle ('+ext.toUpperCase()+')';
@@ -2812,11 +2894,13 @@ function fixedViewportForBook(){
 }
 function editableChapters(){
   if(!parsed) return [];
-  const key = parsed.comic ? 'comic' : (parsed.pdfMode==='fixed' ? 'pdf-fixed' : $('split').value);
+  const useOutline=!parsed.comic && parsed.pdfMode!=='fixed' && Array.isArray(parsed.outlineChapters) && ($('split').value==='auto'||$('split').value==='toc');
+  const key = parsed.comic ? 'comic' : (parsed.pdfMode==='fixed' ? 'pdf-fixed' : (useOutline ? 'pdf-outline' : $('split').value));
   if(parsed._chapterEditKey !== key || !Array.isArray(parsed._editableChapters)){
     let source;
     if(parsed.comic) source=(parsed.pages||[]).map((nm,i)=>({ title:t('pageLabel')+' '+(i+1), html:'<div><img src="images/'+nm+'"/></div>' }));
     else if(parsed.pdfMode==='fixed' && Array.isArray(parsed.chapters)) source=parsed.chapters;
+    else if(useOutline) source=parsed.outlineChapters;
     else source=splitChapters(parsed.html, $('split').value);
     parsed._editableChapters=source.map(copyChapter);
     parsed._chapterEditKey=key;
@@ -2877,6 +2961,8 @@ function renderPdfAnalysis(analysis){
 function renderGalley(){
   if(!parsed){ return; }
   const b=currentBook();
+  const parsedLabel=$('mParsedLabel');
+  if(parsedLabel) parsedLabel.textContent=(parsed.pdfMode==='fixed'||b.comic) ? t('pageLabel') : t('mParsed');
   $('fblocks').textContent = b.chapters.length;
   const query=$('chapterSearch').value.trim().toLocaleLowerCase();
   const matches=b.chapters.map((c,i)=>({c,i})).filter(({c,i})=>!query || c.title.toLocaleLowerCase().includes(query) || String(i+1)===query);
@@ -3046,6 +3132,7 @@ async function runBatch(){
         chapters: b.pdfMode==='fixed' && Array.isArray(b.chapters) ? b.chapters
           : b.comic
           ? (b.pages||[]).map(function(nm, k){ return { title: t('pageLabel')+' '+(k+1), html: '<div><img src="images/'+nm+'"/></div>' }; })
+          : Array.isArray(b.outlineChapters) && ($('split').value==='auto'||$('split').value==='toc') ? b.outlineChapters
           : splitChapters(b.html, $('split').value)
       };
       if(shouldProcessBookImages(book)) book.images = await processBookImages(book);
@@ -3091,16 +3178,21 @@ async function makeSleepScreen(file, transparent){
     const ctx = cv.getContext('2d');
     ctx.clearRect(0, 0, W, H);
     if(!transparent){ ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, W, H); }
+    setHighQualityImageSampling(ctx);
     const iw = img.naturalWidth || img.width, ih = img.naturalHeight || img.height;
-    const scale = transparent ? Math.min(W/iw, H/ih) : Math.max(W/iw, H/ih);  // overlay fits, wallpaper fills
+    /* Preserve the complete source for both modes. Cropping is especially
+       harmful to document-style wallpapers where border marks carry meaning;
+       a narrow white margin is preferable to losing the top or bottom line. */
+    const scale = Math.min(W/iw, H/ih);
     const dw = Math.round(iw*scale), dh = Math.round(ih*scale);
     ctx.drawImage(img, (W-dw)>>1, (H-dh)>>1, dw, dh);
     const id = ctx.getImageData(0, 0, W, H);
     const alpha = new Uint8Array(W*H);
     for(let i = 0, q = 3; i < alpha.length; i++, q += 4) alpha[i] = id.data[q];
     const gray = rgbaToGray(id.data, W, H);
-    if(opts.dither === 'bayer') bayerDither(gray, W, H, levels);
-    else if(opts.dither === 'none') quantize(gray, levels);
+    const dither = transparent ? opts.dither : sleepDitherMode(gray, levels, opts.dither);
+    if(dither === 'bayer') bayerDither(gray, W, H, levels);
+    else if(dither === 'none') quantize(gray, levels);
     else floydSteinberg(gray, W, H, levels);
     const bytes = transparent ? grayToBmp32(gray, alpha, W, H) : grayToBmp8(gray, W, H, levels);
     const name = transparent ? 'sleep-overlay.bmp' : 'sleep.bmp';
@@ -3211,7 +3303,7 @@ function handleSleepPick(){
 
 window.__onLang = function(){ if(parsed) renderGalley(); };
 function showDeviceCard(name){ try{ $('deviceDone').textContent=t('devDone')+' '+name; $('deviceCard').classList.add('show'); }catch(e){} }
-function hideDeviceCard(){ try{ if(typeof currentSendXhr!=='undefined' && currentSendXhr){ try{ currentSendXhr.abort(); }catch(e){} currentSendXhr=null; } if(typeof currentSendTimer!=='undefined' && currentSendTimer){ clearInterval(currentSendTimer); currentSendTimer=null; } $('deviceCard').classList.remove('show'); lastBuiltBlob=null; lastBuiltName=''; const bar=$('sendBar'); if(bar) bar.classList.remove('show'); const ss=$('sendStatus'); if(ss){ ss.textContent=''; ss.className='sendstatus'; } }catch(e){} }
+function hideDeviceCard(){ try{ if(typeof currentSendXhr!=='undefined' && currentSendXhr){ try{ currentSendXhr.abort(); }catch(e){} currentSendXhr=null; } if(typeof currentSendWs!=='undefined' && currentSendWs){ try{ currentSendWs.__cancelled=true; currentSendWs.close(); }catch(e){} currentSendWs=null; } if(typeof currentSendTimer!=='undefined' && currentSendTimer){ clearTimeout(currentSendTimer); currentSendTimer=null; } $('deviceCard').classList.remove('show'); lastBuiltBlob=null; lastBuiltName=''; const bar=$('sendBar'); if(bar) bar.classList.remove('show'); const ss=$('sendStatus'); if(ss){ ss.textContent=''; ss.className='sendstatus'; } }catch(e){} }
 
 async function exportComicToXtc(){
   if(!parsed || !parsed.comic || !parsed.images || !parsed.images.length) return;
@@ -3220,12 +3312,13 @@ async function exportComicToXtc(){
     let sz=$('einkSize').value; if(sz==='none') sz='480x800';
     const parts=sz.split('x'); const W=parseInt(parts[0],10)||480, H=parseInt(parts[1],10)||800;
     const twoBit = $('einkLevels').value!=='2'; const levels = twoBit?4:2;
+    const dither = $('einkDither').value || 'fs';
     setStatus(t('stXtc'));
     const pages=[];
     for(let i=0;i<parsed.images.length;i++){
       const im=parsed.images[i];
       setStatus(t('stXtc')+' '+(i+1)+'/'+parsed.images.length);
-      pages.push(await imageToGrayPage(b64ToU8(im.b64), im.mime, W, H, levels));
+      pages.push(await imageToGrayPage(b64ToU8(im.b64), im.mime, W, H, levels, dither));
     }
     const title=$('title').value.trim()||currentFileBase, author=$('author').value.trim();
     const chapters=comicChaptersFromDirs(parsed.pageDirs);
@@ -3235,7 +3328,7 @@ async function exportComicToXtc(){
     const blob=new Blob([buf],{type:'application/octet-stream'});
     const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; document.body.appendChild(a); a.click();
     setTimeout(()=>{URL.revokeObjectURL(a.href); a.remove();},1500);
-    log('Wrote '+name+' ('+pages.length+' pages, '+(twoBit?'2-bit XTCH':'1-bit XTC')+', '+W+'x'+H+', '+fmtSize(buf.length)+')');
+    log('Wrote '+name+' ('+pages.length+' pages, '+(twoBit?'2-bit XTCH':'1-bit XTC')+', '+W+'x'+H+', '+dither+', '+fmtSize(buf.length)+')');
     lastBuiltBlob=blob; lastBuiltName=name;
     setStatus(t('stSaved')+' '+name,'ok'); showDeviceCard(name);
   }catch(err){ console.error(err); log('Error: '+err.message); setStatus(t('errPrefix')+' '+err.message,'err'); }
@@ -3253,73 +3346,118 @@ function normalizeDevicePath(v){
   if(v.length>1 && v.endsWith('/')) v=v.slice(0,-1);
   return v;
 }
-var currentSendXhr=null, currentSendTimer=null;
+var currentSendXhr=null, currentSendWs=null, currentSendTimer=null;
 function resetSendUi(){
-  const ipEl=$('deviceIp'), pathEl=$('devicePath'), btn=$('sendBtn'), bar=$('sendBar');
-  currentSendXhr=null;
+  const ipEl=$('deviceIp'), pathEl=$('devicePath'), profileEl=$('deviceProfile'), btn=$('sendBtn'), bar=$('sendBar');
+  currentSendXhr=null; currentSendWs=null;
   if(currentSendTimer){ clearTimeout(currentSendTimer); currentSendTimer=null; }
-  btn.disabled=false; ipEl.disabled=false; if(pathEl) pathEl.disabled=false;
+  btn.disabled=false; ipEl.disabled=false; if(pathEl) pathEl.disabled=false; if(profileEl) profileEl.disabled=false;
   btn.textContent=t('sendBtn');
   bar.classList.remove('show');
 }
+function finishDeviceSend(statusEl, message, cls, logMessage){
+  resetSendUi();
+  statusEl.textContent=message; statusEl.className='sendstatus'+(cls?' '+cls:'');
+  if(logMessage) log(logMessage);
+}
+function wsPortForHost(ip){
+  const m=String(ip||'').match(/^(?:\[[^\]]+\]|[^:]+):(\d+)$/);
+  return m ? ((parseInt(m[1],10)||80)+1) : 81;
+}
+function wsHostForDevice(ip){
+  const s=String(ip||'');
+  return s.indexOf(':')>=0 && s[0]!=='[' && !/^[^:]+:\d+$/.test(s) ? '['+s+']' : s.replace(/^\[|\]$/g,'');
+}
+function startHttpUpload(ip, dest, statusEl, bar, fill, blob, name){
+  const fd=new FormData(); fd.append('file', blob, name);
+  const xhr=new XMLHttpRequest(); currentSendXhr=xhr;
+  let lastActivity=Date.now();
+  xhr.open('POST', 'http://'+ip+'/upload?path=' + encodeURIComponent(dest), true);
+  xhr.upload.onprogress=function(e){ lastActivity=Date.now(); if(e.lengthComputable) fill.style.width=Math.round(e.loaded/e.total*100)+'%'; };
+  xhr.onload=function(){
+    const st=xhr.status, body=xhr.responseText||'';
+    if(st===200) finishDeviceSend(statusEl,t('sendOk'),'ok','Uploaded '+name+' to '+ip+dest);
+    else if(st===400 && /already exists/i.test(body)) finishDeviceSend(statusEl,t('sendErrExists'),'err');
+    else finishDeviceSend(statusEl,t('sendErrOther')+' '+(body||st),'err');
+  };
+  xhr.onerror=function(){ finishDeviceSend(statusEl,t('sendErrNet'),'err'); };
+  xhr.onabort=function(){ if(currentSendXhr===xhr) currentSendXhr=null; };
+  xhr.send(fd);
+  return function(){ return Date.now()-lastActivity; };
+}
+function startWebSocketUpload(ip, dest, statusEl, fill, blob, name, fallback){
+  if(typeof WebSocket!=='function') return false;
+  let ws;
+  try{ ws=new WebSocket('ws://'+wsHostForDevice(ip)+':'+wsPortForHost(ip)+'/'); }catch(e){ return false; }
+  currentSendWs=ws; ws.binaryType='arraybuffer';
+  let offset=0, settled=false, fallbackStarted=false;
+  const safeName=String(name).replace(/[:\r\n]/g,'_');
+  const failToHttp=function(){
+    if(settled||fallbackStarted||ws.__cancelled) return;
+    fallbackStarted=true; currentSendWs=null; try{ ws.close(); }catch(e){}
+    fallback();
+  };
+  const sendChunk=function(){
+    if(settled||!ws||ws.readyState!==1) return;
+    const end=Math.min(offset+65536, blob.size);
+    if(end>offset){ ws.send(blob.slice(offset,end)); offset=end; }
+  };
+  ws.onopen=function(){ ws.send('START:'+safeName+':'+blob.size+':'+dest); };
+  ws.onmessage=function(ev){
+    const msg=typeof ev.data==='string' ? ev.data : '';
+    if(msg==='READY'){ sendChunk(); return; }
+    if(msg.indexOf('PROGRESS:')===0){
+      const p=msg.slice(9).split(':'); const got=Number(p[0]), total=Number(p[1])||blob.size;
+      if(total>0) fill.style.width=Math.round(Math.min(1,got/total)*100)+'%';
+      if(got<total) sendChunk();
+      return;
+    }
+    if(msg==='DONE'){
+      settled=true; currentSendWs=null;
+      finishDeviceSend(statusEl,t('sendOk'),'ok','Uploaded '+name+' to '+ip+dest+' (WebSocket)');
+      try{ ws.close(); }catch(e){}
+      return;
+    }
+    if(msg.indexOf('ERROR:')===0){
+      settled=true; currentSendWs=null; try{ ws.close(); }catch(e){}
+      const body=msg.slice(6);
+      if(/already exists/i.test(body)) finishDeviceSend(statusEl,t('sendErrExists'),'err');
+      else finishDeviceSend(statusEl,t('sendErrOther')+' '+body,'err');
+    }
+  };
+  ws.onerror=function(){ failToHttp(); };
+  ws.onclose=function(){ failToHttp(); };
+  return true;
+}
 function sendToDevice(){
-  const ipEl=$('deviceIp'), pathEl=$('devicePath'), statusEl=$('sendStatus'), bar=$('sendBar'), fill=$('sendBarFill'), btn=$('sendBtn');
+  const ipEl=$('deviceIp'), pathEl=$('devicePath'), profileEl=$('deviceProfile'), statusEl=$('sendStatus'), bar=$('sendBar'), fill=$('sendBarFill'), btn=$('sendBtn');
   // second click while sending = cancel
-  if(currentSendXhr){
-    try{ currentSendXhr.abort(); }catch(e){}
-    resetSendUi();
-    statusEl.textContent=t('sendCancelled'); statusEl.className='sendstatus';
-    return;
+  if(currentSendXhr || currentSendWs){
+    const xhr=currentSendXhr, ws=currentSendWs;
+    if(xhr){ try{ xhr.abort(); }catch(e){} }
+    if(ws){ ws.__cancelled=true; try{ ws.close(); }catch(e){} }
+    resetSendUi(); statusEl.textContent=t('sendCancelled'); statusEl.className='sendstatus'; return;
   }
-  const ip=normalizeDeviceIp(ipEl.value);
-  try{ if(ip) localStorage.setItem('rm_device', ip); }catch(e){}
+  const ip=normalizeDeviceIp(ipEl.value); try{ if(ip) localStorage.setItem('rm_device', ip); }catch(e){}
   statusEl.className='sendstatus';
   if(!ip){ statusEl.textContent=t('sendErrIp'); statusEl.className='sendstatus err'; return; }
-  if(!lastBuiltBlob || !lastBuiltName){ return; }
-  // browsers block http:// requests from an https:// page (mixed content)
+  if(!lastBuiltBlob || !lastBuiltName) return;
   if(typeof location!=='undefined' && location.protocol==='https:'){
-    statusEl.textContent=t('sendErrMixed'); statusEl.className='sendstatus err';
-    log('Blocked: mixed content (https page -> http device)');
-    return;
+    statusEl.textContent=t('sendErrMixed'); statusEl.className='sendstatus err'; log('Blocked: mixed content (https page -> http device)'); return;
   }
   const dest=normalizeDevicePath(pathEl?pathEl.value:'');
-  const fd=new FormData();
-  fd.append('file', lastBuiltBlob, lastBuiltName);
-  const xhr=new XMLHttpRequest();
-  currentSendXhr=xhr;
-  btn.disabled=false; btn.textContent=t('sendBtnCancel');
-  ipEl.disabled=true; if(pathEl) pathEl.disabled=true;
-  statusEl.textContent=t('sendBtnSending');
-  bar.classList.add('show'); fill.style.width='0%';
-  let lastActivity=Date.now();
-  currentSendTimer=setInterval(function(){
-    if(Date.now()-lastActivity>60000){
-      try{ xhr.abort(); }catch(e){}
-      clearInterval(currentSendTimer); currentSendTimer=null;
-      resetSendUi();
-      statusEl.textContent=t('sendErrTimeout'); statusEl.className='sendstatus err';
-    }
-  }, 2000);
-  xhr.open('POST', 'http://'+ip+'/upload?path=' + encodeURIComponent(dest), true);
-  xhr.upload.onprogress=function(e){
-    lastActivity=Date.now();
-    if(e.lengthComputable) fill.style.width=Math.round(e.loaded/e.total*100)+'%';
-  };
-  xhr.onload=function(){
-    if(currentSendTimer){ clearInterval(currentSendTimer); currentSendTimer=null; }
-    const st=xhr.status, body=xhr.responseText||'';
-    resetSendUi();
-    if(st===200){ statusEl.textContent=t('sendOk'); statusEl.className='sendstatus ok'; log('Uploaded '+lastBuiltName+' to '+ip+dest); }
-    else if(st===400 && /already exists/i.test(body)){ statusEl.textContent=t('sendErrExists'); statusEl.className='sendstatus err'; }
-    else { statusEl.textContent=t('sendErrOther')+' '+(body||st); statusEl.className='sendstatus err'; }
-  };
-  xhr.onerror=function(){
-    if(currentSendTimer){ clearInterval(currentSendTimer); currentSendTimer=null; }
-    resetSendUi();
-    statusEl.textContent=t('sendErrNet'); statusEl.className='sendstatus err';
-  };
-  xhr.onabort=function(){ if(currentSendTimer){ clearInterval(currentSendTimer); currentSendTimer=null; } };
-  xhr.send(fd);
+  const profile=profileEl ? profileEl.value : 'auto';
+  btn.disabled=false; btn.textContent=t('sendBtnCancel'); ipEl.disabled=true; if(pathEl) pathEl.disabled=true; if(profileEl) profileEl.disabled=true;
+  statusEl.textContent=t('sendBtnSending'); bar.classList.add('show'); fill.style.width='0%';
+  currentSendTimer=setTimeout(function(){
+    const xhr=currentSendXhr, ws=currentSendWs;
+    if(xhr){ try{ xhr.abort(); }catch(e){} }
+    if(ws){ ws.__cancelled=true; try{ ws.close(); }catch(e){} }
+    resetSendUi(); statusEl.textContent=t('sendErrTimeout'); statusEl.className='sendstatus err';
+  },60000);
+  const fallback=function(){ if(!currentSendTimer) return; startHttpUpload(ip,dest,statusEl,bar,fill,lastBuiltBlob,lastBuiltName); };
+  const useWs=profile!=='stock' && profile!=='http';
+  if(!useWs || !startWebSocketUpload(ip,dest,statusEl,fill,lastBuiltBlob,lastBuiltName,fallback)) startHttpUpload(ip,dest,statusEl,bar,fill,lastBuiltBlob,lastBuiltName);
 }
 
 /* ---------- events ---------- */
@@ -3355,10 +3493,16 @@ fileInput.addEventListener('change',()=>acceptFiles(fileInput.files));
 
 $('fetchBtn').addEventListener('click',()=>{ const u=$('url').value.trim(); if(u) fetchArticle(u); });
 $('url').addEventListener('keydown',e=>{ if(e.key==='Enter'){ const u=$('url').value.trim(); if(u) fetchArticle(u); }});
+function looksLikeUrlOnly(value){
+  let plain=String(value||'').replace(/<!--[\s\S]*?-->/g,' ').replace(/<[^>]*>/g,' ').replace(/&nbsp;|&#160;/gi,' ').replace(/\s+/g,' ').trim();
+  plain=plain.replace(/^['"`]|['"`]$/g,'').trim();
+  return !!plain && !!normalizeArticleUrl(plain);
+}
 $('pasteBtn').addEventListener('click',()=>{
-  ++ingestToken;
   const html=$('pasteHtml').value.trim(); const base=$('pasteUrl').value.trim();
   if(!html){ setStatus(t('stPasteFirst'),'err'); return; }
+  if(looksLikeUrlOnly(html)){ setStatus(t('errPasteUrlOnly'),'err'); log(t('errPasteUrlOnly')); return; }
+  ++ingestToken;
   resetGalleyView();
   $('build').disabled=true; parsed=null; hideDeviceCard(); logEl.textContent='';
   try{ ingestArticle(html, base, base||'Pasted article'); }
@@ -3388,7 +3532,25 @@ function ingestArticle(htmlStr, baseUrl, sourceLabel){
   log('Article extracted: '+ (r.title||'(untitled)'));
 }
 
+/* Accept a complete HTTP(S) address and make the common domain-only form
+   usable. A bare article slug is rejected before fetch so it is not reported
+   as a misleading CORS failure. */
+function normalizeArticleUrl(value){
+  let raw=String(value||'').trim();
+  if(!raw) return '';
+  if(!/^[a-z][a-z0-9+.-]*:\/\//i.test(raw) && /^[a-z0-9][a-z0-9.-]*\.[a-z]{2,}(?::\d+)?(?:\/|$)/i.test(raw)) raw='https://'+raw;
+  try{
+    const u=new URL(raw);
+    if(u.protocol!=='http:' && u.protocol!=='https:') return '';
+    return u.href;
+  }catch(e){ return ''; }
+}
+
 async function fetchArticle(url){
+  const normalized=normalizeArticleUrl(url);
+  if(!normalized){ setStatus(t('errUrlInvalid'),'err'); log(t('errUrlInvalid')); return; }
+  url=normalized;
+  if($('url') && $('url').value.trim()!==url) $('url').value=url;
   const token = ++ingestToken;
   resetGalleyView();
   $('build').disabled=true; parsed=null; hideDeviceCard(); logEl.textContent='';
@@ -3408,8 +3570,10 @@ async function fetchArticle(url){
   }catch(err){
     if(token !== ingestToken) return;
     log('Direct fetch failed: '+err.message);
-    if(err && err.name==='AbortError') log(t('errTimeout'));
-    setStatus(t('stBlocked'), 'err');
+    const timedOut=!!(err && err.name==='AbortError');
+    const httpFailure=/^Situs menolak permintaan|^The site refused the request/.test(String(err && err.message||''));
+    if(timedOut) log(t('errTimeout'));
+    setStatus(timedOut ? t('errTimeout') : (httpFailure ? err.message : t('stBlocked')), 'err');
     $('galley').innerHTML='<div class="empty"><div class="mk">&para;</div><p>'+escXml(t('blockedT'))+'<br/>'+escXml(t('blockedD'))+'</p></div>';
     return;
   }

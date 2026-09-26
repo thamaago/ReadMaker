@@ -56,6 +56,10 @@ ok(greyLevels(16).length===16 && greyLevels(2).length===2 && greyLevels(4).lengt
 ok(greyLevels(7).length===4,'unsupported tone count falls back to 4');
 // default (no tone arg) stays 4-level for back-compat
 ok(paletteOf(grayToBmp8(gray,W,H),4).join(',')==='0,85,170,255','default palette still 4-level');
+const documentGray=new Uint8ClampedArray(1000); documentGray.fill(255); for(let i=0;i<120;i++) documentGray[i]=0;
+ok(sleepDitherMode(documentGray,4,'fs')==='none','text-card contrast disables speckle dithering');
+const photoLike=new Uint8ClampedArray(1000); for(let i=0;i<photoLike.length;i++) photoLike[i]=i%256;
+ok(sleepDitherMode(photoLike,4,'fs')==='fs','photo-like gradients keep requested dithering');
 
 // ---- UI wiring ----
 const d2=new JSDOM(html,{runScripts:'dangerously',pretendToBeVisual:true,url:'http://localhost/',virtualConsole:new VirtualConsole(),

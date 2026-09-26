@@ -22,6 +22,7 @@ setTimeout(()=>{
   // 2) simulate a successful build having happened, then a successful XHR
   window.eval("lastBuiltBlob=new Blob(['x']); lastBuiltName='book.epub';");
   doc.getElementById('deviceIp').value='192.168.3.3';
+  doc.getElementById('deviceProfile').value='http';
   let openedUrl=null, sentBody=null;
   const OrigXHR=window.XMLHttpRequest;
   window.XMLHttpRequest=function(){
