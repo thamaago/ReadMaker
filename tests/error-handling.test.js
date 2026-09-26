@@ -45,6 +45,12 @@ setTimeout(async()=>{
   await new Promise(r=>setTimeout(r,10));
   ok(/Yang ditempel hanya alamat URL/.test(doc.getElementById('status').textContent),'URL pasted into HTML field gets a direct instruction');
 
+  doc.getElementById('pasteHtml').value='<html><body><article><p>Artikel nyata</p></article></body></html>';
+  doc.getElementById('pasteUrl').value='bisnis/d-12345/artikel';
+  doc.getElementById('pasteBtn').dispatchEvent(new window.Event('click',{bubbles:true}));
+  await new Promise(r=>setTimeout(r,10));
+  ok(/alamat artikel lengkap/.test(doc.getElementById('status').textContent),'relative source address is rejected before HTML ingestion');
+
   // 4) fetch timeout wiring present (AbortController used with 20s)
   ok(/AbortController/.test(html) && /20000/.test(html),'fetch has an abort timeout');
 
