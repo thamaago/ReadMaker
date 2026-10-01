@@ -3,7 +3,7 @@
 A tiny, offline-friendly tool that turns everyday writing formats into clean **EPUB** books for e-ink readers — a host-side EPUB maker and companion for [CrossPoint Reader](https://github.com/crosspoint-reader/crosspoint-reader) (Xteink X3 / X4 / X4 Pro / papermono).
 Here to Access https://thamaago.github.io/ReadMaker/
 
-Everything runs **in your browser**. No account, no upload, no server. Two files: `index.html` + `jszip.min.js`.
+Conversion runs **in your browser** without an account or a conversion server. The core app is two files: `index.html` + `jszip.min.js`. Optional article fetching and direct upload to your reader use the network; PDF, DOCX, and OCR load additional libraries on demand.
 
 > Unofficial community tool. It does **not** modify device firmware — it only produces EPUB files you copy to your reader.
 
@@ -73,14 +73,7 @@ Then: drop a file (or paste a link) → check the title/chapters → **Create EP
 
 ## Deploy to GitHub Pages
 
-**Option A — from a branch (simplest):**
-1. Push this repo to GitHub.
-2. **Settings → Pages → Build and deployment → Source: Deploy from a branch**, pick `main` and `/ (root)`.
-3. Your site goes live at `https://<user>.github.io/<repo>/`.
-
-**Option B — GitHub Actions (included):** the workflow in `.github/workflows/deploy-pages.yml` deploys on every push to `main`. Just set **Settings → Pages → Source: GitHub Actions**.
-
-The included `.nojekyll` file tells Pages to serve files as-is.
+Set **Settings → Pages → Build and deployment → Source: GitHub Actions**. The workflow in `.github/workflows/deploy-pages.yml` runs the tests on each push to `main`, then publishes only `index.html`, `jszip.min.js`, and `.nojekyll`. Local books, test files, and documentation are not part of the website artifact. See [RELEASE.md](RELEASE.md) before publishing a release.
 
 ---
 
@@ -101,7 +94,7 @@ The comic stress suite (`tests/comic-stress.test.js`) exercises a mixed-format C
 
 ## Privacy
 
-All parsing and conversion happen locally in your browser. Files never leave your device. The only network use is optional: loading `pdf.js`/`mammoth.js` on first use, and fetching an article URL if you choose to.
+Parsing and conversion happen locally in your browser; Read Maker has no conversion server. Network requests occur when you fetch an article, load the optional PDF/DOCX/OCR or QR libraries, or choose to send a finished file directly to your e-reader over Wi-Fi. Ordinary local-file conversion does not upload the source file to a service.
 
 ---
 
@@ -115,9 +108,11 @@ Pure logic (binary MOBI/PalmDOC, PDF reconstruction, dithering, EPUB builder, sa
 
 ```bash
 cd tests
-npm install
+npm ci
 npm test
 ```
+
+For larger local workloads, run `npm run stress` from `tests/`. It measures text ingestion, CBZ/EPUB packaging, full-panel XTC/XTCH, a 100,000-entry dictionary, malformed archives, and a 50-book batch. Set `STRESS_TEXT_BLOCKS` or `STRESS_PAGES` to raise the default 12,000 text blocks and 300 comic pages. On Windows with Chrome installed, `npm run stress:browser` also exercises the actual file-to-EPUB UI path and canvas processing in headless Chrome. These manual workloads are excluded from `npm test`.
 
 ---
 

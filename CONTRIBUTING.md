@@ -19,7 +19,7 @@ If you want to fold this into **CrossPoint Reader** itself (e.g. as a page under
 3. Run the tests:
    ```bash
    cd tests
-   npm install
+   npm ci
    npm test
    ```
 4. Open `index.html` in a browser and sanity-check the UI (the canvas/pdf.js/mammoth paths can only be verified in a real browser).

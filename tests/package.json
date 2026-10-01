@@ -4,7 +4,9 @@
   "private": true,
   "description": "Headless test suites for Read Maker (pure logic; canvas/pdf.js/mammoth paths are browser-only).",
   "scripts": {
-    "test": "node run.js"
+    "test": "node run.js",
+    "stress": "node --expose-gc manual-stress.js",
+    "stress:browser": "node browser-stress.js"
   },
   "devDependencies": {
     "jsdom": "^30.0.0",

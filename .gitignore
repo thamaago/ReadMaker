@@ -5,6 +5,10 @@ tests/node_modules/
 # test artifacts (generated EPUB samples)
 tests/*.epub
 *.epub
+output/
+tmp/
+dist/
+site/
 
 # logs / OS cruft
 npm-debug.log*

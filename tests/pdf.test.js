@@ -10,6 +10,14 @@ let p=0,f=0;const ok=(c,m)=>{c?(p++,console.log('  ok  ',m)):(f++,console.log(' 
 const I=(str,x,y,w,h)=>({str,x,y,w,h});
 const dropCap=pdfItemsToHtml([[I('Mthat they were perfectly normal, thank you very much.',0,100,300,30),I('Mr. Dursley was the director of a firm.',0,70,220,12)]]);
 ok(!/^<h1>/i.test(dropCap),'pdf: prose-like drop cap line is not promoted to heading');
+const separateCap=pdfItemsToHtml([[
+  I('M',72,474,46,49), I('CHAPTER ONE',257,708,82,11),
+  I('THE BOY WHO LIVED',195,524,206,20),
+  I('r. and Mrs. Dursley were proud',121,497,400,14),
+  I('that they were normal.',121,477,220,14)
+]]);
+ok(/Mr\. and Mrs\. Dursley were proud that they were normal\./.test(separateCap),'separate drop cap joins first body line');
+ok(!/Mthat|<h[1-6]>M<\/h/.test(separateCap),'separate drop cap does not move to second line or become a heading');
 
 // Page 0
 const page0=[
@@ -44,6 +52,7 @@ ok(/pdf-inline-image/.test(inline) && /images\/p0\.png/.test(inline) && /images\
 
 // scanned / empty
 ok(pdfItemsToHtml([[],[]])==='','empty pages -> empty html (scanned guard)');
+ok(/images\/cover\.jpg/.test(pdfItemsToHtml([[]],[['cover.jpg']])), 'image-only PDF page survives reflow');
 
 // running headers may only appear on a subset of pages; they should not
 // become repeated chapter headings in the reflowed EPUB

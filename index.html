@@ -1295,14 +1295,32 @@ function pdfAnalyzeLayout(pages, imageCount, pageCount){
   return {recommendedMode,confidence,textRatio,multiColumnPages,imageCount:imageCount||0,reasons};
 }
 function pdfItemsToHtml(pages, pageImages){
+  const imagesOnlyHtml=()=>{
+    const seen=new Set(), out=[];
+    (pageImages||[]).forEach(refs=>(refs||[]).forEach(nm=>{
+      if(!nm || seen.has(nm)) return;
+      seen.add(nm);
+      out.push('<p class="pdf-inline-image"><img src="images/'+escAttr(nm)+'" alt=""/></p>');
+    }));
+    return out.join('\n');
+  };
   const heights=[];
   pages.forEach(p=>p.forEach(it=>{ if(it.str && it.str.trim()) heights.push(Math.round(it.h)); }));
   const bodyH = median(heights) || 12;
 
   const allLines=[];
   pages.forEach((items,pi)=>{
-    const its=(items||[]).filter(it=>it.str && it.str.replace(/\s+/g,'').length);
+    const its=(items||[]).filter(it=>it.str && it.str.replace(/\s+/g,'').length).map(it=>Object.assign({},it));
     if(!its.length) return;
+    // A large drop cap's baseline often sits beside the second body line.
+    // Attach it to the first indented line instead of producing "Mthat".
+    for(const cap of its){
+      if(!/^\S$/.test(cap.str.trim()) || cap.h<bodyH*2) continue;
+      const next=its.filter(it=>it!==cap && it.h<=bodyH*1.4 && it.x>=cap.x+cap.w*.85
+        && it.x<=cap.x+cap.w+bodyH*2 && it.y>cap.y && it.y-cap.y<cap.h*.8)
+        .sort((a,b)=>b.y-a.y)[0];
+      if(next){ cap.y=next.y; cap.h=bodyH; cap._dropCap=true; }
+    }
     const sorted=[...its].sort((a,b)=> (b.y-a.y) || (a.x-b.x));
     const tol=Math.max(1,bodyH*0.6);
     const lines=[]; let cur=null;
@@ -1319,7 +1337,9 @@ function pdfItemsToHtml(pages, pageImages){
         text+=it.str; prev=it;
       }
       text=text.replace(/\s+/g,' ').trim();
-      return { page:pi, y:ln.y, x0:Math.min(...ln.items.map(i=>i.x)), size:Math.round(Math.max(...ln.items.map(i=>i.h))), text };
+      const cap=li.find(i=>i._dropCap);
+      return { page:pi, y:ln.y, x0:Math.min(...ln.items.map(i=>i.x)), size:Math.round(Math.max(...ln.items.map(i=>i.h))), text,
+        dropCapEnd:cap ? cap.x+cap.w : 0 };
     }).filter(l=>l.text.length);
     if(pageLines.length){ pageLines[0].firstOfPage=true; pageLines[pageLines.length-1].lastOfPage=true; }
     for(const l of pageLines){
@@ -1329,7 +1349,7 @@ function pdfItemsToHtml(pages, pageImages){
       allLines.push(l);
     }
   });
-  if(!allLines.length) return '';
+  if(!allLines.length) return imagesOnlyHtml();
 
   // drop running headers/footers: text that repeats at the top/bottom edge across many pages
   const pageCount=pages.length;
@@ -1351,7 +1371,7 @@ function pdfItemsToHtml(pages, pageImages){
     return !(edge[k] && edge[k].size>=repThreshold);
   });
   allLines.length=0; Array.prototype.push.apply(allLines, kept);
-  if(!allLines.length) return '';
+  if(!allLines.length) return imagesOnlyHtml();
 
   const bodyX=allLines.filter(l=>l.size<=bodyH*1.3).map(l=>l.x0);
   const leftMargin=bodyX.length?Math.min(...bodyX):Math.min(...allLines.map(l=>l.x0));
@@ -1381,7 +1401,7 @@ function pdfItemsToHtml(pages, pageImages){
     if(!para) newp=true;
     else if(prev){
       if(prev.page===l.page && (prev.y-l.y)>bodyH*1.8) newp=true;
-      else if(l.x0-leftMargin>bodyH*0.8) newp=true;
+      else if(l.x0-leftMargin>bodyH*0.8 && !(prev.dropCapEnd && l.x0>=prev.dropCapEnd-bodyH && l.x0<=prev.dropCapEnd+bodyH*2)) newp=true;
       else if(prev.page!==l.page && /[.!?:”"']\s*$/.test(para)) newp=true;
     }
     if(newp){ flush(); para=l.text; paraPages=[l.page]; }
