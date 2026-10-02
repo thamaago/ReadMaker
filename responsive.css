@@ -1,0 +1,129 @@
+/* Responsive layout for phones, tablets, desktop browsers and e-ink browsers. */
+:root {
+  --rm-control-height: 44px;
+  --rm-content-max: 1440px;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html { min-width: 320px; }
+body { overflow-x: hidden; }
+
+/* Keep the reading and build areas readable on wide monitors. */
+main, .app, .page, .shell, .container {
+  width: min(100%, var(--rm-content-max));
+  margin-inline: auto;
+}
+
+img, svg, canvas, video { max-width: 100%; height: auto; }
+
+input, select, textarea, button {
+  max-width: 100%;
+  font: inherit;
+}
+
+input, select, button { min-height: var(--rm-control-height); }
+textarea { min-height: 120px; }
+
+button, select, summary, label[for], .dropzone, [role="button"] {
+  touch-action: manipulation;
+}
+
+/* Prevent long filenames, URLs and chapter names from expanding a column. */
+input, select, textarea, .file-name, .chapter-title, .url, .status, pre {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+/* Make common two-column app regions collapse naturally. */
+.layout, .two-col, .columns, .workspace, .builder-grid, .main-grid,
+.source-result, .input-output, .content-grid {
+  min-width: 0;
+}
+
+@media (max-width: 900px) {
+  :root { --rm-control-height: 46px; }
+  body { font-size: 16px; }
+  main, .app, .page, .shell, .container { padding-inline: 16px; }
+
+  .layout, .two-col, .columns, .workspace, .builder-grid, .main-grid,
+  .source-result, .input-output, .content-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+  [style*="grid-template-columns"], [class*="grid"], [class*="columns"] {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .hero, .header, .topbar, .toolbar { flex-wrap: wrap; gap: 12px; }
+  .hero > *, .header > *, .topbar > *, .toolbar > * { min-width: 0; }
+  .preview, .preview-frame, .result-preview, .book-preview { max-height: 65vh; overflow: auto; }
+  .chapter-list, .file-list, .log, .process-log { max-height: 45vh; overflow: auto; }
+}
+
+@media (max-width: 600px) {
+  :root { --rm-control-height: 48px; }
+  body { font-size: 15px; }
+  main, .app, .page, .shell, .container { padding-inline: 12px; }
+
+  h1 { font-size: clamp(2rem, 10vw, 3.2rem); line-height: 1.05; }
+  h2 { font-size: clamp(1.35rem, 6vw, 2rem); }
+  h3 { font-size: 1.15rem; }
+
+  .actions, .button-row, .form-actions, .url-row, .drop-actions {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 10px;
+  }
+  button, .button, .actions > *, .button-row > *, .form-actions > * { width: 100%; }
+
+  .card, .panel, fieldset, details, .dropzone, .file-card { padding: 14px !important; }
+  .dropzone { min-height: 150px; }
+  .step, .summary, .status-card { align-items: flex-start; }
+  .step-number { flex: 0 0 auto; }
+
+  /* Tables and long chapter lists remain usable without widening the page. */
+  table { display: block; width: 100%; overflow-x: auto; white-space: nowrap; }
+  .chapter-row, .file-row, .list-row { grid-template-columns: auto minmax(0, 1fr) !important; }
+  .chapter-row .row-actions, .file-row .row-actions { grid-column: 2; justify-content: flex-start; }
+
+  #deviceTargetField, #outputPreset, #fwProfile, #build, #buildBatch { width: 100%; }
+  .help, .hint, .description, .subtle { line-height: 1.5; }
+}
+
+@media (max-width: 420px) {
+  main, .app, .page, .shell, .container { padding-inline: 8px; }
+  .card, .panel, fieldset, details, .dropzone, .file-card { padding: 11px !important; }
+  .language-switch, .segmented, .tabs { width: 100%; }
+  .language-switch > *, .segmented > *, .tabs > * { flex: 1 1 0; }
+}
+
+@media (orientation: landscape) and (max-height: 560px) {
+  .preview, .preview-frame, .result-preview, .book-preview { max-height: 58vh; }
+  header, .hero { padding-block: 12px !important; }
+}
+
+@media (pointer: coarse) {
+  button, select, input[type="file"], summary, [role="button"] {
+    min-height: 48px;
+  }
+  input[type="checkbox"], input[type="radio"] {
+    width: 22px;
+    height: 22px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+@media (prefers-contrast: more) {
+  button, input, select, textarea, .card, .panel, .dropzone {
+    border-width: 2px;
+  }
+}
+

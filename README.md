@@ -4,6 +4,12 @@ ReadMaker mengubah PDF, dokumen, artikel web, dan komik menjadi EPUB yang bersih
 
 Metadata GitHub yang disarankan tersedia di [GITHUB_ABOUT.md](GITHUB_ABOUT.md).
 
+Target perangkat dan perilaku kompatibilitas EPUB dijelaskan di [DEVICE_COMPATIBILITY.md](DEVICE_COMPATIBILITY.md). ReadMaker memakai EPUB standar sebagai default agar satu berkas dapat dibaca di lebih banyak perangkat.
+
+Untuk kualitas sumber yang tetap utuh saat dibaca lintas perangkat, pilih preset **Semua perangkat (kualitas sumber)**. Preset ini tidak menurunkan gambar ke ukuran e-ink; gunakan preset **Teks paling ringan** atau **Komik untuk e-ink** bila target utamanya layar kecil.
+
+Antarmuka juga menyesuaikan lebar layar: desktop memakai ruang kerja dua kolom, tablet mengecilkan panel, dan ponsel beralih ke satu kolom dengan tombol serta kontrol sentuh yang lebih besar. Preferensi reduced motion dan kontras tinggi dari sistem operasi ikut dihormati.
+
 A tiny, offline-friendly tool that turns everyday writing formats into clean **EPUB** books for e-ink readers — a host-side EPUB maker and companion for [CrossPoint Reader](https://github.com/crosspoint-reader/crosspoint-reader) (Xteink X3 / X4 / X4 Pro / papermono).
 Here to Access https://thamaago.github.io/ReadMaker/
 

@@ -9,6 +9,8 @@
 -->
 <html lang="en">
 <head>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="stylesheet" href="responsive.css">
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Read Maker — EPUB untuk CrossPoint Reader</title>
@@ -318,6 +320,7 @@
         <label for="outputPreset" data-i18n="lblPreset">Preset hasil</label>
         <select id="outputPreset">
           <option value="auto" selected data-i18n="presetAuto">Otomatis aman (disarankan)</option>
+    <option value="universal" data-i18n="presetUniversal">Semua perangkat (kualitas sumber)</option>
           <option value="text" data-i18n="presetText">Teks paling ringan</option>
           <option value="layout" data-i18n="presetLayout">Pertahankan tata letak</option>
           <option value="comic" data-i18n="presetComic">Komik untuk e-ink</option>
@@ -3118,6 +3121,7 @@ async function applyOutputPreset(skipReparse){
   const b=parsed||{};
   if(mode==='auto') mode=b.comic ? 'comic' : 'text';
   const preset={
+    universal:{pdfMode:'reflow',pdfQuality:'source',einkOn:'off',einkLevels:'16',einkDither:'none',einkSize:'480x800',fwProfile:'universal'},
     text:{pdfMode:'reflow',pdfQuality:'source',einkOn:'on',einkLevels:'4',einkDither:'fs',einkSize:'480x800',fwProfile:'universal'},
     layout:{pdfMode:'fixed',pdfQuality:'eink-detail',einkOn:'on',einkLevels:'16',einkDither:'none',einkSize:'480x800',fwProfile:'universal'},
     comic:{pdfMode:'reflow',pdfQuality:'source',einkOn:'on',einkLevels:'4',einkDither:'fs',einkSize:'480x800',fwProfile:'universal'}
@@ -3758,5 +3762,6 @@ $('build').addEventListener('click',async()=>{
 // sanity: JSZip present?
 if(typeof JSZip==='undefined'){ setStatus('JSZip failed to load (jszip.min.js must sit next to this page).','err'); }
 </script>
+<script src="device-compatibility.js"></script>
 </body>
 </html>

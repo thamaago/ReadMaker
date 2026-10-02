@@ -7,9 +7,12 @@ let p=0,f=0; const ok=(c,m)=>{c?(p++):(f++);console.log((c?'  ok  ':'  FAIL')+' 
 
 setTimeout(()=>{
   ok(!!doc.getElementById('outputPreset'),'output preset control exists');
+  ok(Array.from(doc.getElementById('outputPreset').options).some((o)=>o.value==='universal'),'universal device preset exists');
   const apply=(v)=>{doc.getElementById('outputPreset').value=v; window.eval('applyOutputPreset()');};
   apply('text');
   ok(doc.getElementById('pdfMode').value==='reflow'&&doc.getElementById('einkOn').value==='on','text preset selects reflow and image processing');
+  apply('universal');
+  ok(doc.getElementById('pdfMode').value==='reflow'&&doc.getElementById('einkOn').value==='off','universal preset preserves source images for other readers');
   apply('layout');
   ok(doc.getElementById('pdfMode').value==='fixed'&&doc.getElementById('pdfQuality').value==='eink-detail','layout preset keeps pages at high grayscale detail');
   apply('comic');
