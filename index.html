@@ -12,7 +12,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <link rel="stylesheet" href="responsive.css">
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Read Maker — EPUB untuk CrossPoint Reader</title>
 <script src="./jszip.min.js"></script>
 <style>
@@ -568,6 +567,7 @@ var T = {
     splitAuto:"Otomatis (deteksi judul)", splitToc:"Ikuti daftar isi buku", splitH1:"Tiap judul besar", splitH1H2:"Tiap judul & sub-judul", splitSingle:"Jangan dipisah",
     splitHelp:'"Otomatis" memakai daftar isi bawaan buku bila ada, dan mengenali baris seperti "Bab" atau "Chapter" pada teks biasa.',
     adv:"Opsi lanjutan", lblPreset:"Preset hasil", presetAuto:"Otomatis aman (disarankan)", presetUniversal:"Semua perangkat (kualitas sumber)", presetText:"Teks paling ringan", presetLayout:"Pertahankan tata letak", presetComic:"Komik untuk e-ink", presetHelp:"Otomatis memakai reflow yang paling ringan; pilih Pertahankan tata letak untuk PDF bergambar atau kompleks. Opsi lain tetap bisa diubah setelahnya.", lblLang:"Kode bahasa", lblFw:"Perangkat lunak e-reader", fwUniversal:"Semua (aman untuk OS bawaan & firmware lain)", fwCrossPoint:"CrossPoint (paling ramping)", fwHelp:"\u201cSemua\u201d menambahkan aturan gaya yang diabaikan CrossPoint tetapi membantu OS bawaan Xteink dan firmware lain menskalakan gambar serta memperbesar judul bab.",
+    deviceTargetLabel:"Perangkat tujuan", deviceTargetHelp:"EPUB standar dipakai untuk ADE, Kobo, Kindle, PocketBook/Tolino, Xteink bawaan, Sumi, dan Android. CrossPoint memakai gaya CSS khusus; Kindle menggunakan Send to Kindle.", deviceUniversal:"Semua pembaca EPUB", deviceAdobe:"Adobe Digital Editions", deviceKobo:"Kobo", devicePocketbook:"PocketBook / Tolino", deviceKindle:"Kindle (kirim lewat Send to Kindle)", deviceXteink:"Xteink (firmware bawaan)", deviceCrossPoint:"CrossPoint", deviceSumi:"Sumi", deviceAndroid:"Android e-reader",
     langHelp:"Contoh: <code>id</code> (Indonesia), <code>en</code> (Inggris), <code>ar</code> (Arab).",
     imgHead:"Gambar · untuk layar e-ink", lblEink:"Pemrosesan", einkOnOpt:"Aktif (disarankan)", einkOffOpt:"Mati (biarkan asli)",
     lblTones:"Tingkat warna", tone2:"2 · hitam-putih", tone4:"4 · abu-abu", tone16:"16 · abu halus",
@@ -627,6 +627,7 @@ var T = {
     splitAuto:"Automatic (detect headings)", splitToc:"Follow the book's contents", splitH1:"On every big heading", splitH1H2:"On heading & sub-heading", splitSingle:"Don't split",
     splitHelp:'"Automatic" uses the book\'s own contents when it has one, and recognises lines like "Chapter" or "Bab" in plain text.',
     adv:"Advanced options", lblPreset:"Output preset", presetAuto:"Safe automatic (recommended)", presetUniversal:"All devices (source quality)", presetText:"Lightest text", presetLayout:"Keep original layout", presetComic:"Comic for e-ink", presetHelp:"Automatic uses the lightest reflow; choose Keep original layout for illustrated or complex PDFs. You can still adjust individual options afterwards.", lblLang:"Language code", lblFw:"E-reader software", fwUniversal:"Any (safe on stock OS and other firmware)", fwCrossPoint:"CrossPoint (leanest)", fwHelp:"\u201cAny\u201d adds style rules CrossPoint ignores but which help the stock Xteink OS and other firmware scale images and size chapter headings.",
+    deviceTargetLabel:"Target device", deviceTargetHelp:"Standard EPUB is used for ADE, Kobo, Kindle, PocketBook/Tolino, stock Xteink, Sumi, and Android. CrossPoint uses a dedicated CSS style; Kindle uses Send to Kindle.", deviceUniversal:"All EPUB readers", deviceAdobe:"Adobe Digital Editions", deviceKobo:"Kobo", devicePocketbook:"PocketBook / Tolino", deviceKindle:"Kindle (send with Send to Kindle)", deviceXteink:"Xteink (stock firmware)", deviceCrossPoint:"CrossPoint", deviceSumi:"Sumi", deviceAndroid:"Android e-reader",
     langHelp:"e.g. <code>en</code> (English), <code>id</code> (Indonesian), <code>ar</code> (Arabic).",
     imgHead:"Images · for e-ink screens", lblEink:"Processing", einkOnOpt:"On (recommended)", einkOffOpt:"Off (keep original)",
     lblTones:"Tones", tone2:"2 · black & white", tone4:"4 · greyscale", tone16:"16 · fine grey",
@@ -675,6 +676,7 @@ function applyLang(lang){
   document.querySelectorAll("[data-i18n-ph]").forEach(function(el){ el.setAttribute("placeholder", t(el.getAttribute("data-i18n-ph"))); });
   document.querySelectorAll("[data-i18n-aria]").forEach(function(el){ el.setAttribute("aria-label", t(el.getAttribute("data-i18n-aria"))); });
   document.querySelectorAll(".langtoggle button").forEach(function(b){ b.setAttribute("aria-pressed", b.getAttribute("data-lang")===LANG ? "true":"false"); });
+  if(typeof window.applyDeviceTargetLanguage==="function"){ try{ window.applyDeviceTargetLanguage(); }catch(e){} }
   if(typeof window.__onLang==="function"){ try{ window.__onLang(); }catch(e){} }
 }
 document.addEventListener("DOMContentLoaded", function(){

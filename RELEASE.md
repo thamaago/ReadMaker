@@ -1,6 +1,6 @@
 # Public release checklist
 
-Read Maker is a static browser app. The GitHub Pages artifact contains only `index.html`, `jszip.min.js`, and `.nojekyll`.
+Read Maker is a static browser app. The GitHub Pages artifact contains `index.html`, `jszip.min.js`, `responsive.css`, `device-compatibility.js`, and `.nojekyll`.
 
 1. Run `cd tests && npm ci && npm test` with Node.js 24.19.0. On Windows with Chrome installed, also run `npm run stress:browser`.
 2. Open `index.html` in a browser and convert a small text file and an image comic. Check the EPUB download, title, chapter order, and images. PDF and DOCX need a network connection to load their readers on first use.

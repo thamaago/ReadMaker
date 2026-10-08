@@ -13,7 +13,7 @@ Antarmuka juga menyesuaikan lebar layar: desktop memakai ruang kerja dua kolom, 
 A tiny, offline-friendly tool that turns everyday writing formats into clean **EPUB** books for e-ink readers — a host-side EPUB maker and companion for [CrossPoint Reader](https://github.com/crosspoint-reader/crosspoint-reader) (Xteink X3 / X4 / X4 Pro / papermono).
 Here to Access https://thamaago.github.io/ReadMaker/
 
-Conversion runs **in your browser** without an account or a conversion server. The core app is two files: `index.html` + `jszip.min.js`. Optional article fetching and direct upload to your reader use the network; PDF, DOCX, and OCR load additional libraries on demand.
+Conversion runs **in your browser** without an account or a conversion server. The app files are `index.html`, `jszip.min.js`, `responsive.css`, and `device-compatibility.js`. Optional article fetching and direct upload to your reader use the network; PDF, DOCX, and OCR load additional libraries on demand.
 
 > Unofficial community tool. It does **not** modify device firmware — it only produces EPUB files you copy to your reader.
 
@@ -44,13 +44,13 @@ Extras:
 - **PDF layout and quality choice** — use *Reflow text* for adjustable e-ink typography, or *Keep original pages* for PDFs with illustrations, drop caps, tables, and complex placement. Fixed PDFs can keep the *Source* colour/resolution, use a smaller device-fit e-ink render, or use *E-ink detail*: source-sized 16-level grayscale without Floyd–Steinberg speckle, which keeps small type cleaner on LCD, ADE, and e-ink readers. After parsing, Read Maker shows a recommendation based on the text layer, image count, and detected layout; the choice remains yours. The latter produces EPUB 3 pre-paginated chapters and is intentionally larger.
 - **Bilingual UI** (Indonesian / English) with a simple 3-step flow.
 - **Review before build** — edit chapter titles, move chapters up/down, inspect a compact output summary, and preview the first chapter before downloading. The EPUB export uses the edited order and titles.
-- **Output presets** — choose **Best automatic**, **Lightest text**, **Keep original layout**, or **Comic for e-ink**. The preset changes the relevant PDF, image, tone, panel, and firmware settings together; changing text/layout for an already loaded PDF reparses it, while Read Maker validates the book and reports risky image formats before building.
+- **Output presets** — choose **Best automatic**, **All devices (source quality)**, **Lightest text**, **Keep original layout**, or **Comic for e-ink**. The preset changes the relevant PDF, image, tone, panel, and firmware settings together; changing text/layout for an already loaded PDF reparses it, while Read Maker validates the book and reports risky image formats before building.
 - **Chapter detection:** uses the book's built-in table of contents when there is one (PDF bookmarks, MOBI `filepos` offsets, the binary NCX/INDX index, or HTML `href="#id"` anchors), the way desktop converters do, instead of guessing from heading tags — which fails on books that wrap body prose or drop caps in `<h1>`. Falls back to heading detection, then to the book's own page-break separators, then to `Chapter`/`Bab` line patterns (a marker line and the chapter name that follows it are combined, e.g. "CHAPTER ONE: THE BOY WHO LIVED"). Titles that read like running text are rejected and replaced with a numbered label.
 - **Batch conversion:** drop several files at once and get one ZIP of EPUBs back. Each file is converted independently, so a broken or unsupported file is reported in the queue and skipped rather than stopping the run.
 - **Hierarchical contents:** when a book splits on headings and sub-headings, the EPUB gets a nested `nav.xhtml` and `toc.ncx` so the reader shows sub-chapters under their parent instead of one flat list.
 - **Dictionary maker (CrossPoint / SUMI):** turn a `word<TAB>definition` list into a StarDict dictionary (`.ifo`/`.idx`/`.dict`) the device uses for long-press lookups. Entries are merged, sorted by byte order, and delivered as a `dictionaries/<name>/` folder to drop on the SD card.
 - **Sleep-screen maker:** turn a photo or ID card into the wallpaper the device shows while asleep — `sleep.bmp` (indexed, using the device's own 0/85/170/255 grey levels) or `sleep-overlay.bmp` (32-bit BGRA, alpha preserved). Resizing requests the browser's highest-quality filter and preserves the complete source frame; high-contrast text cards automatically avoid speckle dithering while photographs retain tonal dithering. Copy the result to the SD card root.
-- **Works beyond CrossPoint:** the EPUB output is standard EPUB 2/3 (both `toc.ncx` and `nav.xhtml`), so it also opens on the stock Xteink OS and other community firmware. A firmware selector under Advanced options picks the stylesheet: *Any* (default) adds image-scaling and heading-size rules that CrossPoint ignores but other engines need; *CrossPoint* keeps the leanest file. The `.xtc/.xtch` export uses Xteink's native page format. Sleep-screen files and direct Wi-Fi upload are CrossPoint-specific and are labelled as such.
+- **Works beyond CrossPoint:** the EPUB output is standard EPUB 2/3 (both `toc.ncx` and `nav.xhtml`), so it also opens on the stock Xteink OS and other community firmware. A firmware selector under Advanced options picks the stylesheet: *Any* (default) adds image-scaling and heading-size rules that CrossPoint ignores but other engines need; *CrossPoint* keeps the leanest file. The device target selector maps only CrossPoint to its dedicated profile; Sumi, ADE, Kobo, Kindle, PocketBook/Tolino, Xteink stock OS, and Android use the universal EPUB baseline. Kindle delivery uses Send to Kindle. The `.xtc/.xtch` export uses Xteink's native page format. Sleep-screen files and direct Wi-Fi upload are CrossPoint-specific and are labelled as such.
 - **Right-to-left scripts:** set the language to Arabic, Hebrew, Persian, Urdu (and similar) and the EPUB is marked `dir="rtl"` on every page plus `page-progression-direction="rtl"` on the spine, so pages turn the right way. OCR covers Arabic, Chinese (simplified/traditional), Japanese, Korean, Russian and major European languages alongside Indonesian and English.
 - **Engine-matched markup:** output uses only the tags CrossPoint's parser understands. Since it doesn't handle `<pre>`/`<code>` and ignores `white-space`, fenced code blocks are rewritten to a real block with `<br/>` line breaks so code doesn't collapse onto one line.
 - **Structural self-check** on build (each XHTML/OPF/NCX is re-parsed as XML).
@@ -63,7 +63,7 @@ Extras:
 
 **Online:** open the GitHub Pages URL for this repo (see *Deploy* below).
 
-**Locally:** download the repo and open `index.html` in any modern browser. Keep `index.html` and `jszip.min.js` **in the same folder**.
+**Locally:** download the repo and open `index.html` in any modern browser. Keep `index.html`, `jszip.min.js`, `responsive.css`, and `device-compatibility.js` **in the same folder**.
 
 Then: drop a file (or paste a link) → check the title/chapters → **Create EPUB** → download.
 
@@ -83,7 +83,7 @@ Then: drop a file (or paste a link) → check the title/chapters → **Create EP
 
 ## Deploy to GitHub Pages
 
-Set **Settings → Pages → Build and deployment → Source: GitHub Actions**. The workflow in `.github/workflows/deploy-pages.yml` runs the tests on each push to `main`, then publishes only `index.html`, `jszip.min.js`, and `.nojekyll`. Local books, test files, and documentation are not part of the website artifact. See [RELEASE.md](RELEASE.md) before publishing a release.
+Set **Settings → Pages → Build and deployment → Source: GitHub Actions**. The workflow in `.github/workflows/deploy-pages.yml` runs the tests on each push to `main`, then publishes the four app files and `.nojekyll`. Local books, test files, and documentation are not part of the website artifact. See [RELEASE.md](RELEASE.md) before publishing a release.
 
 ---
 

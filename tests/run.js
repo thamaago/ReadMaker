@@ -11,7 +11,9 @@ let failed = 0;
 for (const s of suites) {
   process.stdout.write('\n\u2500\u2500 ' + s + ' \u2500\u2500\n');
   try {
-    execFileSync('node', [s], { cwd: dir, stdio: 'inherit' });
+    // Reuse the exact runtime executing this runner. PATH may contain a
+    // platform shim named `node` that blocks child test processes.
+    execFileSync(process.execPath, [s], { cwd: dir, stdio: 'inherit' });
   } catch (e) {
     failed++;
     process.stdout.write('  \u2717 suite failed: ' + s + '\n');

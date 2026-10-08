@@ -4,7 +4,7 @@ Thanks for helping improve Read Maker!
 
 ## Ground rules
 
-- The app is intentionally **static and offline-first**: one HTML file plus `jszip.min.js`, no build step, no backend. Keep it that way unless there's a strong reason not to.
+- The app is intentionally **static and offline-first**: `index.html`, `jszip.min.js`, `responsive.css`, and `device-compatibility.js`, with no build step or backend. Keep it that way unless there's a strong reason not to.
 - Heavy work runs **host-side (in the browser)**, never on the device. This tool must not add any load to reader firmware.
 - Prefer **no new hard dependencies**. `pdf.js` and `mammoth.js` are loaded on demand only for PDF/DOCX; everything else works fully offline.
 
@@ -14,7 +14,7 @@ If you want to fold this into **CrossPoint Reader** itself (e.g. as a page under
 
 ## Making changes
 
-1. Edit `index.html` (all logic and UI live there).
+1. Edit `index.html` for conversion logic and primary UI; keep the responsive stylesheet and device compatibility helper in sync when changing those features.
 2. Add or update a test suite in `tests/` for any logic change.
 3. Run the tests:
    ```bash

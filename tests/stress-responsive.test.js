@@ -27,7 +27,7 @@ assert(css.includes('overflow-x: hidden'), 'horizontal overflow is contained');
 /* Device and preset combinations that must remain available. */
 ['universal', 'adobe', 'kobo', 'pocketbook', 'kindle', 'xteink', 'sumi', 'android']
   .forEach((target) => assert(device.includes("['" + target + "'"), 'target: ' + target));
-['presetAuto', 'presetText', 'presetLayout', 'presetComic']
+['presetAuto', 'presetUniversal', 'presetText', 'presetLayout', 'presetComic']
   .forEach((key) => assert(html.includes('data-i18n="' + key + '"'), 'preset label: ' + key));
 assert(html.includes('value="universal"'), 'source-quality universal preset is wired');
 

@@ -8,6 +8,8 @@ const css = fs.readFileSync(path.join(root, 'responsive.css'), 'utf8');
 const helper = fs.readFileSync(path.join(root, 'device-compatibility.js'), 'utf8');
 
 assert(html.includes('name="viewport"'), 'viewport metadata is present');
+assert((html.match(/name="viewport"/g) || []).length === 1, 'viewport metadata is not duplicated');
+assert(html.includes('viewport-fit=cover'), 'safe-area viewport is enabled');
 assert(html.includes('href="responsive.css"'), 'responsive stylesheet is loaded');
 assert(css.includes('@media (max-width: 600px)'), 'mobile breakpoint exists');
 assert(css.includes('@media (max-width: 900px)'), 'tablet breakpoint exists');
