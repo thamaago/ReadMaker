@@ -32,7 +32,7 @@ Converts these sources into a reflowable, chaptered EPUB the reader opens native
 | FictionBook (`.fb2`) | Metadata + embedded cover/images |
 | OpenDocument (`.odt`) | Headings, styles, lists, embedded images |
 | Word (`.docx`) | Via `mammoth.js` (loads once, needs a connection) |
-| PDF (`.pdf`) | Via `pdf.js`; reconstructs paragraphs/headings, or preserves each source page as a fixed-layout EPUB image for complex/illustrated PDFs. Scanned PDFs can be read with optional OCR (Tesseract.js, Indonesian/English) |
+| PDF (`.pdf`) | Via `pdf.js`; reconstructs paragraphs/headings, or preserves each source page as a fixed-layout EPUB image for complex/illustrated PDFs. Optional Tesseract OCR reads only pages without selectable text (including mixed PDFs), then uses recognised line positions to rebuild reflow text; Indonesian and English are supported |
 | Kindle (`.mobi` / `.azw3`) | Non-DRM only; PalmDOC text + images + cover; **reads the book's own table of contents** to recover real chapter titles |
 | Comics (`.cbz`) | One image per page; prepared for e-ink |
 | Web articles | Paste a URL or the page HTML (reader mode). **AO3 works** are recognised: it fetches the full work and keeps title, author, summary and every chapter |

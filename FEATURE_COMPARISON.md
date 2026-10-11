@@ -15,7 +15,7 @@ Dokumen ini membandingkan fitur yang benar-benar ada di Read Maker dengan kemamp
 | Sumber | TXT, Markdown, RTF, HTML, FB2, ODT | ✅ | Parser lokal dan fixture test masing-masing format |
 | Sumber | DOCX | ◐ | Mammoth dimuat saat diperlukan; browser path belum tercakup penuh oleh test headless |
 | Sumber | PDF text-based | ✅ | pdf.js, reflow dan fixed-layout |
-| Sumber | PDF scan | ◐ | OCR Tesseract opt-in; hasil dapat salah dan bergantung pemuatan engine |
+| Sumber | PDF scan/campuran | ◐ | OCR Tesseract opt-in pada halaman tanpa text layer, 2.5× render, rekonstruksi baris berbasis bounding box, peringatan confidence rendah; tetap perlu pemeriksaan pengguna |
 | Sumber | MOBI/AZW3 non-DRM | ✅ | PalmDOC, gambar, cover, dan TOC bawaan |
 | Sumber | CBZ | ✅ | Halaman gambar, urutan numerik, filter metadata arsip, chapter dari folder, ekspor XTC/XTCH |
 | Sumber | CBR/RAR | ❌ | Pengguna diarahkan mengubahnya ke CBZ terlebih dahulu |

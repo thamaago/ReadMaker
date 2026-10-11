@@ -367,7 +367,7 @@
               </select>
             </div>
           </div>
-          <div class="help" data-i18n="ocrHelp">Hanya dipakai bila PDF tidak punya teks yang bisa disalin. Prosesnya lambat dan butuh koneksi sekali untuk memuat mesin OCR; hasilnya bisa mengandung salah baca.</div>
+          <div class="help" data-i18n="ocrHelp">Dalam mode teks mengalir, OCR membaca setiap halaman tanpa layer teks, termasuk PDF campuran. Proses lambat dan perlu koneksi sekali untuk memuat mesin OCR; hasilnya bisa keliru.</div>
           <div class="field" style="margin-top:12px">
             <label for="pdfMode" data-i18n="pdfMode">Tata letak PDF</label>
             <select id="pdfMode">
@@ -603,7 +603,7 @@ var T = {
     footer:"Mengubah teks, Markdown, RTF, HTML, FictionBook (FB2), OpenDocument (ODT), Word (DOCX), PDF (berteks), Kindle (MOBI/AZW3), komik (CBZ), dan artikel web menjadi EPUB yang menyesuaikan layar. Gambar disiapkan untuk layar e-ink. Alat ini tidak mengubah firmware perangkat.", pdfMode:"Tata letak PDF", pdfReflow:"Teks mengalir (reflow)", pdfFixed:"Pertahankan halaman asli", pdfModeHelp:"Pilih halaman asli untuk PDF dengan ilustrasi, drop cap, tabel, atau tata letak kompleks. Hasilnya lebih besar dan tidak mengikuti ukuran font pembaca. ADE versi lama kadang tidak menampilkan EPUB fixed-layout; gunakan ADE terbaru atau pilih Teks mengalir.", pdfQuality:"Kualitas halaman PDF", pdfQualitySource:"Asli (warna & resolusi)", pdfQualityEink:"Optimalkan untuk e-ink", pdfQualityEinkDetail:"E-ink detail (abu-abu halus, resolusi tinggi)", pdfQualityHelp:"Berlaku untuk mode Pertahankan halaman asli. Asli menyimpan warna dan resolusi PDF; E-ink mengecilkan gambar; E-ink detail mempertahankan resolusi dengan 16 tingkat abu-abu halus agar huruf tidak berbintik.",
     stReady:"Siap dibuat.", stParsing:"Membaca berkas…", stBuilding:"Membuat EPUB…", stImages:"Memproses gambar…",
     stFetching:"Mengambil…", stBlocked:"Diblokir situs (kemungkinan CORS). Pakai \u201cTempel HTML\u201d.", stPasteFirst:"Tempel HTML dulu.", errPasteUrlOnly:"Yang ditempel hanya alamat URL. Masukkan URL lengkap di kolom alamat atas; untuk fallback, buka artikel lalu salin HTML halaman (Ctrl+U, Ctrl+A, Ctrl+C) ke kotak ini.", warnImageFormat:"Gambar ini mungkin tidak dibaca sebagian firmware; aktifkan pemrosesan e-ink agar diubah ke PNG.",
-    stSaved:"Tersimpan:", devDone:"Berhasil dibuat:", errPrefix:"Gagal:", warnLarge:"Berkas besar (>{n} MB) — proses mungkin lambat, dan pada perangkat RAM kecil (X3/X4) bisa gagal dibuka.", btnXtc:"Ekspor .xtc (native)", stXtc:"Membuat .xtc…", credits:"Memakai JSZip (MIT); PDF via pdf.js (Apache-2.0), DOCX via mammoth.js (BSD) dimuat saat diperlukan.", errScanned:"PDF ini sepertinya hasil pemindaian (tanpa teks yang bisa disalin). Aktifkan OCR di \u201cOpsi lanjutan\u201d untuk membacanya.", errMobi:"Berkas Kindle ini tidak bisa dibaca. Mungkin ber-DRM (terkunci) atau rusak; berkas ber-DRM tidak didukung.", errHuff:"Berkas Kindle ini memakai kompresi HUFF/CDIC yang belum didukung. Coba konversi dulu lewat Calibre.", errCbz:"Tidak ada gambar di dalam berkas CBZ ini.", errCbr:"Berkas CBR memakai format RAR yang belum didukung. Ubah dulu ke CBZ (mis. lewat Calibre), lalu coba lagi.", pageLabel:"Halaman", chapterLabel:"Bab", batchFiles:"berkas dalam antrean", batchWaiting:"menunggu", batchWorking:"memproses", batchDone:"selesai", batchFailed:"gagal", batchReady:"Siap. Semua berkas akan dijadikan satu berkas ZIP.", batchNone:"Tidak ada berkas yang berhasil dikonversi.", ocrHead:"PDF hasil pindai", lblOcr:"Baca teks dari gambar (OCR)", ocrOff:"Mati", ocrOnOpt:"Aktif", lblOcrLang:"Bahasa teks", ocrHelp:"Hanya dipakai bila PDF tidak punya teks yang bisa disalin. Prosesnya lambat dan butuh koneksi sekali untuk memuat mesin OCR; hasilnya bisa mengandung salah baca.", stOcr:"Membaca teks dari gambar\u2026", errOcrLoad:"Mesin OCR gagal dimuat. Periksa koneksi internet.", errOcrEmpty:"OCR tidak menemukan teks yang bisa dibaca pada PDF ini.", sleepHead:"Buat gambar layar tidur (wallpaper) \u00b7 CrossPoint", sleepHelp:"Ubah foto menjadi berkas BMP yang dipakai perangkat saat layar tidur. Salin hasilnya ke akar kartu SD. Ukuran layar dan tingkat warna mengikuti \u201cOpsi lanjutan\u201d.", lblSleepMode:"Jenis", sleepFull:"Latar penuh (sleep.bmp)", sleepOverlay:"Tempelan transparan (sleep-overlay.bmp)", lblSleepFile:"Gambar", stSleep:"Membuat gambar layar tidur\u2026", dictHead:"Buat kamus untuk perangkat \u00b7 CrossPoint / SUMI", dictHelp:"Ubah daftar kata menjadi kamus StarDict yang bisa dipakai perangkat saat menekan lama sebuah kata. Salin folder dictionaries/ hasil unduhan ke akar kartu SD.", lblDictName:"Nama kamus", dictNamePh:"mis. Inggris-Indonesia", lblDictFmt:"Format definisi", dictPlain:"Teks biasa", dictHtmlOpt:"HTML (tebal/miring)", lblDictFile:"Berkas daftar kata (.txt / .tsv / .csv)", stDict:"Membuat kamus\u2026", errDictEmpty:"Daftar kata kosong atau formatnya tidak dikenali (pakai kata[TAB]definisi)."
+    stSaved:"Tersimpan:", devDone:"Berhasil dibuat:", errPrefix:"Gagal:", warnLarge:"Berkas besar (>{n} MB) — proses mungkin lambat, dan pada perangkat RAM kecil (X3/X4) bisa gagal dibuka.", btnXtc:"Ekspor .xtc (native)", stXtc:"Membuat .xtc…", credits:"Memakai JSZip (MIT); PDF via pdf.js (Apache-2.0), DOCX via mammoth.js (BSD) dimuat saat diperlukan.", errScanned:"PDF ini sepertinya hasil pemindaian (tanpa teks yang bisa disalin). Aktifkan OCR di \u201cOpsi lanjutan\u201d untuk membacanya.", errMobi:"Berkas Kindle ini tidak bisa dibaca. Mungkin ber-DRM (terkunci) atau rusak; berkas ber-DRM tidak didukung.", errHuff:"Berkas Kindle ini memakai kompresi HUFF/CDIC yang belum didukung. Coba konversi dulu lewat Calibre.", errCbz:"Tidak ada gambar di dalam berkas CBZ ini.", errCbr:"Berkas CBR memakai format RAR yang belum didukung. Ubah dulu ke CBZ (mis. lewat Calibre), lalu coba lagi.", pageLabel:"Halaman", chapterLabel:"Bab", batchFiles:"berkas dalam antrean", batchWaiting:"menunggu", batchWorking:"memproses", batchDone:"selesai", batchFailed:"gagal", batchReady:"Siap. Semua berkas akan dijadikan satu berkas ZIP.", batchNone:"Tidak ada berkas yang berhasil dikonversi.", ocrHead:"PDF hasil pindai", lblOcr:"Baca teks dari gambar (OCR)", ocrOff:"Mati", ocrOnOpt:"Aktif", lblOcrLang:"Bahasa teks", ocrHelp:"Dalam mode teks mengalir, OCR membaca setiap halaman tanpa layer teks, termasuk PDF campuran. Proses lambat dan perlu koneksi sekali untuk memuat mesin OCR; hasilnya bisa keliru.", stOcr:"Membaca teks dari gambar\u2026", errOcrLoad:"Mesin OCR gagal dimuat. Periksa koneksi internet.", errOcrEmpty:"OCR tidak menemukan teks yang bisa dibaca pada PDF ini.", ocrLowConfidence:"Hasil OCR halaman {n} berkeyakinan rendah; tinjau kembali teksnya.", sleepHead:"Buat gambar layar tidur (wallpaper) \u00b7 CrossPoint", sleepHelp:"Ubah foto menjadi berkas BMP yang dipakai perangkat saat layar tidur. Salin hasilnya ke akar kartu SD. Ukuran layar dan tingkat warna mengikuti \u201cOpsi lanjutan\u201d.", lblSleepMode:"Jenis", sleepFull:"Latar penuh (sleep.bmp)", sleepOverlay:"Tempelan transparan (sleep-overlay.bmp)", lblSleepFile:"Gambar", stSleep:"Membuat gambar layar tidur\u2026", dictHead:"Buat kamus untuk perangkat \u00b7 CrossPoint / SUMI", dictHelp:"Ubah daftar kata menjadi kamus StarDict yang bisa dipakai perangkat saat menekan lama sebuah kata. Salin folder dictionaries/ hasil unduhan ke akar kartu SD.", lblDictName:"Nama kamus", dictNamePh:"mis. Inggris-Indonesia", lblDictFmt:"Format definisi", dictPlain:"Teks biasa", dictHtmlOpt:"HTML (tebal/miring)", lblDictFile:"Berkas daftar kata (.txt / .tsv / .csv)", stDict:"Membuat kamus\u2026", errDictEmpty:"Daftar kata kosong atau formatnya tidak dikenali (pakai kata[TAB]definisi)."
   },
   en: {
     errCbzLarge:"Comic is too large (maximum 1,000 pages and 128 MB of images). Split the CBZ into smaller files.",
@@ -663,7 +663,7 @@ var T = {
     footer:"Converts text, Markdown, RTF, HTML, FictionBook (FB2), OpenDocument (ODT), Word (DOCX), text-based PDF, Kindle (MOBI/AZW3), comics (CBZ) and web articles into reflowable EPUB. Images are prepared for e-ink screens. This tool does not modify device firmware.", pdfMode:"PDF layout", pdfReflow:"Reflow text", pdfFixed:"Keep original pages", pdfModeHelp:"Choose original pages for PDFs with illustrations, drop caps, tables, or complex layout. The result is larger and does not follow the reader's font size. Older ADE versions may show fixed-layout EPUBs as blank; use the latest ADE or choose Reflow text.", pdfQuality:"PDF page quality", pdfQualitySource:"Source (colour & resolution)", pdfQualityEink:"Optimise for e-ink", pdfQualityEinkDetail:"E-ink detail (smooth greyscale, high resolution)", pdfQualityHelp:"Applies to Keep original pages. Source preserves the PDF's colour and resolution; E-ink resizes pages; E-ink detail preserves resolution with smooth 16-level greyscale so small text stays clean.",
     stReady:"Ready to build.", stBuilding:"Building EPUB…", stParsing:"Reading file…", stImages:"Processing images…",
     stFetching:"Fetching…", stBlocked:"Blocked by the site (likely CORS). Use \u201cPaste HTML\u201d.", stPasteFirst:"Paste some HTML first.", errPasteUrlOnly:"You pasted only a URL. Put the complete URL in the address field above; for the fallback, open the article and copy its page HTML (Ctrl+U, Ctrl+A, Ctrl+C) into this box.", warnImageFormat:"Some firmware may not read these image formats; turn on e-ink processing to convert them to PNG.",
-    stSaved:"Saved:", devDone:"Created:", errPrefix:"Failed:", warnLarge:"Large file (>{n} MB) — this may be slow, and may fail to open on low-RAM devices (X3/X4).", btnXtc:"Export .xtc (native)", stXtc:"Building .xtc…", credits:"Uses JSZip (MIT); PDF via pdf.js (Apache-2.0) and DOCX via mammoth.js (BSD) loaded on demand.", errScanned:"This PDF looks scanned (no selectable text). Turn on OCR under \u201cAdvanced options\u201d to read it.", errMobi:"This Kindle file can't be read. It may be DRM-protected (locked) or corrupt; DRM files are not supported.", errHuff:"This Kindle file uses HUFF/CDIC compression, which isn't supported yet. Try converting it with Calibre first.", errCbz:"No images were found inside this CBZ.", errCbr:"CBR uses the RAR format, which isn't supported directly. Convert it to CBZ first (e.g. with Calibre), then try again.", pageLabel:"Page", chapterLabel:"Chapter", batchFiles:"files queued", batchWaiting:"waiting", batchWorking:"working", batchDone:"done", batchFailed:"failed", batchReady:"Ready. All files will be delivered as one ZIP.", batchNone:"No file could be converted.", ocrHead:"Scanned PDFs", lblOcr:"Read text from images (OCR)", ocrOff:"Off", ocrOnOpt:"On", lblOcrLang:"Text language", ocrHelp:"Only used when a PDF has no selectable text. It is slow and needs a connection once to load the OCR engine; results may contain misreadings.", stOcr:"Reading text from images\u2026", errOcrLoad:"The OCR engine could not be loaded. Check your connection.", errOcrEmpty:"OCR found no readable text in this PDF.", sleepHead:"Make a sleep-screen image (wallpaper) \u00b7 CrossPoint", sleepHelp:"Turn a photo into the BMP the device shows while asleep. Copy the result to the root of the SD card. Screen size and tone count follow \u201cAdvanced options\u201d.", lblSleepMode:"Type", sleepFull:"Full wallpaper (sleep.bmp)", sleepOverlay:"Transparent overlay (sleep-overlay.bmp)", lblSleepFile:"Image", stSleep:"Making the sleep screen\u2026", dictHead:"Make a device dictionary \u00b7 CrossPoint / SUMI", dictHelp:"Turn a word list into a StarDict dictionary the device can use when you long-press a word. Copy the downloaded dictionaries/ folder to the SD card root.", lblDictName:"Dictionary name", dictNamePh:"e.g. English-Indonesian", lblDictFmt:"Definition format", dictPlain:"Plain text", dictHtmlOpt:"HTML (bold/italic)", lblDictFile:"Word list file (.txt / .tsv / .csv)", stDict:"Building the dictionary\u2026", errDictEmpty:"The word list is empty or in an unrecognised format (use word[TAB]definition)."
+    stSaved:"Saved:", devDone:"Created:", errPrefix:"Failed:", warnLarge:"Large file (>{n} MB) — this may be slow, and may fail to open on low-RAM devices (X3/X4).", btnXtc:"Export .xtc (native)", stXtc:"Building .xtc…", credits:"Uses JSZip (MIT); PDF via pdf.js (Apache-2.0) and DOCX via mammoth.js (BSD) loaded on demand.", errScanned:"This PDF looks scanned (no selectable text). Turn on OCR under \u201cAdvanced options\u201d to read it.", errMobi:"This Kindle file can't be read. It may be DRM-protected (locked) or corrupt; DRM files are not supported.", errHuff:"This Kindle file uses HUFF/CDIC compression, which isn't supported yet. Try converting it with Calibre first.", errCbz:"No images were found inside this CBZ.", errCbr:"CBR uses the RAR format, which isn't supported directly. Convert it to CBZ first (e.g. with Calibre), then try again.", pageLabel:"Page", chapterLabel:"Chapter", batchFiles:"files queued", batchWaiting:"waiting", batchWorking:"working", batchDone:"done", batchFailed:"failed", batchReady:"Ready. All files will be delivered as one ZIP.", batchNone:"No file could be converted.", ocrHead:"Scanned PDFs", lblOcr:"Read text from images (OCR)", ocrOff:"Off", ocrOnOpt:"On", lblOcrLang:"Text language", ocrHelp:"In reflow mode, OCR reads each page without a text layer, including mixed PDFs. It is slow and needs a one-time connection to load the OCR engine; results can be wrong.", stOcr:"Reading text from images\u2026", errOcrLoad:"The OCR engine could not be loaded. Check your connection.", errOcrEmpty:"OCR found no readable text in this PDF.", ocrLowConfidence:"OCR confidence is low on page {n}; review the recognised text.", sleepHead:"Make a sleep-screen image (wallpaper) \u00b7 CrossPoint", sleepHelp:"Turn a photo into the BMP the device shows while asleep. Copy the result to the root of the SD card. Screen size and tone count follow \u201cAdvanced options\u201d.", lblSleepMode:"Type", sleepFull:"Full wallpaper (sleep.bmp)", sleepOverlay:"Transparent overlay (sleep-overlay.bmp)", lblSleepFile:"Image", stSleep:"Making the sleep screen\u2026", dictHead:"Make a device dictionary \u00b7 CrossPoint / SUMI", dictHelp:"Turn a word list into a StarDict dictionary the device can use when you long-press a word. Copy the downloaded dictionaries/ folder to the SD card root.", lblDictName:"Dictionary name", dictNamePh:"e.g. English-Indonesian", lblDictFmt:"Definition format", dictPlain:"Plain text", dictHtmlOpt:"HTML (bold/italic)", lblDictFile:"Word list file (.txt / .tsv / .csv)", stDict:"Building the dictionary\u2026", errDictEmpty:"The word list is empty or in an unrecognised format (use word[TAB]definition)."
   }
 };
 var LANG = "id";
@@ -1471,6 +1471,38 @@ function ocrTextToHtml(pageTexts){
   flush();
   return promoteHeadings(paras.join('\n'));
 }
+function ocrResultLines(data){
+  const lines=[];
+  function addLine(line){
+    const text=String(line&&line.text||'').replace(/\s+/g,' ').trim();
+    if(text) lines.push({text,bbox:line.bbox||null,confidence:Number(line.confidence)});
+  }
+  if(Array.isArray(data&&data.lines)) data.lines.forEach(addLine);
+  if(!lines.length && Array.isArray(data&&data.blocks)) data.blocks.forEach(function(block){
+    (block.paragraphs||[]).forEach(function(paragraph){ (paragraph.lines||[]).forEach(addLine); });
+  });
+  if(!lines.length) String(data&&data.text||'').split(/\r?\n/).forEach(function(text){ addLine({text}); });
+  return lines;
+}
+/* Map Tesseract line boxes into the same coordinate shape used by PDF.js so
+   OCR pages go through the normal PDF paragraph, heading, and page-number
+   cleanup path instead of being appended as a separate text dump. */
+function ocrResultToPdfItems(result){
+  if(!result) return [];
+  const scale=Math.max(.1,Number(result.scale)||2);
+  const width=Math.max(1,(Number(result.width)||0)/scale);
+  const height=Math.max(1,(Number(result.height)||0)/scale);
+  const lines=ocrResultLines(result.data||result);
+  const items=lines.map(function(line,index){
+    const box=line.bbox;
+    const x0=box&&Number.isFinite(Number(box.x0)) ? Number(box.x0)/scale : 0;
+    const y0=box&&Number.isFinite(Number(box.y0)) ? Number(box.y0)/scale : index*8;
+    const x1=box&&Number.isFinite(Number(box.x1)) ? Number(box.x1)/scale : Math.min(width,line.text.length*6);
+    const y1=box&&Number.isFinite(Number(box.y1)) ? Number(box.y1)/scale : y0+6;
+    return {str:line.text,x:x0,y:height-y1,w:Math.max(1,x1-x0),h:Math.max(1,y1-y0),confidence:line.confidence};
+  });
+  return items.sort((a,b)=>(b.y-a.y)||(a.x-b.x));
+}
 
 /* PDF bookmarks are more reliable than guessing chapter headings from
    positioned glyphs. Resolve named destinations and indirect page references
@@ -1532,25 +1564,29 @@ function loadTesseract(){
   });
   return tesseractPromise;
 }
-async function pdfPagesToOcrText(pdf, lang){
+async function pdfPagesToOcrText(pdf, lang, pageIndexes){
   const Tesseract = await loadTesseract();
   const worker = await Tesseract.createWorker(ocrLangCode(lang));
-  const texts = [];
+  const indexes=Array.isArray(pageIndexes) ? pageIndexes : Array.from({length:pdf.numPages},(_,i)=>i);
+  const results=Array(pdf.numPages).fill(null);
   try{
-    for(let i = 1; i <= pdf.numPages; i++){
-      setStatus(t('stOcr') + ' ' + i + '/' + pdf.numPages);
-      const page = await pdf.getPage(i);
-      const viewport = page.getViewport({ scale: 2 });          // 2x helps recognition
+    for(let n=0;n<indexes.length;n++){
+      const pageIndex=indexes[n], pageNumber=pageIndex+1;
+      setStatus(t('stOcr') + ' ' + pageNumber + '/' + pdf.numPages);
+      const page = await pdf.getPage(pageNumber);
+      const viewport = page.getViewport({ scale: 2.5 });        // extra source pixels help small print
       const cv = document.createElement('canvas');
       cv.width = Math.round(viewport.width); cv.height = Math.round(viewport.height);
       const ctx = cv.getContext('2d');
+      if(!ctx) throw new Error('Canvas is not available for OCR.');
       ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, cv.width, cv.height);
       await page.render({ canvasContext: ctx, viewport: viewport }).promise;
       const out = await worker.recognize(cv);
-      texts.push((out && out.data && out.data.text) || '');
+      results[pageIndex]={data:out&&out.data||{},width:cv.width,height:cv.height,scale:2.5};
+      cv.width=0; cv.height=0;
     }
   } finally { try{ await worker.terminate(); }catch(e){} }
-  return texts;
+  return results;
 }
 let pdfjsPromise=null;
 function loadPdfjs(){
@@ -1600,6 +1636,7 @@ async function pdfToBook(arrayBuffer, mode){
       continue;
     }
     pages.push(pageItems || []);
+    const pageSize=page.getViewport({scale:1});
     // Calibre preserves embedded illustrations when the source PDF exposes
     // them. PDF.js provides those objects through the operator list.
     try{
@@ -1615,7 +1652,7 @@ async function pdfToBook(arrayBuffer, mode){
         const png=await new Promise(resolve=>cv.toBlob(resolve,'image/png'));
         if(!png) continue;
         const nm='pdf_img_'+String(imageNo++).padStart(4,'0')+'.png';
-        images.push({name:nm,mime:'image/png',b64:u8ToB64(new Uint8Array(await png.arrayBuffer()))});
+        images.push({name:nm,mime:'image/png',b64:u8ToB64(new Uint8Array(await png.arrayBuffer())),_sourcePage:i,_sourceWidth:obj.width,_sourceHeight:obj.height,_pageWidth:pageSize.width,_pageHeight:pageSize.height});
         pageRefs.push(nm);
       }
     }catch(e){ /* image extraction is optional; retain text conversion */ }
@@ -1627,6 +1664,37 @@ async function pdfToBook(arrayBuffer, mode){
   if(!author) author=fallback.author;
   const analysis=fixed ? {recommendedMode:'fixed',confidence:100,textRatio:0,multiColumnPages:0,imageCount:pdf.numPages,reasons:['images']} : pdfAnalyzeLayout(pages,images.length,pdf.numPages);
   if(fixed) return {html:'',chapters,title,author,lang:'',images,coverName:'',sourcePageCount:pdf.numPages,pdfMode:'fixed',fixedViewport,analysis};
+  const ocrEl=document.getElementById('ocrOn');
+  const missingTextPages=pages.map((items,index)=>(items||[]).some(it=>String(it.str||'').trim())?-1:index).filter(index=>index>=0);
+  let ocrResults=null;
+  if(ocrEl && ocrEl.value==='on' && missingTextPages.length){
+    log('OCR running on '+missingTextPages.length+' page(s) without selectable text');
+    ocrResults=await pdfPagesToOcrText(pdf,document.getElementById('ocrLang').value,missingTextPages);
+    let recognized=0;
+    missingTextPages.forEach(function(index){
+      const items=ocrResultToPdfItems(ocrResults[index]);
+      if(!items.length) return;
+      pages[index]=items; recognized++;
+      const confidences=items.map(it=>it.confidence).filter(Number.isFinite);
+      if(confidences.length && median(confidences)<55) log(t('ocrLowConfidence').replace('{n}',String(index+1)));
+      /* A scanned page is usually stored as a single full-page bitmap. Once
+         its text has been OCR'd, omit that duplicate raster from reflow EPUB,
+         while retaining separate illustrations found on the same page. */
+      const pageRefs=pageImageRefs[index]||[];
+      const remove=new Set(pageRefs.filter(function(name){
+        const im=images.find(function(entry){return entry.name===name;});
+        if(!im) return false;
+        const aspect=Math.abs((im._sourceWidth/im._sourceHeight)-(im._pageWidth/im._pageHeight));
+        const fillsPage=im._sourceWidth>=im._pageWidth*.45 && im._sourceHeight>=im._pageHeight*.45;
+        return aspect<=.09 && fillsPage;
+      }));
+      if(remove.size){
+        pageImageRefs[index]=pageRefs.filter(name=>!remove.has(name));
+        for(let n=images.length-1;n>=0;n--) if(remove.has(images[n].name)) images.splice(n,1);
+      }
+    });
+    log('OCR recognized '+recognized+' of '+missingTextPages.length+' textless page(s)');
+  }
   let html=pdfItemsToHtml(pages,pageImageRefs);
   let outlineChapters=[];
   try{
@@ -1635,18 +1703,7 @@ async function pdfToBook(arrayBuffer, mode){
     if(outlineChapters.length>=2) log('PDF bookmarks used: '+outlineChapters.length+' chapter(s)');
   }catch(e){ outlineChapters=[]; }
   const inlineImages=!!(html && /class="pdf-inline-image"/.test(html));
-  if((!html || !html.trim())){
-    const ocrEl = document.getElementById('ocrOn');
-    if(ocrEl && ocrEl.value === 'on'){
-      log('No text layer found - running OCR');
-      const texts = await pdfPagesToOcrText(pdf, document.getElementById('ocrLang').value);
-      html = ocrTextToHtml(texts);
-      if(!html || !html.trim()) throw new Error(t('errOcrEmpty'));
-      log('OCR finished: ' + pdf.numPages + ' page(s)');
-    } else {
-      throw new Error(t('errScanned'));
-    }
-  }
+  if((!html || !html.trim())) throw new Error(ocrEl && ocrEl.value==='on' ? t('errOcrEmpty') : t('errScanned'));
   html=promoteHeadings(html);
   if(images.length && !inlineImages) html += '\n' + images.map(im=>'<p><img src="images/'+escAttr(im.name)+'" alt=""/></p>').join('\n');
   return { html, outlineChapters:outlineChapters.length>=2 ? outlineChapters : null, title, author, lang:'', images, coverName:'', sourcePageCount:pdf.numPages, analysis };

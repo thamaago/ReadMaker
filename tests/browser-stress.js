@@ -7,7 +7,19 @@ const { execFileSync } = require('child_process');
 const root = path.join(__dirname, '..');
 const page = path.join(root, '.browser-stress-run.html');
 const profile = path.join(os.tmpdir(), `readmaker-browser-stress-${process.pid}`);
-const chrome = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
+const browserCandidates = process.platform === 'win32'
+  ? [
+      path.join(process.env.PROGRAMFILES || 'C:\\Program Files', 'Google', 'Chrome', 'Application', 'chrome.exe'),
+      path.join(process.env['PROGRAMFILES(X86)'] || 'C:\\Program Files (x86)', 'Google', 'Chrome', 'Application', 'chrome.exe'),
+      path.join(process.env['PROGRAMFILES(X86)'] || 'C:\\Program Files (x86)', 'Microsoft', 'Edge', 'Application', 'msedge.exe')
+    ]
+  : process.platform === 'darwin'
+    ? ['/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', '/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge']
+    : ['/usr/bin/google-chrome', '/usr/bin/chromium', '/usr/bin/chromium-browser', '/usr/bin/microsoft-edge'];
+const browser = process.env.BROWSER_BIN || browserCandidates.find(fs.existsSync);
+if (!browser || !fs.existsSync(browser)) {
+  throw new Error('No supported browser found. Set BROWSER_BIN to a Chrome or Edge executable.');
+}
 const app = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 const harness = `<script>
 document.addEventListener('DOMContentLoaded', async function () {
@@ -72,7 +84,7 @@ const bodyEnd = app.lastIndexOf('</body>');
 if (bodyEnd < 0) throw new Error('app body closing tag not found');
 fs.writeFileSync(page, app.slice(0, bodyEnd) + harness + app.slice(bodyEnd));
 try {
-  const html = execFileSync(chrome, [
+  const html = execFileSync(browser, [
     '--headless=new', '--disable-gpu', '--no-first-run', '--enable-precise-memory-info',
     `--user-data-dir=${profile}`, '--virtual-time-budget=60000', '--dump-dom',
     new URL(`file:///${page.replace(/\\/g, '/')}`).href

@@ -26,7 +26,7 @@ const w=dom.window,d=w.document,el=id=>d.getElementById(id);
  assert.match(el('galley').textContent,/Fallback title/);
  assert.match(el('galley').textContent,/words/);
  w.startBatch([{name:'a.txt'},{name:'b.txt'}]);assert.equal(el('galleyTools').hidden,true);
- let count=0;w.pdfjsLib={getDocument:()=>({promise:Promise.resolve({numPages:7,getMetadata:async()=>({}),getPage:async()=>{count++;return {getTextContent:async()=>({items:[{str:'Unique page '+String.fromCharCode(64+count),transform:[1,0,0,12,0,100],width:60,height:12}]})}}})})};
+ let count=0;w.pdfjsLib={getDocument:()=>({promise:Promise.resolve({numPages:7,getMetadata:async()=>({}),getPage:async()=>{count++;return {getViewport:()=>({width:612,height:792}),getTextContent:async()=>({items:[{str:'Unique page '+String.fromCharCode(64+count),transform:[1,0,0,12,0,100],width:60,height:12}]})}}})})};
  const pdf=await w.parseToBook({name:'test.pdf',size:1,arrayBuffer:async()=>new ArrayBuffer(1)});
  assert.equal(pdf.sourcePageCount,7);
  console.log('Paging, search, export completeness, fallback labels, source counts and reset: passed');
