@@ -25,7 +25,8 @@ w.pdfjsLib={getDocument:()=>({promise:Promise.resolve({
   const ch=await zip.file('OEBPS/chap001.xhtml').async('string');
   assert.match(opf,/rendition:layout/);
   assert.match(opf,/pre-paginated/);
-  assert.match(opf,/rendition:viewport">width=600,height=800/);
+  assert.doesNotMatch(opf,/rendition:viewport/);
+  assert.match(opf,/rendition:orientation">auto/);
   assert.match(opf,/itemref idref="chap1" properties="rendition:layout-pre-paginated"/);
   assert.match(ch,/name="viewport"/);
   assert.match(ch,/content="width=600,height=800"/);

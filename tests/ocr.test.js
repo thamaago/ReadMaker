@@ -21,6 +21,8 @@ ok((out.match(/<p>/g)||[]).length===2,'two paragraphs total ('+((out.match(/<p>/
 // de-hyphenation across OCR lines
 const hy=ocrTextToHtml(['the beauti-','ful morning came'].join('\n'));
 ok(/beautiful morning came/.test(hy),'hyphenated word rejoined');
+ok(/Tukang-tukangnya/.test(ocrTextToHtml('Tukang-\ntukangnya datang.')),'Indonesian repeated word with suffix keeps its hyphen and case');
+ok(/orang-orang/.test(ocrTextToHtml('orang-\norang datang.')),'Indonesian repeated word keeps its hyphen');
 
 const mapped=ocrResultToPdfItems({width:500,height:750,scale:2.5,data:{lines:[
   {text:'First line',bbox:{x0:20,y0:50,x1:180,y1:80},confidence:96},
@@ -29,6 +31,34 @@ const mapped=ocrResultToPdfItems({width:500,height:750,scale:2.5,data:{lines:[
 ok(mapped.length===2 && mapped[0].str==='First line','structured OCR lines become positioned PDF text items');
 ok(mapped[0].x===8 && mapped[0].y===268 && mapped[0].h===12,'OCR boxes scale into PDF page coordinates');
 ok(mapped[0].confidence===96,'line confidence is retained for diagnostics');
+
+const word=(text,x0,x1,confidence=96)=>({text,confidence,bbox:{x0,y0:100,x1,y1:120}});
+const clearWords=Array.from({length:40},(_,i)=>word('word',140+(i%8)*85,190+(i%8)*85));
+const noisyLines=[{text:'reference body',words:clearWords},
+  {text:'5',words:[word('5',940,955,37)]},
+  {text:'together. ar',words:[word('together.',430,535),word('ar',940,960,32)]},
+  {text:'5',words:[word('5',450,460,20)]},
+  {text:'7',words:[word('7',940,955,96)]}];
+const cleanLines=ocrCleanMarginNoise(noisyLines,973);
+ok(cleanLines.length===4,'uncertain isolated margin digit is removed with sufficient body evidence');
+ok(cleanLines[1].text==='together.' && cleanLines[1].bbox.x1===535,'margin fragment is removed without losing the valid line');
+ok(cleanLines[2].text==='5' && cleanLines[3].text==='7','body numerals and confident margin labels are retained');
+ok(ocrCleanMarginNoise(noisyLines.slice(1),973).length===4,'sparse pages are not cleaned from insufficient evidence');
+const centeredLines=[
+  ['A centered paragraph begins here',100,400],['and continues with a short ending.',160,340],
+  ['Another centered paragraph begins',105,395],['and ends below.',190,310],
+  ['The final centered paragraph here',100,400],['has its last line.',180,320]
+].map(([str,x,x1],i)=>({str,x,w:x1-x,y:500-i*16-(i>=2?18:0)-(i>=4?18:0),h:12}));
+const centeredHtml=pdfItemsToHtml([centeredLines]);
+ok((centeredHtml.match(/<p>/g)||[]).length===3,'centered last lines stay in their paragraph while blank gaps split paragraphs');
+ok(/begins here and continues/.test(centeredHtml),'centered line wrap becomes continuous reading text');
+const mixedCentered=[['The body begins here with a long sentence.',100,400],['and continues over another full line.',100,400],
+  ['until the final shorter line below.',130,370],['Together.',220,280]].map(([str,x,x1],i)=>({str,x,w:x1-x,y:500-i*16,h:12}));
+mixedCentered.push({str:'Publisher address',x:50,w:200,y:380,h:10});
+ok(/below\. Together\./.test(pdfItemsToHtml([mixedCentered])),'short centered last line is joined on a page with left-aligned publisher text');
+ok(ocrCleanMarginNoise([{text:'missing boxes',words:[{text:'missing'}]}],973).length===1,'incomplete word geometry is retained safely');
+ok(ocrNeedsReview({width:973,data:{lines:noisyLines.map(l=>({...l,confidence:96}))}}),'local uncertainty is flagged even when page line confidence is high');
+ok(!ocrNeedsReview({width:973,data:{lines:[{text:'Clear text',confidence:96,words:clearWords}]}}),'clear OCR is not flagged for manual review');
 
 // blank input
 ok(ocrTextToHtml([])==='','empty OCR yields empty html');
