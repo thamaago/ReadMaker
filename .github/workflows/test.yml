@@ -25,3 +25,6 @@ jobs:
       - name: Run headless test suites
         working-directory: tests
         run: npm test
+
+      - name: EPUB conformance gate
+        uses: ./.github/actions/epub-validation

@@ -107,7 +107,7 @@ async function testMixedPdfOcr(){
     ok(terminated===1,'OCR worker is always terminated after scanning');
     ok(/Selectable text from digital page\./.test(book.html),'selectable PDF text stays in reading order');
     ok(/Scanned page text is readable\./.test(book.html),'OCR text is merged into the same reflow HTML');
-    ok(/<h1>CHAPTER ONE<\/h1>/.test(book.html),'OCR chapter heading is retained for ordinary EPUB navigation');
+    ok(new DOMParser().parseFromString(book.html,'text/html').querySelector('h1')?.textContent==='CHAPTER ONE','OCR chapter heading is retained for ordinary EPUB navigation');
     ok(book.images.length===0,'full-page scan bitmap is not duplicated beside recognised text');
     ok(/Hasil OCR halaman 2 berkeyakinan rendah/.test(document.getElementById('log').textContent),'low-confidence pages get an actionable warning');
     const epubBlob=await buildEpub({title:'Mixed Scan Test',author:'QA',language:'en',images:[],chapters:splitChapters(book.html,'single')});

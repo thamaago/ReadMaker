@@ -10,12 +10,14 @@ const mime={'.html':'text/html','.js':'application/javascript','.json':'applicat
 const results=[],errors=[],failedRequests=[];
 const appSnapshot=fs.readFileSync(path.join(root,'index.html'));
 const appSha256=crypto.createHash('sha256').update(appSnapshot).digest('hex');
+const assets=new Map(['index.html','pdf-review.js','device-compatibility.js','responsive.css','jszip.min.js'].map(name=>[path.join(root,name),fs.readFileSync(path.join(root,name))]));
+const assetSha256=Object.fromEntries([...assets].map(([name,bytes])=>[path.basename(name),crypto.createHash('sha256').update(bytes).digest('hex')]));
 const server=http.createServer((req,res)=>{
  const relative=decodeURIComponent(req.url.split('?')[0]);
  const file=path.resolve(root,'.'+(relative==='/'?'/index.html':relative));
  if(!file.startsWith(root+path.sep)||!fs.existsSync(file)||!fs.statSync(file).isFile()){res.writeHead(404);res.end();return;}
  res.writeHead(200,{'Content-Type':mime[path.extname(file)]||'application/octet-stream','Cache-Control':'no-cache'});
- if(file===path.join(root,'index.html'))res.end(appSnapshot);else fs.createReadStream(file).pipe(res);
+ if(assets.has(file))res.end(assets.get(file));else fs.createReadStream(file).pipe(res);
 });
 (async()=>{
  await new Promise(r=>server.listen(0,'127.0.0.1',r));
@@ -42,7 +44,8 @@ const server=http.createServer((req,res)=>{
     document.getElementById('ocrOn').value=test.ocr;document.getElementById('ocrLang').value='ind+eng';
    },test);
    await page.setInputFiles('#file',path.join(pdfDir,test.file));
-   await page.waitForFunction(()=>!!parsed&&!document.getElementById('build').disabled||document.getElementById('status').classList.contains('err'),null,{timeout:600000});
+   try{await page.waitForFunction(()=>!!parsed&&!document.getElementById('build').disabled||document.getElementById('status').classList.contains('err'),null,{timeout:900000});}
+   catch(error){fs.writeFileSync(path.join(out,'browser-failure.json'),JSON.stringify({test,assetSha256,errors,status:await page.locator('#status').textContent(),log:await page.locator('#log').textContent(),error:error.message},null,2));throw error;}
    const ingestion=await page.evaluate(()=>({ready:!!parsed,sourcePages:parsed?.sourcePageCount||null,mode:parsed?.pdfMode||'html',images:parsed?.images?.length||0,chapters:parsed?currentBook().chapters.length:0,status:document.getElementById('status').textContent,analysis:parsed?.pdfAnalysis,heapMB:performance.memory?Math.round(performance.memory.usedJSHeapSize/1048576):null}));
    if(!ingestion.ready){results.push({...test,...ingestion,failed:true});continue;}
    const ingestMs=Date.now()-started;
@@ -53,8 +56,8 @@ const server=http.createServer((req,res)=>{
    const logs=await page.locator('#log').textContent();fs.writeFileSync(path.join(out,test.key+'-process.log'),logs);
    const actual=await page.evaluate(()=>({options:{preset:document.getElementById('outputPreset').value,ocr:document.getElementById('ocrOn').value,ocrLang:document.getElementById('ocrLang').value,pdfMode:document.getElementById('pdfMode').value,pdfQuality:document.getElementById('pdfQuality').value},status:document.getElementById('status').textContent}));
    const result={...test,...ingestion,...actual,ingestMs,totalMs:Date.now()-started,bytes:fs.statSync(target).size,output:target};results.push(result);console.log(JSON.stringify({completed:result}));
-   fs.writeFileSync(path.join(out,'browser-results.json'),JSON.stringify({appSha256,results,errors,failedRequests},null,2));
+   fs.writeFileSync(path.join(out,'browser-results.json'),JSON.stringify({appSha256,assetSha256,results,errors,failedRequests},null,2));
   }
- }finally{clearInterval(ticker);await browser.close();await new Promise(r=>server.close(r));fs.writeFileSync(path.join(out,'browser-results.json'),JSON.stringify({appSha256,results,errors,failedRequests},null,2));}
+ }finally{clearInterval(ticker);await browser.close();await new Promise(r=>server.close(r));fs.writeFileSync(path.join(out,'browser-results.json'),JSON.stringify({appSha256,assetSha256,results,errors,failedRequests},null,2));}
  if(results.some(r=>r.failed))process.exitCode=1;
 })().catch(e=>{console.error(e);server.close();process.exitCode=1;});

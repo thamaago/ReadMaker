@@ -13,7 +13,7 @@ Antarmuka juga menyesuaikan lebar layar: desktop memakai ruang kerja dua kolom, 
 A tiny, offline-friendly tool that turns everyday writing formats into clean **EPUB** books for e-ink readers — a host-side EPUB maker and companion for [CrossPoint Reader](https://github.com/crosspoint-reader/crosspoint-reader) (Xteink X3 / X4 / X4 Pro / papermono).
 Here to Access https://thamaago.github.io/ReadMaker/
 
-Conversion runs **in your browser** without an account or a conversion server. The app files are `index.html`, `jszip.min.js`, `responsive.css`, and `device-compatibility.js`. Optional article fetching and direct upload to your reader use the network; PDF, DOCX, and OCR load additional libraries on demand.
+Conversion runs **in your browser** without an account or a conversion server. The app files are `index.html`, `jszip.min.js`, `responsive.css`, `device-compatibility.js`, and `pdf-review.js`. Optional article fetching and direct upload to your reader use the network; PDF, DOCX, and OCR load additional libraries on demand.
 
 > Unofficial community tool. It does **not** modify device firmware — it only produces EPUB files you copy to your reader.
 
@@ -44,6 +44,7 @@ Extras:
 - **PDF layout and quality choice** — use *Reflow text* for adjustable e-ink typography, or *Keep original pages* for PDFs with illustrations, drop caps, tables, and complex placement. Fixed PDFs can keep the *Source* colour/resolution, use a smaller device-fit e-ink render, or use *E-ink detail*: source-sized 16-level grayscale without Floyd–Steinberg speckle, which keeps small type cleaner on LCD, ADE, and e-ink readers. After parsing, Read Maker shows a recommendation based on the text layer, image count, and detected layout; the choice remains yours. The latter produces EPUB 3 pre-paginated chapters and is intentionally larger.
 - **Bilingual UI** (Indonesian / English) with a simple 3-step flow.
 - **Review before build** — edit chapter titles, move chapters up/down, inspect a compact output summary, and preview the first chapter before downloading. The EPUB export uses the edited order and titles.
+- **PDF source review and text corrections** — compare any source page with its mapped output, jump to uncertain OCR pages, and edit literal text while preserving images and inline formatting. Corrections follow chapter splitting and reordering and are included in the exported EPUB. Unsaved typing blocks navigation/build; saved corrections block PDF reprocessing until explicitly restored. Source pages render lazily, and corrections last for the current session. Image previews precede export image optimisation; final sharpness still needs checking on the reader. Fixed-page output supports comparison but not editing text inside the raster image.
 - **Output presets** — choose **Best automatic**, **All devices (source quality)**, **Lightest text**, **Keep original layout**, or **Comic for e-ink**. The preset changes the relevant PDF, image, tone, panel, and firmware settings together; changing text/layout for an already loaded PDF reparses it, while Read Maker validates the book and reports risky image formats before building.
 - **Chapter detection:** uses the book's built-in table of contents when there is one (PDF bookmarks, MOBI `filepos` offsets, the binary NCX/INDX index, or HTML `href="#id"` anchors), the way desktop converters do, instead of guessing from heading tags — which fails on books that wrap body prose or drop caps in `<h1>`. Falls back to heading detection, then to the book's own page-break separators, then to `Chapter`/`Bab` line patterns (a marker line and the chapter name that follows it are combined, e.g. "CHAPTER ONE: THE BOY WHO LIVED"). Titles that read like running text are rejected and replaced with a numbered label.
 - **Batch conversion:** drop several files at once and get one ZIP of EPUBs back. Each file is converted independently, so a broken or unsupported file is reported in the queue and skipped rather than stopping the run.
@@ -63,7 +64,7 @@ Extras:
 
 **Online:** open the GitHub Pages URL for this repo (see *Deploy* below).
 
-**Locally:** download the repo and open `index.html` in any modern browser. Keep `index.html`, `jszip.min.js`, `responsive.css`, and `device-compatibility.js` **in the same folder**.
+**Locally:** download the repo and open `index.html` in any modern browser. Keep `index.html`, `jszip.min.js`, `responsive.css`, `device-compatibility.js`, and `pdf-review.js` **in the same folder**.
 
 Then: drop a file (or paste a link) → check the title/chapters → **Create EPUB** → download.
 
@@ -83,7 +84,7 @@ Then: drop a file (or paste a link) → check the title/chapters → **Create EP
 
 ## Deploy to GitHub Pages
 
-Set **Settings → Pages → Build and deployment → Source: GitHub Actions**. The workflow in `.github/workflows/deploy-pages.yml` runs the tests on each push to `main`, then publishes the four app files and `.nojekyll`. Local books, test files, and documentation are not part of the website artifact. See [RELEASE.md](RELEASE.md) before publishing a release.
+Set **Settings → Pages → Build and deployment → Source: GitHub Actions**. The workflow in `.github/workflows/deploy-pages.yml` runs the tests on each push to `main`, then publishes the five app files and `.nojekyll`. Local books, test files, and documentation are not part of the website artifact. See [RELEASE.md](RELEASE.md) before publishing a release.
 
 ---
 

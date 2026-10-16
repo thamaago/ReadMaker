@@ -74,7 +74,7 @@
   }
 
   /* ---- Layout ---- */
-  main{max-width:1080px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:34px;padding-top:28px}
+  main{max-width:1080px;margin:0 auto;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:34px;padding-top:28px}
   @media (max-width:760px){ main{grid-template-columns:1fr;gap:26px} body{padding:0 16px 56px} }
 
   .col-label{display:flex;align-items:center;gap:10px;margin:0 0 14px}
@@ -323,6 +323,7 @@
           <option value="text" data-i18n="presetText">Teks paling ringan</option>
           <option value="layout" data-i18n="presetLayout">Pertahankan tata letak</option>
           <option value="comic" data-i18n="presetComic">Komik untuk e-ink</option>
+          <option value="custom" data-i18n="presetCustom">Setelan sendiri</option>
         </select>
         <div class="help" data-i18n="presetHelp">Preset otomatis memilih reflow, halaman asli, atau komik berdasarkan berkas yang dipilih. Opsi lain tetap bisa diubah setelahnya.</div>
       </div>
@@ -447,6 +448,35 @@
     <div id="reviewSummary" class="review" hidden aria-live="polite"></div>
     <button id="previewBtn" class="mini" type="button" hidden data-i18n="previewBtn">Pratinjau bab pertama</button>
     <div id="preview" class="preview" aria-live="polite"></div>
+    <button id="pdfReviewBtn" class="mini" type="button" hidden data-i18n="pdfReviewOpen">Bandingkan PDF &amp; perbaiki teks</button>
+    <section id="pdfReviewPanel" class="pdf-review" hidden aria-labelledby="pdfReviewHeading">
+      <h3 id="pdfReviewHeading" data-i18n="pdfReviewHeading">Tinjau sumber dan hasil</h3>
+      <p class="help" data-i18n="pdfReviewHelp">Bandingkan dengan PDF asli. Koreksi hanya mengubah teks hasil selama sesi ini; sumber tetap utuh. Baris baru dirapikan menjadi spasi, format paragraf dan gambar dipertahankan.</p>
+      <div class="pdf-review-toolbar">
+        <button id="pdfReviewPrev" type="button" class="mini" data-i18n="prevList">Sebelumnya</button>
+        <label for="pdfReviewPage" data-i18n="pdfReviewPage">Halaman PDF</label>
+        <input id="pdfReviewPage" type="number" min="1" value="1" />
+        <span id="pdfReviewPageCount"></span>
+        <button id="pdfReviewNext" type="button" class="mini" data-i18n="nextList">Berikutnya</button>
+        <button id="pdfReviewFlagged" type="button" class="mini" data-i18n="pdfReviewFlagged">Halaman perlu ditinjau</button>
+        <label for="pdfReviewZoom" data-i18n="pdfReviewZoom">Perbesar sumber</label>
+        <select id="pdfReviewZoom"><option value="1">100%</option><option value="1.5">150%</option><option value="2">200%</option><option value="3">300%</option></select>
+      </div>
+      <p id="pdfReviewState" class="help" role="status"></p>
+      <div class="pdf-review-panels">
+        <div><h4 data-i18n="pdfReviewSource">PDF asli</h4><p id="pdfReviewSourceStatus" class="help" role="status"></p><div id="pdfReviewSource" class="pdf-review-source" tabindex="0" role="region" aria-label="PDF asli" data-i18n-aria="pdfReviewSource"></div></div>
+        <div><h4 data-i18n="pdfReviewOutput">Isi hasil konversi</h4><div id="pdfReviewOutput" tabindex="0" role="region" aria-label="Isi hasil konversi" data-i18n-aria="pdfReviewOutput"></div></div>
+      </div>
+      <div id="pdfReviewFields" class="pdf-review-fields"></div>
+      <p id="pdfReviewNotice" class="help" role="status"></p>
+      <div class="pdf-review-toolbar">
+        <button id="pdfReviewSave" type="button" class="mini" disabled data-i18n="pdfReviewSave">Simpan koreksi</button>
+        <button id="pdfReviewCancel" type="button" class="mini" disabled data-i18n="pdfReviewCancel">Batalkan ketikan</button>
+        <button id="pdfReviewMark" type="button" class="mini" data-i18n="pdfReviewMark">Tandai sudah ditinjau</button>
+        <button id="pdfReviewReset" type="button" class="mini" disabled data-i18n="pdfReviewReset">Pulihkan semua koreksi</button>
+        <button id="pdfReviewClose" type="button" class="mini" data-i18n="pdfReviewClose">Tutup tinjauan</button>
+      </div>
+    </section>
     <div class="galley" id="galley">
       <div class="empty" id="galleyEmpty">
         <div class="mk">&para;</div>
@@ -668,6 +698,32 @@ var T = {
 };
 var LANG = "id";
 function t(k){ return (T[LANG] && T[LANG][k] != null) ? T[LANG][k] : (T.id[k] != null ? T.id[k] : k); }
+Object.assign(T.id,{
+  pdfReviewZoom:'Perbesar sumber',presetCustom:'Setelan sendiri',frontMatter:'Bagian awal',pdfReviewOpen:'Bandingkan PDF & perbaiki teks',pdfReviewHeading:'Tinjau sumber dan hasil',
+  pdfReviewHelp:'Bandingkan dengan PDF asli. Koreksi hanya mengubah teks hasil selama sesi ini; sumber tetap utuh. Baris baru menjadi spasi; format dan gambar dipertahankan. Gambar pratinjau belum dioptimasi: periksa EPUB akhir di perangkat.',
+  pdfReviewPage:'Halaman PDF',pdfReviewFlagged:'Halaman perlu ditinjau',pdfReviewSource:'PDF asli',pdfReviewOutput:'Isi hasil konversi',
+  pdfReviewSave:'Simpan koreksi',pdfReviewCancel:'Batalkan ketikan',pdfReviewMark:'Tandai sudah ditinjau',pdfReviewReset:'Pulihkan semua koreksi',pdfReviewClose:'Tutup tinjauan',
+  pdfReviewLoading:'Memuat halaman sumber…',pdfReviewSourceError:'Halaman sumber gagal dimuat. Coba buka kembali tinjauan. ',pdfReviewEmpty:'Tidak ada blok hasil untuk halaman ini. Periksa sumber dan mode konversi.',
+  pdfReviewOcr:'Hasil OCR — cocokkan teks dengan sumber.',pdfReviewDigital:'Lapisan teks PDF — periksa urutan dan kelengkapan.',pdfReviewFixed:'Halaman asli berupa gambar. Penyuntingan teks tersedia dalam mode teks mengalir.',
+  pdfReviewUncertain:'Mesin menandai halaman ini untuk ditinjau; ini bukan ukuran akurasi.',pdfReviewReviewed:'Ditandai sudah ditinjau.',pdfReviewPending:'Ada ketikan belum disimpan. Simpan atau batalkan sebelum pindah halaman, menutup tinjauan, atau membuat EPUB.',
+  pdfReviewSaved:'Koreksi tersimpan pada hasil. Buat ulang EPUB untuk mengunduh atau mengirim perubahan.',pdfReviewRestored:'Semua koreksi teks dipulihkan. Sumber PDF tetap utuh.',
+  pdfReviewBlock:'Teks',pdfReviewPages:'halaman sumber',pdfReviewChanged:'blok dikoreksi',pdfReviewStale:'Hasil berubah sejak editor dibuka. Ketikan dipertahankan; batalkan ketikan lalu buka ulang halaman ini.',
+  pdfReviewReparseBlocked:'Koreksi masih tersimpan. Buat EPUB dengan koreksi ini atau pulihkan semua koreksi sebelum memuat ulang PDF dengan setelan baru.',
+  pdfReviewNoFlags:'Tidak ada halaman OCR yang masih ditandai untuk ditinjau.',pdfReviewRebuild:'Isi berubah selama pembuatan. Buat ulang EPUB untuk memakai hasil terbaru.'
+});
+Object.assign(T.en,{
+  pdfReviewZoom:'Zoom source',presetCustom:'Custom settings',frontMatter:'Front matter',pdfReviewOpen:'Compare PDF & correct text',pdfReviewHeading:'Review source and output',
+  pdfReviewHelp:'Compare with the original PDF. Corrections change only the output text during this session; the source stays intact. Newlines become spaces; formatting and images are preserved. Preview images are not yet optimised: check the final EPUB on your reader.',
+  pdfReviewPage:'PDF page',pdfReviewFlagged:'Pages needing review',pdfReviewSource:'Original PDF',pdfReviewOutput:'Converted content',
+  pdfReviewSave:'Save corrections',pdfReviewCancel:'Discard typing',pdfReviewMark:'Mark as reviewed',pdfReviewReset:'Restore all corrections',pdfReviewClose:'Close review',
+  pdfReviewLoading:'Loading source page…',pdfReviewSourceError:'Could not load the source page. Reopen the review to retry. ',pdfReviewEmpty:'No output blocks map to this page. Check the source and conversion mode.',
+  pdfReviewOcr:'OCR output — compare the text with the source.',pdfReviewDigital:'PDF text layer — check reading order and completeness.',pdfReviewFixed:'Original pages are images. Text editing is available in reflow mode.',
+  pdfReviewUncertain:'The engine flagged this page for review; this is not an accuracy score.',pdfReviewReviewed:'Marked as reviewed.',pdfReviewPending:'There is unsaved typing. Save or discard it before changing pages, closing the review, or building an EPUB.',
+  pdfReviewSaved:'Corrections saved to the output. Rebuild the EPUB to download or send the changes.',pdfReviewRestored:'All text corrections restored. The source PDF stays intact.',
+  pdfReviewBlock:'Text',pdfReviewPages:'source pages',pdfReviewChanged:'corrected blocks',pdfReviewStale:'Output changed since the editor opened. Typing is retained; discard typing and reopen this page.',
+  pdfReviewReparseBlocked:'Corrections are still saved. Build the corrected EPUB or restore all corrections before reloading the PDF with new settings.',
+  pdfReviewNoFlags:'No OCR pages remain flagged for review.',pdfReviewRebuild:'Content changed during the build. Rebuild the EPUB to use the latest output.'
+});
 function applyLang(lang){
   LANG = T[lang] ? lang : "id";
   document.documentElement.setAttribute("lang", LANG);
@@ -675,6 +731,7 @@ function applyLang(lang){
   document.querySelectorAll("[data-i18n-html]").forEach(function(el){ el.innerHTML = t(el.getAttribute("data-i18n-html")); });
   document.querySelectorAll("[data-i18n-ph]").forEach(function(el){ el.setAttribute("placeholder", t(el.getAttribute("data-i18n-ph"))); });
   document.querySelectorAll("[data-i18n-aria]").forEach(function(el){ el.setAttribute("aria-label", t(el.getAttribute("data-i18n-aria"))); });
+  document.querySelectorAll('[data-i18n-title]').forEach(el=>el.setAttribute('title',t(el.getAttribute('data-i18n-title'))));
   document.querySelectorAll(".langtoggle button").forEach(function(b){ b.setAttribute("aria-pressed", b.getAttribute("data-lang")===LANG ? "true":"false"); });
   if(typeof window.applyDeviceTargetLanguage==="function"){ try{ window.applyDeviceTargetLanguage(); }catch(e){} }
   if(typeof window.__onLang==="function"){ try{ window.__onLang(); }catch(e){} }
@@ -687,6 +744,7 @@ document.addEventListener("DOMContentLoaded", function(){
 });
 </script>
 
+<script src="pdf-review.js"></script>
 <script>
 "use strict";
 
@@ -801,9 +859,9 @@ function escHtmlText(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&l
 function promoteHeadings(html){
   if(/<h[1-6][\s>]/i.test(html)) return html;
   const headRe=/^(chapter|chap\.?|part|book|section|bab|bagian|prologue|epilogue|prolog|epilog|foreword|preface|introduction|pendahuluan|kata pengantar)\b.{0,50}$/i;
-  return html.replace(/<p>([\s\S]*?)<\/p>/g,(m,inner)=>{
+  return html.replace(/<p(\s[^>]*)?>([\s\S]*?)<\/p>/g,(m,attrs,inner)=>{
     const text=inner.replace(/<[^>]+>/g,'').replace(/&[a-z#0-9]+;/gi,' ').trim();
-    if(text && text.length<=60 && (headRe.test(text) || /^[A-Z0-9][^a-z]{2,58}$/.test(text))) return '<h1>'+inner+'</h1>';
+    if(text && text.length<=60 && (headRe.test(text) || /^[A-Z0-9][^a-z]{2,58}$/.test(text))) return '<h1'+(attrs||'')+'>'+inner+'</h1>';
     return m;
   });
 }
@@ -1409,14 +1467,17 @@ function pdfJoinHyphenated(left,right){
   const repeated=a && b && a[1].length>=3 && new RegExp('^'+a[1]+'(?:nya|lah|kah|ku|mu|an)?$','i').test(b[1]);
   return (repeated?left:left.replace(/-$/,''))+right;
 }
-function pdfItemsToHtml(pages, pageImages){
+function pdfItemsToHtml(pages, pageImages, reviewOptions){
+  let blockNo=0;
+  const breakPages=new Set(reviewOptions && reviewOptions.breakPages || []);
+  const reviewAttrs=pageNums=>reviewOptions ? ' data-rm-pages="'+[...new Set(pageNums)].map(n=>n+1).join(' ')+'" data-rm-block="pdf-block-'+(++blockNo)+'"' : '';
   const imageName=ref=>typeof ref==='string'?ref:ref.name;
   const imagesOnlyHtml=()=>{
     const seen=new Set(), out=[];
-    (pageImages||[]).forEach(refs=>(refs||[]).forEach(ref=>{const nm=imageName(ref);
+    (pageImages||[]).forEach((refs,pi)=>(refs||[]).forEach(ref=>{const nm=imageName(ref);
       if(!nm || seen.has(nm)) return;
       seen.add(nm);
-      out.push('<p class="pdf-inline-image"><img src="images/'+escAttr(nm)+'" alt=""/></p>');
+      out.push('<p class="pdf-inline-image"'+reviewAttrs([pi])+'><img src="images/'+escAttr(nm)+'" alt=""/></p>');
     }));
     return out.join('\n');
   };
@@ -1525,18 +1586,24 @@ function pdfItemsToHtml(pages, pageImages){
         if(!nm || usedImages.has(nm)) return;
         if(!force && typeof ref==='object' && Number.isFinite(ref.y) && (imageCursor[pi]===undefined || imageCursor[pi]>ref.y))return;
         usedImages.add(nm);
-        out.push('<p class="pdf-inline-image"><img src="images/'+escAttr(nm)+'" alt=""/></p>');
+        out.push('<p class="pdf-inline-image"'+reviewAttrs([pi])+'><img src="images/'+escAttr(nm)+'" alt=""/></p>');
       });
     });
   };
-  const flush=()=>{ if(para.trim()) out.push('<p>'+escHtmlText(para.trim())+'</p>'); addPageImages(paraPages); para=''; paraPages=[]; };
+  const flush=()=>{ if(para.trim()) out.push('<p'+reviewAttrs(paraPages)+'>'+escHtmlText(para.trim())+'</p>'); addPageImages(paraPages); para=''; paraPages=[]; };
   for(const l of allLines){
     imageCursor[l.page]=l.y;
+    if(prev && prev.page!==l.page && [...breakPages].some(page=>page>prev.page&&page<=l.page)) flush();
+    const gapStart=prev?prev.page+1:0;
+    if(l.page>gapStart){
+      const skipped=Array.from({length:l.page-gapStart},(_,i)=>gapStart+i);
+      if(skipped.some(pi=>pageImages&&pageImages[pi]&&pageImages[pi].length)){flush();addPageImages(skipped,true);}
+    }
     // Large drop caps are often emitted by PDF.js as a one-line, oversized
     // text item. Treat prose-like lines as body text even when their glyph
     // height resembles a heading (for example: "Mthat they were...").
     if(l.size>=bodyH*1.35 && l.text.length<=120 && !looksLikeProse(l.text)){
-      flush(); const lv=headingLevel(l.size); out.push('<h'+lv+'>'+escHtmlText(l.text)+'</h'+lv+'>'); addPageImages([l.page]); prev=l; continue;
+      flush(); const lv=headingLevel(l.size); out.push('<h'+lv+reviewAttrs([l.page])+'>'+escHtmlText(l.text)+'</h'+lv+'>'); addPageImages([l.page]); prev=l; continue;
     }
     let newp=false;
     if(!para) newp=true;
@@ -1708,10 +1775,14 @@ async function pdfOutlineEntries(pdf){
   return out.sort((a,b)=>a.page-b.page || a.level-b.level);
 }
 
-function chaptersFromPdfOutline(entries, pages, pageImageRefs){
-  const leaves=(entries||[]).filter(e=>!e.hasChildren && Number.isInteger(e.page) && e.page>=0 && e.page<pages.length);
+function chaptersFromPdfOutline(entries, pages, pageImageRefs, sourceHtml){
+  const seenPages=new Set();
+  const leaves=(entries||[]).filter(e=>!e.hasChildren && Number.isInteger(e.page) && e.page>=0 && e.page<pages.length)
+    .slice().sort((a,b)=>a.page-b.page).filter(e=>{if(seenPages.has(e.page))return false;seenPages.add(e.page);return true;});
   if(leaves.length<2) return [];
   const cleanPages=pdfRemoveRunningEdges(pages);
+  if(leaves[0].page>0)leaves.unshift({title:t('frontMatter'),page:0,level:1});
+  const sourceDoc=sourceHtml ? new DOMParser().parseFromString(sourceHtml,'text/html') : null;
   const out=[]; let previous=-1;
   for(let i=0;i<leaves.length;i++){
     const entry=leaves[i];
@@ -1719,10 +1790,13 @@ function chaptersFromPdfOutline(entries, pages, pageImageRefs){
     const next=i+1<leaves.length ? Math.max(entry.page+1,leaves[i+1].page) : pages.length;
     const slice=cleanPages.slice(entry.page,next);
     const refs=Array.isArray(pageImageRefs) ? pageImageRefs.slice(entry.page,next) : [];
-    let body=pdfItemsToHtml(slice,refs);
+    let body=sourceDoc ? Array.from(sourceDoc.body.children).filter(node=>{
+      const numbers=(node.getAttribute('data-rm-pages')||'').split(' ').map(Number);
+      return numbers.some(n=>n>entry.page && n<=next);
+    }).map(node=>node.outerHTML).join('\n') : pdfItemsToHtml(slice,refs);
     if(!body || !body.trim()) continue;
     body=promoteHeadings(body);
-    out.push({title:entry.title,level:entry.level,html:body});
+    out.push({title:entry.title,level:entry.level,html:body,sourcePages:Array.from({length:next-entry.page},(_,n)=>entry.page+n+1)});
     previous=entry.page;
   }
   return out;
@@ -1886,6 +1960,7 @@ function loadPdfjs(){
 async function pdfToBook(arrayBuffer, mode){
   const pdfjsLib=await loadPdfjs();
   const pdf=await pdfjsLib.getDocument({data:new Uint8Array(arrayBuffer), isEvalSupported:false, enableScripting:false}).promise;
+  try{
   let title='',author='';
   try{ const meta=await pdf.getMetadata(); if(meta&&meta.info){ title=(meta.info.Title||'').trim(); author=(meta.info.Author||'').trim(); } }catch(e){}
   const fixed=mode==='fixed';
@@ -1913,7 +1988,8 @@ async function pdfToBook(arrayBuffer, mode){
       /* Keep the critical sizing inline as well as in style.css. ADE's legacy
          renderer has shipped builds that skip external CSS on pre-paginated
          XHTML, while inline width still gives it a visible page image. */
-      chapters.push({title:t('pageLabel')+' '+i,html:'<div class="pdf-page" style="margin:0;padding:0"><img src="images/'+escAttr(nm)+'" alt="" style="display:block;width:100%;height:auto"/></div>',level:1});
+      chapters.push({title:t('pageLabel')+' '+i,html:'<div class="pdf-page" data-rm-pages="'+i+'" data-rm-block="pdf-block-'+i+'" style="margin:0;padding:0"><img src="images/'+escAttr(nm)+'" alt="" style="display:block;width:100%;height:auto"/></div>',level:1,sourcePages:[i]});
+      cv.width=0;cv.height=0;
       if(i%2===0 || i===pdf.numPages) setStatus(t('stParsing')+' '+i+'/'+pdf.numPages);
       continue;
     }
@@ -1953,7 +2029,7 @@ async function pdfToBook(arrayBuffer, mode){
   if(!title) title=fallback.title;
   if(!author) author=fallback.author;
   const analysis=fixed ? {recommendedMode:'fixed',confidence:100,textRatio:0,multiColumnPages:0,imageCount:pdf.numPages,reasons:['images']} : pdfAnalyzeLayout(pages,images.length,pdf.numPages);
-  if(fixed) return {html:'',chapters,title,author,lang:'',images,coverName:'',sourcePageCount:pdf.numPages,pdfMode:'fixed',fixedViewport,analysis};
+  if(fixed) return {html:'',chapters,title,author,lang:'',images,coverName:'',sourcePageCount:pdf.numPages,pdfMode:'fixed',fixedViewport,analysis,pdfPageInfo:Array.from({length:pdf.numPages},(_,i)=>({page:i+1,ocr:false,needsReview:false}))};
   const ocrEl=document.getElementById('ocrOn');
   const missingTextPages=pages.map((items,index)=>(items||[]).some(it=>String(it.str||'').trim())?-1:index).filter(index=>index>=0);
   let ocrResults=null;
@@ -1990,18 +2066,22 @@ async function pdfToBook(arrayBuffer, mode){
     log('OCR recognized '+recognized+' of '+missingTextPages.length+' textless page(s)');
   }
   const positionedRefs=pageImageRefs.map(refs=>(refs||[]).map(name=>{const im=images.find(i=>i.name===name);return im&&Number.isFinite(im._sourcePdfY)?{name,y:im._sourcePdfY}:name;}));
-  let html=pdfItemsToHtml(pdfRemoveRunningEdges(pages),positionedRefs);
+  let entries=[];try{entries=await pdfOutlineEntries(pdf);}catch(e){}
+  const breakPages=entries.filter(e=>!e.hasChildren).map(e=>e.page);
+  let html=pdfItemsToHtml(pdfRemoveRunningEdges(pages),positionedRefs,{breakPages});
+  html=promoteHeadings(html);
   let outlineChapters=[];
   try{
-    const entries=await pdfOutlineEntries(pdf);
-    outlineChapters=chaptersFromPdfOutline(entries,pages,positionedRefs);
+    outlineChapters=chaptersFromPdfOutline(entries,pages,positionedRefs,html);
     if(outlineChapters.length>=2) log('PDF bookmarks used: '+outlineChapters.length+' chapter(s)');
   }catch(e){ outlineChapters=[]; }
   const inlineImages=!!(html && /class="pdf-inline-image"/.test(html));
   if((!html || !html.trim())) throw new Error(ocrEl && ocrEl.value==='on' ? t('errOcrEmpty') : t('errScanned'));
   html=promoteHeadings(html);
   if(images.length && !inlineImages) html += '\n' + images.map(im=>'<p><img src="images/'+escAttr(im.name)+'" alt=""/></p>').join('\n');
-  return { html, outlineChapters:outlineChapters.length>=2 ? outlineChapters : null, title, author, lang:'', images, coverName:'', sourcePageCount:pdf.numPages, analysis };
+  const pdfPageInfo=pages.map((items,index)=>({page:index+1,ocr:!!(ocrResults&&ocrResults[index]),needsReview:!!(ocrResults&&ocrResults[index]&&(!items.length||ocrNeedsReview(ocrResults[index])))}));
+  return { html, outlineChapters:outlineChapters.length>=2 ? outlineChapters : null, title, author, lang:'', images, coverName:'', sourcePageCount:pdf.numPages, analysis,pdfPageInfo };
+  } finally { if(pdf.destroy)try{await pdf.destroy();}catch(e){} }
 }
 
 /* ============================ MOBI / AZW3 ============================ */
@@ -2598,6 +2678,7 @@ function toXhtml(title, innerHtml, rtl, fixed, viewport){
     '<link rel="stylesheet" type="text/css" href="style.css"/></head><body>'+innerHtml+'</body></html>';
   // normalize to well-formed XHTML: parse as HTML then re-serialize into XHTML namespace
   const htmlDoc = new DOMParser().parseFromString(src,'text/html');
+  htmlDoc.querySelectorAll('[data-rm-pages],[data-rm-block]').forEach(node=>{node.removeAttribute('data-rm-pages');node.removeAttribute('data-rm-block');});
   const xdoc = document.implementation.createDocument('http://www.w3.org/1999/xhtml','html',null);
   if(rtl) xdoc.documentElement.setAttribute('dir','rtl');
   // head
@@ -3224,6 +3305,24 @@ let parsed = null; // {source book fields, raw}
 let ingestToken = 0;
 let currentFileBase = 'book';
 let lastBuiltBlob=null, lastBuiltName='';
+let pdfReview=null,bookRevision=0;
+function invalidateBookOutput(){bookRevision++;hideDeviceCard();if(parsed)setStatus(t('stReady'),'ok');}
+async function reparseCurrentPdf(){
+  const previous=parsed,source=previous._sourceFile,token=++ingestToken;
+  invalidateBookOutput();const revision=bookRevision;
+  previous._pdfReparsing=true;if(pdfReview){pdfReview.close(true);pdfReview.sync();}
+  $('build').disabled=true;setStatus(t('stParsing'));
+  try{
+    const book=await parseToBook(source);book._sourceFile=source;
+    if(token!==ingestToken||parsed!==previous)return;
+    if(revision!==bookRevision)throw new Error(t('pdfReviewRebuild'));
+    finishIngest(book,currentFileBase);
+  }catch(e){if(token===ingestToken&&parsed===previous){
+    Object.entries(previous._pdfParseSettings||{}).forEach(([id,value])=>{$(id).value=value;});
+    $('outputPreset').value=previous._pdfPreset||'auto';$('build').disabled=false;
+    log('Error: '+e.message);setStatus(t('errPrefix')+' '+e.message,'err');
+  }}finally{previous._pdfReparsing=false;if(pdfReview&&token===ingestToken)pdfReview.sync();}
+}
 
 // Parses one file into a book object. No UI writes, so it can be reused for
 // batch conversion as well as the single-file flow.
@@ -3256,7 +3355,7 @@ async function parseToBook(file){
     const selectedPdfMode = (document.getElementById('pdfMode')||{}).value || 'reflow';
     try { r=await pdfToBook(buf, selectedPdfMode); }
     catch(err){ if(/encrypt|password|drm|security/i.test(String(err && err.message || err))) throw new Error(t('errPdfEncrypted')); throw err; }
-    book.html=r.html; book.chapters=r.chapters; book.outlineChapters=r.outlineChapters||null; book.pdfMode=r.pdfMode || selectedPdfMode; book.pdfAnalysis=r.analysis||null; book.title=r.title; book.author=r.author; book.images=r.images; book.coverName=r.coverName; book.sourcePageCount=r.sourcePageCount; book.fixedViewport=r.fixedViewport || null; fmtLabel='PDF';
+    book.html=r.html; book.chapters=r.chapters; book.outlineChapters=r.outlineChapters||null; book.pdfMode=r.pdfMode || selectedPdfMode; book.pdfAnalysis=r.analysis||null; book.title=r.title; book.author=r.author; book.images=r.images; book.coverName=r.coverName; book.sourcePageCount=r.sourcePageCount; book.fixedViewport=r.fixedViewport || null; book.pdfPageInfo=r.pdfPageInfo||[]; fmtLabel='PDF';
     if(r.images.length) log('Extracted '+r.images.length+' embedded image(s) from PDF');
   } else if(ext==='mobi'||ext==='azw'||ext==='azw3'||ext==='prc'){
     const buf=await file.arrayBuffer(); const r=mobiToBook(buf); book.html=r.html; book.title=r.title; book.author=r.author; book.language=r.lang; book.images=r.images; book.coverName=r.coverName; fmtLabel=ext==='mobi'?'Kindle (MOBI)':'Kindle ('+ext.toUpperCase()+')';
@@ -3297,8 +3396,10 @@ async function parseFile(file, token){
 function finishIngest(book, fallbackTitle){
   if(!book.comic && (!book.html || !book.html.trim()) && !Array.isArray(book.chapters)) throw new Error(t('errEmpty'));
   resetGalleyView();
-  delete book._editableChapters; delete book._chapterEditKey;
+  delete book._editableChapters; delete book._chapterEditKey;delete book._chapterViews;
   parsed = book;
+  book._pdfPreset=$('outputPreset').value;
+  book._pdfParseSettings={pdfMode:$('pdfMode').value,ocrOn:$('ocrOn').value,ocrLang:$('ocrLang').value};
   batchFiles = [];
   if($('outputPreset') && $('outputPreset').value==='auto') applyOutputPreset(true);
   $('title').value = book.title || fallbackTitle || 'book';
@@ -3333,6 +3434,9 @@ function editableChapters(){
   const useOutline=!parsed.comic && parsed.pdfMode!=='fixed' && Array.isArray(parsed.outlineChapters) && ($('split').value==='auto'||$('split').value==='toc');
   const key = parsed.comic ? 'comic' : (parsed.pdfMode==='fixed' ? 'pdf-fixed' : (useOutline ? 'pdf-outline' : $('split').value));
   if(parsed._chapterEditKey !== key || !Array.isArray(parsed._editableChapters)){
+    if(!parsed._chapterViews)parsed._chapterViews=Object.create(null);
+    if(parsed._chapterEditKey&&parsed._editableChapters)parsed._chapterViews[parsed._chapterEditKey]=parsed._editableChapters;
+    if(parsed._chapterViews[key]){parsed._editableChapters=parsed._chapterViews[key];parsed._chapterEditKey=key;return parsed._editableChapters;}
     let source;
     if(parsed.comic) source=(parsed.pages||[]).map((nm,i)=>({ title:t('pageLabel')+' '+(i+1), html:'<div><img src="images/'+nm+'"/></div>' }));
     else if(parsed.pdfMode==='fixed' && Array.isArray(parsed.chapters)) source=parsed.chapters;
@@ -3340,6 +3444,7 @@ function editableChapters(){
     else source=splitChapters(parsed.html, $('split').value);
     parsed._editableChapters=source.map(copyChapter);
     parsed._chapterEditKey=key;
+    parsed._chapterViews[key]=parsed._editableChapters;
   }
   return parsed._editableChapters;
 }
@@ -3376,6 +3481,7 @@ function currentBook(){
 let galleyPage = 1;
 const GALLEY_PAGE_SIZE = 20;
 function resetGalleyView(){
+  if(pdfReview)pdfReview.close(true);
   galleyPage = 1;
   $('chapterSearch').value = '';
   $('galleyTools').hidden = true;
@@ -3433,6 +3539,7 @@ function renderGalley(){
   const foot=b.chapters.length+' '+(b.comic?t('pageLabel'):t('chaptersLabel'))+' · '+total.toLocaleString()+' '+t('wordsLabel');
   $('galley').innerHTML=(rows?'<ol>'+rows+'</ol>':'<p class="empty">'+escXml(t('noChapters'))+'</p>')+'<div class="foot">'+escXml(foot)+'</div>';
   if($('preview') && $('preview').classList.contains('show')) renderPreview();
+  if(pdfReview){pdfReview.sync();pdfReview.refresh();}
 }
 function renderPreview(){
   const el=$('preview'), btn=$('previewBtn');
@@ -3456,12 +3563,14 @@ function chapterTitleChanged(input){
   if(!Number.isInteger(i) || !chapters[i]) return;
   const value=input.value.trim();
   chapters[i].title=value || (t('chapterLabel')+' '+(i+1));
+  invalidateBookOutput();
   renderGalley(); renderPreview();
 }
 function moveChapter(index, direction){
   const chapters=editableChapters(), to=index+direction;
   if(!Number.isInteger(index) || to<0 || to>=chapters.length) return;
   const tmp=chapters[index]; chapters[index]=chapters[to]; chapters[to]=tmp;
+  invalidateBookOutput();
   renderGalley(); renderPreview();
 }
 
@@ -3472,6 +3581,12 @@ function fwProfile(){ const el=document.getElementById('fwProfile'); return el ?
    target. Comics still use the native image-friendly values automatically. */
 async function applyOutputPreset(skipReparse){
   const sel=$('outputPreset'); if(!sel) return;
+  // DOM event listeners pass the Event object, not a boolean skip flag.
+  skipReparse=skipReparse===true;
+  if(!skipReparse && parsed && parsed._sourceFile && extOf(parsed._sourceFile.name)==='pdf' && pdfReview && pdfReview.hasChanges()){
+    sel.value=parsed._pdfPreset||'auto';setStatus(t('pdfReviewReparseBlocked'),'err');return;
+  }
+  if(!skipReparse&&parsed)invalidateBookOutput();
   let mode=sel.value;
   const b=parsed||{};
   if(mode==='auto') mode=b.comic ? 'comic' : 'text';
@@ -3484,15 +3599,10 @@ async function applyOutputPreset(skipReparse){
   if(!preset) return;
   Object.keys(preset).forEach(function(id){ const el=$(id); if(el) el.value=preset[id]; });
   if(!skipReparse && parsed && parsed._sourceFile && extOf(parsed._sourceFile.name)==='pdf'){
-    const token=++ingestToken; const file=parsed._sourceFile;
-    $('build').disabled=true; hideDeviceCard(); setStatus(t('stParsing'));
-    try{
-      const book=await parseToBook(file); book._sourceFile=file;
-      if(token===ingestToken) finishIngest(book,currentFileBase);
-    }catch(e){ if(token===ingestToken){ log('Error: '+e.message); setStatus(t('errPrefix')+' '+e.message,'err'); } }
+    await reparseCurrentPdf();
     return;
   }
-  if(parsed){ delete parsed._editableChapters; delete parsed._chapterEditKey; renderGalley(); }
+  if(parsed){ parsed._pdfPreset=sel.value;renderGalley(); }
 }
 
 function validateOutputOptions(book){
@@ -3782,7 +3892,7 @@ function handleSleepPick(){
   inp.value = '';
 }
 
-window.__onLang = function(){ if(parsed) renderGalley(); };
+window.__onLang = function(){ if(parsed){invalidateBookOutput();renderGalley();} };
 function showDeviceCard(name){ try{ $('deviceDone').textContent=t('devDone')+' '+name; $('deviceCard').classList.add('show'); }catch(e){} }
 function hideDeviceCard(){ try{ if(typeof currentSendXhr!=='undefined' && currentSendXhr){ try{ currentSendXhr.abort(); }catch(e){} currentSendXhr=null; } if(typeof currentSendWs!=='undefined' && currentSendWs){ try{ currentSendWs.__cancelled=true; currentSendWs.close(); }catch(e){} currentSendWs=null; } if(typeof currentSendTimer!=='undefined' && currentSendTimer){ clearTimeout(currentSendTimer); currentSendTimer=null; } $('deviceCard').classList.remove('show'); lastBuiltBlob=null; lastBuiltName=''; const bar=$('sendBar'); if(bar) bar.classList.remove('show'); const ss=$('sendStatus'); if(ss){ ss.textContent=''; ss.className='sendstatus'; } }catch(e){} }
 
@@ -3974,10 +4084,21 @@ drop.addEventListener('drop',e=>{ if(e.dataTransfer.files.length){ fileInput.fil
 fileInput.addEventListener('change',()=>acceptFiles(fileInput.files));
 
 ['title','author','lang','split'].forEach(idn=>{
-  $(idn).addEventListener('input',()=>{ if(parsed) renderGalley(); });
-  $(idn).addEventListener('change',()=>{ if(parsed) renderGalley(); });
+  const changed=()=>{ if(parsed){invalidateBookOutput();renderGalley();} };
+  $(idn).addEventListener('input',changed);
+  $(idn).addEventListener('change',changed);
 });
 if($('outputPreset')) $('outputPreset').addEventListener('change',applyOutputPreset);
+['pdfMode','ocrOn','ocrLang'].forEach(id=>$(id).addEventListener('change',async()=>{
+  if(!parsed||!parsed._sourceFile||extOf(parsed._sourceFile.name)!=='pdf')return;
+  if(pdfReview&&pdfReview.hasChanges()){
+    $(id).value=parsed._pdfParseSettings[id];setStatus(t('pdfReviewReparseBlocked'),'err');return;
+  }
+  $('outputPreset').value='custom';
+  await reparseCurrentPdf();
+}));
+['einkOn','einkLevels','einkDither','einkSize','fwProfile','pdfQuality'].forEach(id=>$(id).addEventListener('change',()=>{if(parsed)invalidateBookOutput();}));
+document.addEventListener('change',event=>{if(event.target.id==='deviceTarget'&&parsed)invalidateBookOutput();});
 
 $('fetchBtn').addEventListener('click',()=>{ const u=$('url').value.trim(); if(u) fetchArticle(u); });
 $('url').addEventListener('keydown',e=>{ if(e.key==='Enter'){ const u=$('url').value.trim(); if(u) fetchArticle(u); }});
@@ -4091,9 +4212,12 @@ $('build').addEventListener('click',async()=>{
     return;
   }
   if(!parsed) return;
+  if(pdfReview&&pdfReview.hasDraft()){setStatus(t('pdfReviewPending'),'err');return;}
+  const owner=parsed,revision=bookRevision;
   const btn=$('build'); btn.disabled=true; setStatus(t('stBuilding'));
   try{
     const book=currentBook();
+    book.chapters=book.chapters.map(copyChapter);
     const check=validateOutputOptions(book);
     if(check.errors.length) throw new Error(check.errors.join(' '));
     check.warnings.forEach(function(w){ log('WARNING: '+w); });
@@ -4103,6 +4227,7 @@ $('build').addEventListener('click',async()=>{
     }
     log('Building EPUB: '+book.chapters.length+' chapters, '+(book.images?book.images.length:0)+' images');
     let epubWarnings=0; const blob=await buildEpub(book, function(part){ epubWarnings++; log('WARNING: malformed '+part); });
+    if(owner!==parsed||revision!==bookRevision)throw new Error(t('pdfReviewRebuild'));
     if(epubWarnings) log('Self-check found '+epubWarnings+' malformed part(s).'); else log('Self-check: EPUB structure valid.');
     const name=(book.title||currentFileBase).replace(/[^\w\-. ]+/g,'_').trim().replace(/\s+/g,'_')+'.epub';
     const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; document.body.appendChild(a); a.click();
@@ -4111,11 +4236,15 @@ $('build').addEventListener('click',async()=>{
     lastBuiltBlob=blob; lastBuiltName=name;
     setStatus(t('stSaved')+' '+name,'ok'); showDeviceCard(name);
   }catch(err){ console.error(err); log('Error: '+err.message); setStatus(t('errPrefix')+' '+err.message,'err'); }
-  finally{ btn.disabled=false; }
+  finally{ btn.disabled=!parsed||!!parsed._pdfReparsing; }
 });
 
 // sanity: JSZip present?
 if(typeof JSZip==='undefined'){ setStatus('JSZip failed to load (jszip.min.js must sit next to this page).','err'); }
+if(window.ReadMakerPdfReview){
+  pdfReview=window.ReadMakerPdfReview.create({t,getBook:()=>parsed,getChapters:editableChapters,loadPdf:loadPdfjs,
+    invalidate:invalidateBookOutput,onChange:renderGalley,escape:escXml,css:fixed=>bookCss(fwProfile(),fixed)});
+}
 </script>
 <script src="device-compatibility.js"></script>
 </body>

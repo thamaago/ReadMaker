@@ -37,7 +37,7 @@ function render(chapter,book,font){return '<!doctype html><html lang="id"><meta 
     await page.setContent(render(b.chapters[n],b,font));await page.evaluate(()=>Promise.all([...document.images].map(i=>i.decode())));
     const test=await page.evaluate(()=>({scrollWidth:document.documentElement.scrollWidth,images:[...document.images].every(i=>i.complete&&i.naturalWidth>0)}));
     layouts.push({key,page:n+1,width,font,...test,overflow:test.scrollWidth>width});
-    if(width===480&&font===18&&[2,4,10,28].includes(n))await page.screenshot({path:path.join(out,key+'-page-'+(n+1)+'-480.png')});
+    if(width===480&&font===18&&[2,4,5,10,17,28,29,41].includes(n))await page.screenshot({path:path.join(out,key+'-page-'+(n+1)+'-480.png')});
    }
   }
   await page.setViewportSize({width:1180,height:1100});await page.goto('file:///'+path.join(out,'simulasi-pdf-kompleks.html').replace(/\\/g,'/'));await page.screenshot({path:path.join(out,'simulasi-ringkasan.png')});

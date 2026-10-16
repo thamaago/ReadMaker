@@ -39,11 +39,15 @@ jobs:
         working-directory: tests
         run: npm test
 
+      - name: EPUB conformance gate
+        uses: ./.github/actions/epub-validation
+
       - name: Stage public files
+        # Synthetic books and validator files stay outside the public site.
         run: |
           mkdir -p site
-          cp index.html jszip.min.js responsive.css device-compatibility.js .nojekyll site/
-          test "$(find site -maxdepth 1 -type f | wc -l)" -eq 5
+          cp index.html jszip.min.js responsive.css device-compatibility.js pdf-review.js .nojekyll site/
+          test "$(find site -maxdepth 1 -type f | wc -l)" -eq 6
 
       - name: Configure Pages
         uses: actions/configure-pages@v5

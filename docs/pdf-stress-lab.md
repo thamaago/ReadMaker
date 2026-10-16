@@ -57,3 +57,20 @@ illustrations, running headers surviving bookmark splitting, false column
 recommendations, narrow-screen overflow, and a deprecated viewport warning.
 Use these cases as regression gates when fixing those issues; do not repair
 the fixture outputs manually or add book-specific text replacements.
+
+## Priority fixes and reevaluation
+
+The browser harness serves a frozen copy of `index.html` and records its SHA-256
+in `browser-results.json`. Compare that identity before attributing a benchmark
+to the current application. Keep the original baseline in
+`output/epub/stress-lab-before/` when comparing before and after.
+
+Current regression gates cover independent column flows, drop-cap joining,
+global running-edge evidence before bookmark splitting, PDF.js raw image
+decoding, conservative scan illustration crops, and long-token wrapping.
+OCR uses automatic page segmentation, rotation, and bounded high-confidence
+word-region retries. These do not constitute manual proofreading or guaranteed
+recovery of codes, accents, or damaged scans.
+
+The report is generated from current JSON measurements and retains remaining
+failed phrase checks. Do not infer success from a completed download alone.

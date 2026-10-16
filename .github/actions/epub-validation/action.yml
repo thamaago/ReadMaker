@@ -1,0 +1,22 @@
+name: Validate EPUB fixtures
+description: Build representative ReadMaker EPUBs and enforce EPUBCheck without warnings.
+runs:
+  using: composite
+  steps:
+    - name: Set up Java
+      uses: actions/setup-java@v4
+      with:
+        distribution: temurin
+        java-version: '17'
+    - name: Build EPUB fixtures
+      shell: bash
+      run: node tests/build-validation-fixtures.cjs
+    - name: Download pinned EPUBCheck
+      shell: bash
+      run: |
+        curl --fail --location --retry 3 https://github.com/w3c/epubcheck/releases/download/v5.4.0/epubcheck-5.4.0.zip --output "$RUNNER_TEMP/epubcheck.zip"
+        echo "33350c61038e71dfb3d45a76aed04bf5481e6d5500cb780f6e98db8bbd15a28c  $RUNNER_TEMP/epubcheck.zip" | sha256sum --check --strict
+        unzip -q "$RUNNER_TEMP/epubcheck.zip" -d "$RUNNER_TEMP/epubcheck"
+    - name: Validate EPUB packages
+      shell: bash
+      run: node tests/validate-epub.cjs "$RUNNER_TEMP/epubcheck/epubcheck-5.4.0/epubcheck.jar" output/epub/validation

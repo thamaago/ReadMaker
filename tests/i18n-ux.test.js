@@ -11,9 +11,13 @@ try{ new Function(app[1].replace(/^\s*["']use strict["'];/,'')); ok(true,'app sc
 // 2) every data-i18n key exists in both ID and EN dicts
 const Tmatch=app[0].match(/var T = (\{[\s\S]*?\n\});/);
 ok(!!Tmatch,'found T dictionary');
-const T=eval('('+Tmatch[1]+')');
+// Inspect the dictionary after the actual script has run, including additions.
+const dom=new JSDOM(html,{runScripts:'outside-only'});
+const {window}=dom;global.window=window;global.document=window.document;
+window.eval(app[0]);
+const T=window.T;
 const keysUsed=new Set();
-for(const m of html.matchAll(/data-i18n(?:-html|-ph)?="([^"]+)"/g)) keysUsed.add(m[1]);
+for(const m of html.matchAll(/data-i18n(?:-html|-ph|-aria|-title)?="([^"]+)"/g)) keysUsed.add(m[1]);
 let missId=[],missEn=[];
 keysUsed.forEach(k=>{ if(T.id[k]==null)missId.push(k); if(T.en[k]==null)missEn.push(k); });
 ok(missId.length===0,'all markup keys present in ID '+(missId.length?JSON.stringify(missId):''));
@@ -24,10 +28,6 @@ ok(missEn.length===0,'all markup keys present in EN '+(missEn.length?JSON.string
 });
 
 // 3) applyLang works in a real DOM
-const dom=new JSDOM(html,{runScripts:'outside-only'});
-const {window}=dom; global.window=window; global.document=window.document;
-// execute only the i18n script in this DOM
-window.eval(app[0]);
 window.applyLang('en');
 const h1=window.document.querySelector('[data-i18n-html="h1"]').innerHTML;
 ok(/EPUB/.test(h1)&&/span class="arrow"/.test(h1),'EN: h1 innerHTML swapped & keeps arrow span');

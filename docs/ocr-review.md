@@ -30,6 +30,27 @@ layout reconstruction. OCR cannot reliably recover every stylized title,
 barcode, logo, address, multi-column panel, or damaged scan automatically.
 Such areas require source comparison, zoning, or retaining the source image.
 
+## In-app review
+
+PDF results now expose a source/output review panel with source page navigation,
+zoom, and a shortcut to uncertain OCR pages. Source renders are loaded one page
+at a time. Review uses a read-only DOM rebuilt from an element/attribute
+allowlist inside a Shadow DOM; source HTML and editor input are never attached
+as executable markup. Preview images precede export image optimisation.
+
+Text corrections preserve inline formatting and images, propagate to canonical
+PDF blocks and cached chapter views, and are exported as literal text. Newlines
+become spaces within the existing paragraph. Unsaved typing blocks navigation
+and export. Saved corrections block PDF reprocessing until explicitly restored;
+split changes and chapter reorder keep corrections. Changes invalidate prior
+download/upload blobs, and asynchronous source/build results cannot overwrite a
+newer selection. Corrections last for the session and never modify the source.
+Fixed-page review cannot edit text inside a raster image.
+
+EPUBCheck now runs as a CI/deployment gate on four generated fixtures, including
+a saved text correction, RTL, fixed pages, and a comic. This is separate from the
+browser's lightweight self-check and does not certify every user-generated book.
+
 ## Validation workflow
 
 1. Keep source documents and the previous EPUB unchanged.
@@ -51,6 +72,13 @@ to the books are stored in local conversion artifacts, not hardcoded in the
 application or its tests. The sample books are not added to this repository.
 
 ## Regression tests
+
+The complex-layout follow-up adds automatic page segmentation and rotation,
+column-aware line splitting, geometry-based drop-cap reconstruction, and a
+bounded word-region retry for uncertain tokens. A replacement must be a close
+single token with a substantial confidence improvement; changed regions remain
+review candidates. Codes and accented words are still scored against independent
+ground truth rather than silently normalized into the expected answer.
 
 `tests/ocr.test.js` covers centered paragraph endings, mixed alignment,
 margin noise, legitimate numbers, sparse pages, missing geometry, localized

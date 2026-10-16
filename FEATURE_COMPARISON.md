@@ -1,5 +1,8 @@
 # Perbandingan Fitur Read Maker dengan Repo Pembanding
 
+> Audit ini merekam kondisi 25 September. Penelaahan terbaru beserta pro/kontra
+> dan batas bukti tersedia di [audit 16 Oktober 2026](docs/app-review-2026-10.md).
+
 Tanggal audit: 25 September 2026
 
 Dokumen ini membandingkan fitur yang benar-benar ada di Read Maker dengan kemampuan repo yang sudah diteliti. Status memakai tiga tingkat:
