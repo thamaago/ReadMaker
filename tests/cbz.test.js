@@ -13,12 +13,13 @@ const app=[...html.matchAll(/<script(?![^>]*src)[^>]*>([\s\S]*?)<\/script>/g)].m
 (0,eval)(app.replace(/^\s*["']use strict["'];\s*/,''));
 
 let p=0,f=0;const ok=(c,m)=>{c?(p++,console.log('  ok  ',m)):(f++,console.log('  FAIL',m));};
-const png=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+M8AAAMBAQDJ/pLvAAAAAElFTkSuQmCC','base64');
+// Real JPEG bytes keep ordering tests representative of a readable comic.
+const jpeg=fs.readFileSync(require('path').join(__dirname,'fixtures/validation-diagram.jpg'));
 
 (async()=>{
   const z=new JSZip();
-  z.file('comic/10.jpg',png); z.file('comic/2.jpg',png); z.file('comic/1.jpg',png);
-  z.file('comic/notes.txt','ignore'); z.file('__MACOSX/comic/._1.jpg',png);
+  z.file('comic/10.jpg',jpeg); z.file('comic/2.jpg',jpeg); z.file('comic/1.jpg',jpeg);
+  z.file('comic/notes.txt','ignore'); z.file('__MACOSX/comic/._1.jpg',jpeg);
   const cbz=await z.generateAsync({type:'nodebuffer'});
   const ab=cbz.buffer.slice(cbz.byteOffset,cbz.byteOffset+cbz.byteLength);
   const r=await cbzToBook(ab);

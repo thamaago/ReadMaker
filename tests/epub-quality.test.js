@@ -1,11 +1,14 @@
 const fs=require('fs');const {JSDOM}=require('jsdom');const JSZip=require('jszip');
 const dom=new JSDOM('<!doctype html><body></body>');
 global.window=dom.window;global.document=dom.window.document;global.DOMParser=dom.window.DOMParser;global.XMLSerializer=dom.window.XMLSerializer;global.JSZip=JSZip;global.crypto={randomUUID:()=> 'x'};global.atob=s=>Buffer.from(s,'base64').toString('binary');global.btoa=s=>Buffer.from(s,'binary').toString('base64');
+global.t=k=>k;
 let app=[...fs.readFileSync(require('path').join(__dirname,'..','index.html'),'utf8').matchAll(/<script(?![^>]*src)[^>]*>([\s\S]*?)<\/script>/g)].map(x=>x[1]).pop();
 app=app.slice(0,app.indexOf('/* ============================ orchestration')).replace(/^\s*["']use strict["'];\s*/,'');(0,eval)(app);
 let p=0,f=0;const ok=(c,m)=>{c?p++:f++;console.log(c?'  ok  ':'  FAIL',m)};
 (async()=>{
- const warnings=[]; await buildEpub({title:'',author:'',language:'xx',images:[{name:'x.webp',mime:'image/jpeg',b64:''},{name:'x.webp',mime:'image/png',b64:''}],chapters:[{title:'',html:''}]},w=>warnings.push(w));
+ const invalid={title:'',author:'',language:'xx',images:[{name:'x.webp',mime:'image/jpeg',b64:''},{name:'x.webp',mime:'image/png',b64:''}],chapters:[{title:'',html:''}]};
+ const warnings=epubQualityWarnings(invalid);
+ await require('node:assert/strict').rejects(buildEpub(invalid),/errUnsafeImage/,'unsafe or invalid images now block export rather than only warning');
  ok(warnings.some(x=>/missing title/.test(x)),'quality: missing title warning');
  ok(warnings.some(x=>/invalid language/.test(x)),'quality: invalid language warning');
  ok(warnings.some(x=>/duplicate href/.test(x)),'quality: duplicate image warning');

@@ -10,7 +10,7 @@ const w=dom.window,d=w.document,$=id=>d.getElementById(id),tick=()=>new Promise(
 let rendered=[],destroyed=0;
 w.pdfjsLib={getDocument:()=>({promise:Promise.resolve({getPage:async n=>({getViewport:({scale})=>({width:400*scale,height:600*scale}),render:()=>{rendered.push(n);return {promise:Promise.resolve(),cancel(){}};}}),destroy:async()=>{destroyed++;}})})};
 const file={name:'review.pdf',arrayBuffer:async()=>new ArrayBuffer(1)};
-const image={name:'diagram.png',mime:'image/png',b64:'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aZ1kAAAAASUVORK5CYII='};
+const image={name:'diagram.png',mime:'image/png',b64:'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAAAAAA6fptVAAAACklEQVR4nGNgAAAAAgABSK+kcQAAAABJRU5ErkJggg=='};
 const fixture=()=>({html:'<p data-rm-pages="1" data-rm-block="a">Front matter remains.</p><p data-rm-pages="2" data-rm-block="b">A <em>noïse</em> <a href="https://example.org">link</a><img src="images/diagram.png" alt="Diagram"/></p><p data-rm-pages="3" data-rm-block="c">Final paragraph.</p>',images:[image],pdfMode:'reflow',sourcePageCount:3,pdfPageInfo:[{page:1},{page:2,ocr:true,needsReview:true},{page:3}],_sourceFile:file});
 function type(input,value){input.value=value;input.dispatchEvent(new w.Event('input',{bubbles:true}));}
 function change(id,value){$(id).value=value;$(id).dispatchEvent(new w.Event('change',{bubbles:true}));}
@@ -109,7 +109,7 @@ function change(id,value){$(id).value=value;$(id).dispatchEvent(new w.Event('cha
  const originalBuild=w.buildEpub;let resolveBuild,downloads=0;
  w.HTMLAnchorElement.prototype.click=()=>{downloads++;};
  w.buildEpub=()=>new Promise(resolve=>{resolveBuild=resolve;});
- $('build').click();type($('title'),'Updated title');resolveBuild(new w.Blob(['epub']));await tick();
+ $('build').click();await tick();assert.equal(typeof resolveBuild,'function','export reached asynchronous builder');type($('title'),'Updated title');resolveBuild(new w.Blob(['epub']));await tick();
  assert.equal(downloads,0);assert.match($('status').textContent,/Buat ulang EPUB/);assert.ok(w.eval('lastBuiltBlob===null'));
  w.buildEpub=originalBuild;
  const deviceTarget=d.createElement('select');deviceTarget.id='deviceTarget';deviceTarget.innerHTML='<option>crosspoint</option>';d.body.appendChild(deviceTarget);

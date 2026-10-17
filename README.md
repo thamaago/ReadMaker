@@ -15,6 +15,16 @@ Here to Access https://thamaago.github.io/ReadMaker/
 
 Conversion runs **in your browser** without an account or a conversion server. The app files are `index.html`, `jszip.min.js`, `responsive.css`, `device-compatibility.js`, and `pdf-review.js`. Optional article fetching and direct upload to your reader use the network; PDF, DOCX, and OCR load additional libraries on demand.
 
+Article and HTML images are saved inside the EPUB for offline reading. If a site
+blocks an image, export stops with an explanation; choose **Advanced options →
+Article / HTML images → Text only** to retry without web images. Existing local
+book images are retained. See [image handling and validation](docs/web-article-images.md).
+
+The [security and bug review](docs/security-review-2026-10-18.md) records the
+preview/active-content protections, archive and network limits, dependency
+updates, validation evidence and remaining risks. Batch ZIP downloads must be
+extracted before copying their EPUB files to a reader.
+
 > Unofficial community tool. It does **not** modify device firmware — it only produces EPUB files you copy to your reader.
 
 ---
@@ -40,7 +50,7 @@ Converts these sources into a reflowable, chaptered EPUB the reader opens native
 Extras:
 
 - **E-ink image pipeline** — greyscale, panel-fit resize, and dithering (Floyd–Steinberg / ordered), matching the device's 2-bit greyscale palette (`0 / 85 / 170 / 255`).
-- **Engine-tuned output** — EPUB 2/3 with both `nav.xhtml` and `toc.ncx`, well-formed XHTML, and CSS limited to the properties the reader actually honours (so the user's font/size/spacing settings win).
+- **Engine-tuned output** — EPUB 3 with both `nav.xhtml` and a `toc.ncx` navigation fallback, well-formed XHTML, and CSS limited to the properties the reader actually honours (so the user's font/size/spacing settings win). The NCX fallback does not make this a separate EPUB 2 export.
 - **PDF layout and quality choice** — use *Reflow text* for adjustable e-ink typography, or *Keep original pages* for PDFs with illustrations, drop caps, tables, and complex placement. Fixed PDFs can keep the *Source* colour/resolution, use a smaller device-fit e-ink render, or use *E-ink detail*: source-sized 16-level grayscale without Floyd–Steinberg speckle, which keeps small type cleaner on LCD, ADE, and e-ink readers. After parsing, Read Maker shows a recommendation based on the text layer, image count, and detected layout; the choice remains yours. The latter produces EPUB 3 pre-paginated chapters and is intentionally larger.
 - **Bilingual UI** (Indonesian / English) with a simple 3-step flow.
 - **Review before build** — edit chapter titles, move chapters up/down, inspect a compact output summary, and preview the first chapter before downloading. The EPUB export uses the edited order and titles.
@@ -51,7 +61,7 @@ Extras:
 - **Hierarchical contents:** when a book splits on headings and sub-headings, the EPUB gets a nested `nav.xhtml` and `toc.ncx` so the reader shows sub-chapters under their parent instead of one flat list.
 - **Dictionary maker (CrossPoint / SUMI):** turn a `word<TAB>definition` list into a StarDict dictionary (`.ifo`/`.idx`/`.dict`) the device uses for long-press lookups. Entries are merged, sorted by byte order, and delivered as a `dictionaries/<name>/` folder to drop on the SD card.
 - **Sleep-screen maker:** turn a photo or ID card into the wallpaper the device shows while asleep — `sleep.bmp` (indexed, using the device's own 0/85/170/255 grey levels) or `sleep-overlay.bmp` (32-bit BGRA, alpha preserved). Resizing requests the browser's highest-quality filter and preserves the complete source frame; high-contrast text cards automatically avoid speckle dithering while photographs retain tonal dithering. Copy the result to the SD card root.
-- **Works beyond CrossPoint:** the EPUB output is standard EPUB 2/3 (both `toc.ncx` and `nav.xhtml`), so it also opens on the stock Xteink OS and other community firmware. A firmware selector under Advanced options picks the stylesheet: *Any* (default) adds image-scaling and heading-size rules that CrossPoint ignores but other engines need; *CrossPoint* keeps the leanest file. The device target selector maps only CrossPoint to its dedicated profile; Sumi, ADE, Kobo, Kindle, PocketBook/Tolino, Xteink stock OS, and Android use the universal EPUB baseline. Kindle delivery uses Send to Kindle. The `.xtc/.xtch` export uses Xteink's native page format. Sleep-screen files and direct Wi-Fi upload are CrossPoint-specific and are labelled as such.
+- **Works beyond CrossPoint:** the output is EPUB 3 with both `toc.ncx` and `nav.xhtml`, so it also opens on the stock Xteink OS and other community firmware. A firmware selector under Advanced options picks the stylesheet: *Any* (default) adds image-scaling and heading-size rules that CrossPoint ignores but other engines need; *CrossPoint* keeps the leanest file. The device target selector maps only CrossPoint to its dedicated profile; Sumi, ADE, Kobo, Kindle, PocketBook/Tolino, Xteink stock OS, and Android use the universal EPUB baseline. Kindle delivery uses Send to Kindle. The `.xtc/.xtch` export uses Xteink's native page format. Sleep-screen files and direct Wi-Fi upload are CrossPoint-specific and are labelled as such.
 - **Right-to-left scripts:** set the language to Arabic, Hebrew, Persian, Urdu (and similar) and the EPUB is marked `dir="rtl"` on every page plus `page-progression-direction="rtl"` on the spine, so pages turn the right way. OCR covers Arabic, Chinese (simplified/traditional), Japanese, Korean, Russian and major European languages alongside Indonesian and English.
 - **Engine-matched markup:** output uses only the tags CrossPoint's parser understands. Since it doesn't handle `<pre>`/`<code>` and ignores `white-space`, fenced code blocks are rewritten to a real block with `<br/>` line breaks so code doesn't collapse onto one line.
 - **Structural self-check** on build (each XHTML/OPF/NCX is re-parsed as XML).

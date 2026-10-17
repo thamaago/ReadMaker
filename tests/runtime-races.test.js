@@ -1,0 +1,47 @@
+const assert=require('node:assert/strict'),fs=require('fs'),path=require('path'),{JSDOM,VirtualConsole}=require('jsdom'),JSZip=require('jszip');
+const source=fs.readFileSync(path.join(__dirname,'..','index.html'),'utf8');
+const dom=new JSDOM(source,{runScripts:'dangerously',url:'http://localhost/',virtualConsole:new VirtualConsole(),beforeParse(w){w.JSZip=JSZip;w.TextDecoder=TextDecoder;}});
+const w=dom.window,d=w.document,el=id=>d.getElementById(id),file=(name,text)=>({name,size:text.length,text:async()=>text});
+let downloads=0;w.URL.createObjectURL=()=> 'blob:test';w.URL.revokeObjectURL=()=>{};w.HTMLAnchorElement.prototype.click=()=>{downloads++;};
+(async()=>{
+ await new Promise(r=>setTimeout(r,0));
+ let rejectOld;
+ const old=w.handle({name:'old.txt',size:1,text:()=>new Promise((_,reject)=>{rejectOld=reject;})});
+ await w.handle(file('new.txt','New source text.'));
+ const status=el('status').textContent,galley=el('galley').innerHTML;
+ rejectOld(new Error('OLD FILE FAILED'));await old;
+ assert.equal(el('status').textContent,status);assert.equal(el('galley').innerHTML,galley);
+ const b64=fs.readFileSync(path.join(__dirname,'fixtures/validation-diagram.png')).toString('base64');
+ const comic=()=>({comic:true,images:[{name:'one.png',mime:'image/png',b64}],pages:['one.png'],pageDirs:['Chapter 1']});
+ let resolvePage;w.imageToGrayPage=()=>new Promise(resolve=>{resolvePage=resolve;});
+ w.finishIngest(comic(),'Comic A');const exportOld=w.exportComicToXtc();
+ await w.handle(file('next.txt','The current source must remain ready.'));
+ const ready=el('status').textContent;resolvePage({gray:new Uint8Array(480*800),w:480,h:800});await exportOld;
+ assert.equal(downloads,0);assert.equal(el('status').textContent,ready);assert.equal(el('deviceCard').classList.contains('show'),false);
+ w.finishIngest(comic(),'Comic B');const exportEdited=w.exportComicToXtc();
+ el('title').value='Edited title';el('title').dispatchEvent(new w.Event('input'));
+ resolvePage({gray:new Uint8Array(480*800),w:480,h:800});await exportEdited;
+ assert.equal(downloads,0);assert.match(el('status').textContent,/Buat ulang|Rebuild/);assert.equal(el('buildXtc').disabled,false);
+ console.log('Runtime races: stale file errors and outdated XTC downloads do not replace the active source.');
+ let instance;w.XMLHttpRequest=function(){instance=this;this.upload={};this.open=()=>{};this.send=()=>{};this.abort=()=>{};};
+ el('deviceIp').value='192.168.3.3';el('deviceProfile').value='http';
+ w.eval("lastBuiltBlob=new Blob(['a']);lastBuiltName='a.epub'");w.sendToDevice();const oldRequest=instance;
+ assert.equal(el('deviceIp').disabled,true);w.hideDeviceCard();
+ assert.equal(el('deviceIp').disabled,false);assert.equal(el('devicePath').disabled,false);assert.equal(el('deviceProfile').disabled,false);
+ assert.equal(el('sendBtn').textContent,w.eval("t('sendBtn')"));
+ w.eval("lastBuiltBlob=new Blob(['b']);lastBuiltName='b.epub'");w.sendToDevice();const current=instance;
+ oldRequest.status=200;oldRequest.onload();
+ assert.equal(w.currentSendXhr,current);assert.equal(el('deviceIp').disabled,true);w.hideDeviceCard();
+ for(const [host,expected] of [['192.168.1.2:8080','ws://192.168.1.2:8081/'],['[fe80::1]','ws://[fe80::1]:81/'],['[fe80::1]:8080','ws://[fe80::1]:8081/'],['crosspoint.local','ws://crosspoint.local:81/']]){
+  const url='ws://'+w.wsHostForDevice(host)+':'+w.wsPortForHost(host)+'/';assert.equal(new w.URL(url).href,expected);
+ }
+ assert.equal(w.normalizeDeviceIp('http://crosspoint.local/'),'crosspoint.local');assert.equal(w.normalizeDeviceIp('user:password@host.invalid'),'');assert.throws(()=>w.wsPortForHost('host.invalid:65535'));
+ console.log('Transfer: cancellation restores controls, old callbacks cannot finish a new send, and custom-port/IPv6 WebSocket URLs are valid.');
+ let cancelled=false;
+ await assert.rejects(w.readArticleResponse({headers:{get:()=>1},body:{getReader:()=>({read:async()=>({done:false,value:new Uint8Array(20)}),cancel:async()=>{cancelled=true;},releaseLock(){}})}},10),/terlalu besar|too large/);
+ assert.equal(cancelled,true);assert.equal(await w.readArticleResponse({text:async()=>'<p>OK</p>'}),'<p>OK</p>');
+ await assert.rejects(w.readArticleResponse({text:async()=> '漢'.repeat(5)},10),/terlalu besar|too large/);
+ const inputs=[file('a.txt','Alpha'),file('b.txt','Beta')];w.startBatch(inputs);await w.runBatch();
+ assert.equal(el('deviceCard').classList.contains('show'),false);assert.equal(w.eval('lastBuiltBlob'),null);assert.match(el('status').textContent,/Buka ZIP|Extract the ZIP/);
+ console.log('Article streams have byte limits; batch archives require extraction and are not offered as ready-to-read device files.');
+})().catch(error=>{console.error(error);process.exitCode=1;}).finally(()=>w.close());

@@ -4,7 +4,12 @@ const root=path.resolve(__dirname,'..'),out=path.join(root,'output/epub/validati
 const html=fs.readFileSync(path.join(root,'index.html'),'utf8').replace('<script src="pdf-review.js"></script>',()=>'<script>'+fs.readFileSync(path.join(root,'pdf-review.js'),'utf8')+'</script>');
 const dom=new JSDOM(html,{runScripts:'dangerously',url:'http://localhost',virtualConsole:new VirtualConsole(),beforeParse(w){w.JSZip=JSZip;}});
 const w=dom.window,d=w.document;
-const image={name:'diagram.png',mime:'image/png',b64:'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aZ1kAAAAASUVORK5CYII='};
+const image={name:'diagram.png',mime:'image/png',b64:fs.readFileSync(path.join(__dirname,'fixtures/validation-diagram.png')).toString('base64')};
+w.fetch=async url=>{
+ assert.equal(url,'https://article.example/diagram.png');
+ return {ok:true,headers:{get:()=>null},arrayBuffer:async()=>Buffer.from(image.b64,'base64')};
+};
+w.decodeWebImage=async()=>{}; // jsdom has no decoder; the gate and Pillow verify these fixture bytes.
 (async()=>{
  await new Promise(resolve=>setTimeout(resolve,0));
  // Exercise saved corrections, retaining an image and emphasis in the same paragraph.
@@ -17,6 +22,7 @@ const image={name:'diagram.png',mime:'image/png',b64:'iVBORw0KGgoAAAANSUhEUgAAAA
  const fixtures={
   'corrected-reflow':corrected,
   'rtl-reflow':{title:'RTL fixture',language:'ar',cssProfile:'universal',images:[],chapters:[{title:'الفصل الأول',html:'<h1>الفصل الأول</h1><p>هذا نص واضح للقراءة.</p>'}]},
+  'web-article':{title:'Offline article fixture',author:'ReadMaker synthetic test',language:'en',images:[],chapters:[{title:'Article',html:'<h1>Offline article</h1><p>Text and image remain available offline.</p><img src="https://article.example/diagram.png" alt="Synthetic diagram"/>'}]},
   'fixed-pages':{title:'Fixed fixture',language:'en',cssProfile:'universal',pdfMode:'fixed',fixedViewport:{width:480,height:800},images:[image],chapters:[{title:'Page 1',html:'<div class="pdf-page" style="margin:0;padding:0"><img src="images/diagram.png" alt="Test" style="display:block;width:100%;height:auto"/></div>'}]},
   'comic-pages':{title:'Comic fixture',language:'en',cssProfile:'crosspoint',comic:true,images:[image],chapters:[{title:'Page 1',html:'<p><img src="images/diagram.png" alt="Panel"/></p>'},{title:'Page 2',html:'<p><img src="images/diagram.png" alt="Panel"/></p>'}]}
  };
@@ -29,5 +35,5 @@ const image={name:'diagram.png',mime:'image/png',b64:'iVBORw0KGgoAAAANSUhEUgAAAA
    assert.match(chapter,/Corrected text &amp; literal &lt;markup&gt;/);assert.doesNotMatch(chapter,/Incorrect OCR|data-rm-block|data-rm-pages/);assert.match(chapter,/<em>/);assert.ok(zip.file('OEBPS/images/diagram.png'));
   }
  }
- console.log('Built four EPUB validation fixtures, including a saved OCR correction.');
+ console.log('Built five EPUB validation fixtures, including a saved OCR correction and an offline article.');
 })().catch(error=>{console.error(error);process.exitCode=1;}).finally(()=>w.close());

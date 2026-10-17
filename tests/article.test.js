@@ -42,6 +42,21 @@ const page=`<!DOCTYPE html><html lang="en-US"><head>
 
   const book={title:r.title,author:r.author,language:r.lang,images:[],coverName:'',chapters:splitChapters(r.html,'auto')};
   ok(book.chapters.length>=1,'chapters built');
+  ok(book.chapters.length===1,'existing opening H1 does not create a duplicate title-only chapter');
+  ok((r.html.match(/<h1>/g)||[]).length===1,'article title appears once in body');
+  const metadataOnly=extractArticle('<html><head><title>Metadata title</title></head><body><article><p>Article without an opening heading.</p></article></body></html>','https://example.com');
+  ok(/^<h1>Metadata title<\/h1>/.test(metadataOnly.html),'metadata supplies a title when body has none');
+  const distinct=extractArticle('<html><head><title>Visible title - Publisher</title></head><body><article><h1>Visible title</h1><p>Article body.</p><h1>Second chapter</h1><p>Second body.</p></article></body></html>','https://example.com');
+  ok(splitChapters(distinct.html,'auto').length===2&&!/Publisher<\/h1>/.test(distinct.html),'metadata suffix does not add a front chapter or erase distinct chapter headings');
+  const imageBytes=fs.readFileSync(require('path').join(__dirname,'fixtures/validation-diagram.png'));
+  let fetches=0;
+  global.fetch=async url=>{
+    if(url!=='https://slow.example/img/panel.png')throw new Error('Unexpected test request: '+url);
+    fetches++;return {ok:true,headers:{get:()=>null},arrayBuffer:async()=>imageBytes};
+  };
+  // Pixel decoding is exercised in the real-browser acceptance test. jsdom
+  // cannot load images; byte integrity remains checked by the real helper.
+  global.decodeWebImage=async()=>{};
   const blob=await buildEpub(book);const buf=Buffer.from(await blob.arrayBuffer());fs.writeFileSync('sample-article.epub',buf);
   const zip=await JSZip.loadAsync(buf);
   const opf=await zip.file('OEBPS/content.opf').async('string');
@@ -49,6 +64,9 @@ const page=`<!DOCTYPE html><html lang="en-US"><head>
   ok(/<dc:creator>Jane Reader<\/dc:creator>/.test(opf),'epub author');
   const c1=await zip.file('OEBPS/chap001.xhtml').async('string');
   ok(!new window.DOMParser().parseFromString(c1,'application/xhtml+xml').querySelector('parsererror'),'chapter XHTML valid');
+  const allChapters=(await Promise.all(zip.file(/chap\d+\.xhtml$/).map(file=>file.async('string')))).join('');
+  ok(fetches===1&&!!zip.file('OEBPS/images/web_0001.png'),'article image fetched once and embedded');
+  ok(/src="images\/web_0001.png"/.test(allChapters)&&!/<img[^>]+src="https?:/.test(allChapters),'article can display its image offline');
 
   // no <article>, fallback to densest block
   const page2=`<html lang="id"><body><div class="wrap"><div class="content"><p>Paragraf satu yang cukup panjang untuk menang skor konten artikel.</p><p>Paragraf dua.</p></div><div class="rail"><p>x</p></div></div></body></html>`;

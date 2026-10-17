@@ -337,6 +337,14 @@
             <div class="help" data-i18n="fwHelp">&ldquo;Semua&rdquo; menambahkan aturan gaya yang diabaikan CrossPoint tetapi membantu OS bawaan Xteink dan firmware lain menskalakan gambar serta memperbesar judul bab.</div>
           </div>
           <div class="field">
+            <label for="webImages" data-i18n="webImages">Gambar artikel / HTML</label>
+            <select id="webImages">
+              <option value="include" data-i18n="webImagesInclude">Simpan gambar untuk dibaca tanpa internet</option>
+              <option value="omit" data-i18n="webImagesOmit">Teks saja (tanpa gambar dari web)</option>
+            </select>
+            <div class="help" data-i18n="webImagesHelp">Jika situs menolak pengambilan gambar, pilih Teks saja. Gambar PDF dan berkas yang sudah tertanam tetap dipertahankan.</div>
+          </div>
+          <div class="field">
             <label for="lang" data-i18n="lblLang">Kode bahasa</label>
             <input id="lang" type="text" data-i18n-ph="langPh" placeholder="id / en" autocomplete="off" />
             <div class="help" data-i18n-html="langHelp">Contoh: <code>id</code> (Indonesia), <code>en</code> (Inggris), <code>ar</code> (Arab).</div>
@@ -632,6 +640,11 @@ var T = {
     blockedD:"Buka artikelnya, salin HTML halaman, lalu pakai \u201cTempel HTML\u201d.",
     footer:"Mengubah teks, Markdown, RTF, HTML, FictionBook (FB2), OpenDocument (ODT), Word (DOCX), PDF (berteks), Kindle (MOBI/AZW3), komik (CBZ), dan artikel web menjadi EPUB yang menyesuaikan layar. Gambar disiapkan untuk layar e-ink. Alat ini tidak mengubah firmware perangkat.", pdfMode:"Tata letak PDF", pdfReflow:"Teks mengalir (reflow)", pdfFixed:"Pertahankan halaman asli", pdfModeHelp:"Pilih halaman asli untuk PDF dengan ilustrasi, drop cap, tabel, atau tata letak kompleks. Hasilnya lebih besar dan tidak mengikuti ukuran font pembaca. ADE versi lama kadang tidak menampilkan EPUB fixed-layout; gunakan ADE terbaru atau pilih Teks mengalir.", pdfQuality:"Kualitas halaman PDF", pdfQualitySource:"Asli (warna & resolusi)", pdfQualityEink:"Optimalkan untuk e-ink", pdfQualityEinkDetail:"E-ink detail (abu-abu halus, resolusi tinggi)", pdfQualityHelp:"Berlaku untuk mode Pertahankan halaman asli. Asli menyimpan warna dan resolusi PDF; E-ink mengecilkan gambar; E-ink detail mempertahankan resolusi dengan 16 tingkat abu-abu halus agar huruf tidak berbintik.",
     stReady:"Siap dibuat.", stParsing:"Membaca berkas…", stBuilding:"Membuat EPUB…", stImages:"Memproses gambar…",
+    errDictionaryUnsafe:"Entri kamus mengandung karakter atau ukuran yang tidak didukung. Hapus karakter NUL dan periksa daftar kata.", batchExtract:"Buka ZIP terlebih dahulu, lalu salin berkas EPUB di dalamnya ke perangkat.",
+    errArticleLarge:"Halaman artikel terlalu besar (maksimal 8 MB). Simpan atau salin hanya isi artikelnya.",
+    errArchiveLimit:"Arsip dokumen melebihi batas aman (128 MB total, 32 MB per bagian, 10.000 entri). Pecah dokumen menjadi berkas lebih kecil.",
+    errUnsafeImage:"Gambar dokumen tidak aman atau tidak didukung. Gunakan gambar PNG/JPEG/GIF raster dan coba lagi.", previewImagePending:"[Gambar tersedia pada hasil ekspor; tidak dimuat dari situs dalam pratinjau.]",
+    webImages:"Gambar artikel / HTML", webImagesInclude:"Simpan gambar untuk dibaca tanpa internet", webImagesOmit:"Teks saja (tanpa gambar dari web)", webImagesHelp:"Jika situs menolak pengambilan gambar, pilih Teks saja. Gambar PDF dan berkas yang sudah tertanam tetap dipertahankan.", stWebImages:"Menyimpan gambar artikel…", errWebImages:"Gambar artikel belum dapat disimpan. Coba lagi atau pilih Teks saja pada Opsi lanjutan.", webImageReason_network:"Situs menolak gambar atau koneksi terputus.", webImageReason_timeout:"Batas waktu pengambilan gambar habis.", webImageReason_size:"Batas gambar: 8 MB per gambar, 32 MB keseluruhan, maksimal 64 gambar.", webImageReason_format:"Format atau isi gambar tidak didukung.",
     stFetching:"Mengambil…", stBlocked:"Diblokir situs (kemungkinan CORS). Pakai \u201cTempel HTML\u201d.", stPasteFirst:"Tempel HTML dulu.", errPasteUrlOnly:"Yang ditempel hanya alamat URL. Masukkan URL lengkap di kolom alamat atas; untuk fallback, buka artikel lalu salin HTML halaman (Ctrl+U, Ctrl+A, Ctrl+C) ke kotak ini.", warnImageFormat:"Gambar ini mungkin tidak dibaca sebagian firmware; aktifkan pemrosesan e-ink agar diubah ke PNG.",
     stSaved:"Tersimpan:", devDone:"Berhasil dibuat:", errPrefix:"Gagal:", warnLarge:"Berkas besar (>{n} MB) — proses mungkin lambat, dan pada perangkat RAM kecil (X3/X4) bisa gagal dibuka.", btnXtc:"Ekspor .xtc (native)", stXtc:"Membuat .xtc…", credits:"Memakai JSZip (MIT); PDF via pdf.js (Apache-2.0), DOCX via mammoth.js (BSD) dimuat saat diperlukan.", errScanned:"PDF ini sepertinya hasil pemindaian (tanpa teks yang bisa disalin). Aktifkan OCR di \u201cOpsi lanjutan\u201d untuk membacanya.", errMobi:"Berkas Kindle ini tidak bisa dibaca. Mungkin ber-DRM (terkunci) atau rusak; berkas ber-DRM tidak didukung.", errHuff:"Berkas Kindle ini memakai kompresi HUFF/CDIC yang belum didukung. Coba konversi dulu lewat Calibre.", errCbz:"Tidak ada gambar di dalam berkas CBZ ini.", errCbr:"Berkas CBR memakai format RAR yang belum didukung. Ubah dulu ke CBZ (mis. lewat Calibre), lalu coba lagi.", pageLabel:"Halaman", chapterLabel:"Bab", batchFiles:"berkas dalam antrean", batchWaiting:"menunggu", batchWorking:"memproses", batchDone:"selesai", batchFailed:"gagal", batchReady:"Siap. Semua berkas akan dijadikan satu berkas ZIP.", batchNone:"Tidak ada berkas yang berhasil dikonversi.", ocrHead:"PDF hasil pindai", lblOcr:"Baca teks dari gambar (OCR)", ocrOff:"Mati", ocrOnOpt:"Aktif", lblOcrLang:"Bahasa teks", ocrHelp:"Dalam mode teks mengalir, OCR membaca setiap halaman tanpa layer teks, termasuk PDF campuran. Proses lambat dan perlu koneksi sekali untuk memuat mesin OCR; hasilnya bisa keliru.", stOcr:"Membaca teks dari gambar\u2026", errOcrLoad:"Mesin OCR gagal dimuat. Periksa koneksi internet.", errOcrEmpty:"OCR tidak menemukan teks yang bisa dibaca pada PDF ini.", ocrLowConfidence:"Hasil OCR halaman {n} berkeyakinan rendah; tinjau kembali teksnya.", sleepHead:"Buat gambar layar tidur (wallpaper) \u00b7 CrossPoint", sleepHelp:"Ubah foto menjadi berkas BMP yang dipakai perangkat saat layar tidur. Salin hasilnya ke akar kartu SD. Ukuran layar dan tingkat warna mengikuti \u201cOpsi lanjutan\u201d.", lblSleepMode:"Jenis", sleepFull:"Latar penuh (sleep.bmp)", sleepOverlay:"Tempelan transparan (sleep-overlay.bmp)", lblSleepFile:"Gambar", stSleep:"Membuat gambar layar tidur\u2026", dictHead:"Buat kamus untuk perangkat \u00b7 CrossPoint / SUMI", dictHelp:"Ubah daftar kata menjadi kamus StarDict yang bisa dipakai perangkat saat menekan lama sebuah kata. Salin folder dictionaries/ hasil unduhan ke akar kartu SD.", lblDictName:"Nama kamus", dictNamePh:"mis. Inggris-Indonesia", lblDictFmt:"Format definisi", dictPlain:"Teks biasa", dictHtmlOpt:"HTML (tebal/miring)", lblDictFile:"Berkas daftar kata (.txt / .tsv / .csv)", stDict:"Membuat kamus\u2026", errDictEmpty:"Daftar kata kosong atau formatnya tidak dikenali (pakai kata[TAB]definisi)."
   },
@@ -692,6 +705,11 @@ var T = {
     blockedD:"Open the article, copy its page HTML, and use \u201cPaste page HTML\u201d.",
     footer:"Converts text, Markdown, RTF, HTML, FictionBook (FB2), OpenDocument (ODT), Word (DOCX), text-based PDF, Kindle (MOBI/AZW3), comics (CBZ) and web articles into reflowable EPUB. Images are prepared for e-ink screens. This tool does not modify device firmware.", pdfMode:"PDF layout", pdfReflow:"Reflow text", pdfFixed:"Keep original pages", pdfModeHelp:"Choose original pages for PDFs with illustrations, drop caps, tables, or complex layout. The result is larger and does not follow the reader's font size. Older ADE versions may show fixed-layout EPUBs as blank; use the latest ADE or choose Reflow text.", pdfQuality:"PDF page quality", pdfQualitySource:"Source (colour & resolution)", pdfQualityEink:"Optimise for e-ink", pdfQualityEinkDetail:"E-ink detail (smooth greyscale, high resolution)", pdfQualityHelp:"Applies to Keep original pages. Source preserves the PDF's colour and resolution; E-ink resizes pages; E-ink detail preserves resolution with smooth 16-level greyscale so small text stays clean.",
     stReady:"Ready to build.", stBuilding:"Building EPUB…", stParsing:"Reading file…", stImages:"Processing images…",
+    errDictionaryUnsafe:"A dictionary entry contains unsupported characters or sizes. Remove NUL characters and check the word list.", batchExtract:"Extract the ZIP first, then copy the EPUB files inside it to your reader.",
+    errArticleLarge:"The article page is too large (8 MB maximum). Save or copy only the article content.",
+    errArchiveLimit:"Document archive exceeds safe limits (128 MB total, 32 MB per entry, 10,000 entries). Split the document into smaller files.",
+    errUnsafeImage:"An image is unsafe or unsupported. Use a raster PNG/JPEG/GIF image and retry.", previewImagePending:"[Image available in the export; not fetched from the site in this preview.]",
+    webImages:"Article / HTML images", webImagesInclude:"Save images for offline reading", webImagesOmit:"Text only (without web images)", webImagesHelp:"If a site blocks its images, choose Text only. PDF images and images already embedded in the book are retained.", stWebImages:"Saving article images…", errWebImages:"An article image could not be saved. Retry or choose Text only under Advanced options.", webImageReason_network:"The site blocked the image or the connection failed.", webImageReason_timeout:"The image download timed out.", webImageReason_size:"Image limits: 8 MB each, 32 MB total, at most 64 images.", webImageReason_format:"The image format or contents are not supported.",
     stFetching:"Fetching…", stBlocked:"Blocked by the site (likely CORS). Use \u201cPaste HTML\u201d.", stPasteFirst:"Paste some HTML first.", errPasteUrlOnly:"You pasted only a URL. Put the complete URL in the address field above; for the fallback, open the article and copy its page HTML (Ctrl+U, Ctrl+A, Ctrl+C) into this box.", warnImageFormat:"Some firmware may not read these image formats; turn on e-ink processing to convert them to PNG.",
     stSaved:"Saved:", devDone:"Created:", errPrefix:"Failed:", warnLarge:"Large file (>{n} MB) — this may be slow, and may fail to open on low-RAM devices (X3/X4).", btnXtc:"Export .xtc (native)", stXtc:"Building .xtc…", credits:"Uses JSZip (MIT); PDF via pdf.js (Apache-2.0) and DOCX via mammoth.js (BSD) loaded on demand.", errScanned:"This PDF looks scanned (no selectable text). Turn on OCR under \u201cAdvanced options\u201d to read it.", errMobi:"This Kindle file can't be read. It may be DRM-protected (locked) or corrupt; DRM files are not supported.", errHuff:"This Kindle file uses HUFF/CDIC compression, which isn't supported yet. Try converting it with Calibre first.", errCbz:"No images were found inside this CBZ.", errCbr:"CBR uses the RAR format, which isn't supported directly. Convert it to CBZ first (e.g. with Calibre), then try again.", pageLabel:"Page", chapterLabel:"Chapter", batchFiles:"files queued", batchWaiting:"waiting", batchWorking:"working", batchDone:"done", batchFailed:"failed", batchReady:"Ready. All files will be delivered as one ZIP.", batchNone:"No file could be converted.", ocrHead:"Scanned PDFs", lblOcr:"Read text from images (OCR)", ocrOff:"Off", ocrOnOpt:"On", lblOcrLang:"Text language", ocrHelp:"In reflow mode, OCR reads each page without a text layer, including mixed PDFs. It is slow and needs a one-time connection to load the OCR engine; results can be wrong.", stOcr:"Reading text from images\u2026", errOcrLoad:"The OCR engine could not be loaded. Check your connection.", errOcrEmpty:"OCR found no readable text in this PDF.", ocrLowConfidence:"OCR confidence is low on page {n}; review the recognised text.", sleepHead:"Make a sleep-screen image (wallpaper) \u00b7 CrossPoint", sleepHelp:"Turn a photo into the BMP the device shows while asleep. Copy the result to the root of the SD card. Screen size and tone count follow \u201cAdvanced options\u201d.", lblSleepMode:"Type", sleepFull:"Full wallpaper (sleep.bmp)", sleepOverlay:"Transparent overlay (sleep-overlay.bmp)", lblSleepFile:"Image", stSleep:"Making the sleep screen\u2026", dictHead:"Make a device dictionary \u00b7 CrossPoint / SUMI", dictHelp:"Turn a word list into a StarDict dictionary the device can use when you long-press a word. Copy the downloaded dictionaries/ folder to the SD card root.", lblDictName:"Dictionary name", dictNamePh:"e.g. English-Indonesian", lblDictFmt:"Definition format", dictPlain:"Plain text", dictHtmlOpt:"HTML (bold/italic)", lblDictFile:"Word list file (.txt / .tsv / .csv)", stDict:"Building the dictionary\u2026", errDictEmpty:"The word list is empty or in an unrecognised format (use word[TAB]definition)."
   }
@@ -1136,7 +1154,12 @@ function extractArticle(htmlStr, baseUrl){
     root = best || doc.body;
   }
   let html = cleanNode(root, baseUrl).replace(/(\s*<p>\s*<\/p>\s*)+/g,'');
-  if(title) html = '<h1>'+escHtmlText(title)+'</h1>\n'+html;
+  // Metadata supplies a title only when the article has no opening title.
+  // Prepending it to an existing H1 made a title-only chapter and duplicate TOC.
+  const body=new DOMParser().parseFromString(html,'text/html').body;
+  const first=Array.from(body.childNodes).find(node=>node.nodeType===1||(node.nodeType===3&&/\S/.test(node.textContent)));
+  const hasOpeningTitle=first&&first.nodeType===1&&(first.tagName==='H1'||(/^H[2-6]$/.test(first.tagName)&&first.textContent.replace(/\s+/g,' ').trim().toLocaleLowerCase()===title.replace(/\s+/g,' ').trim().toLocaleLowerCase()));
+  if(title&&!hasOpeningTitle) html = '<h1>'+escHtmlText(title)+'</h1>\n'+html;
   return { html, title, author, lang };
 }
 
@@ -1161,7 +1184,7 @@ function fb2ToBook(xmlStr){
     lang = txt(ti.getElementsByTagName('lang')[0]);
   }
   // binaries (images/cover)
-  const binaries = {};
+  const binaries = Object.create(null);
   Array.from(doc.getElementsByTagName('binary')).forEach(b=>{
     const id=b.getAttribute('id'); const ct=b.getAttribute('content-type')||'image/jpeg';
     if(id) binaries[id]={ mime:ct, b64:b.textContent.replace(/\s+/g,'') };
@@ -1202,6 +1225,7 @@ function fb2ToBook(xmlStr){
         case 'image': {
           const href=(ch.getAttribute('l:href')||ch.getAttribute('xlink:href')||ch.getAttribute('href')||'').replace(/^#/,'');
           if(href && binaries[href]){ const bin=binaries[href]; const ext=extFromMime(bin.mime); const nm='img_'+(imgCount++)+'.'+ext;
+            if(!passiveRasterMime(bin.mime))throw new Error(t('errUnsafeImage'));
             if(!usedBins.has(href)){ images.push({name:nm,mime:bin.mime,b64:bin.b64}); usedBins.add(href); binaries[href]._name=nm; }
             s+='<img src="images/'+(binaries[href]._name||nm)+'" alt=""/>';
           }
@@ -1217,6 +1241,7 @@ function fb2ToBook(xmlStr){
   let coverName='';
   if(coverId && binaries[coverId]){
     const bin=binaries[coverId]; const ext=extFromMime(bin.mime); coverName='cover.'+ext;
+    if(!passiveRasterMime(bin.mime))throw new Error(t('errUnsafeImage'));
     if(!usedBins.has(coverId)){ images.unshift({name:coverName,mime:bin.mime,b64:bin.b64}); usedBins.add(coverId); }
     else { coverName = binaries[coverId]._name || coverName; }
   }
@@ -1229,11 +1254,44 @@ function b64ToU8(b64){ const bin=atob(b64); const u=new Uint8Array(bin.length); 
 /* ODT is a ZIP of XML. Parse content.xml for structure, meta.xml for metadata,
    map automatic text styles to bold/italic/underline, and pull Pictures/*. */
 function mimeFromName(n){ const e=extOf(n); return e==='png'?'image/png':e==='gif'?'image/gif':e==='svg'?'image/svg+xml':e==='bmp'?'image/bmp':e==='webp'?'image/webp':'image/jpeg'; }
+async function loadDocumentZip(bytes){
+  const limit=128*1024*1024;
+  if(bytes.byteLength>limit)throw new Error(t('errArchiveLimit'));
+  const zip=await JSZip.loadAsync(bytes);let total=0;
+  const files=Object.values(zip.files);
+  if(files.length>10000)throw new Error(t('errArchiveLimit'));
+  for(const file of files){
+    if(file.dir)continue;
+    const size=Number(file._data&&file._data.uncompressedSize);
+    if(!Number.isSafeInteger(size)||size<0||size>32*1024*1024)throw new Error(t('errArchiveLimit'));
+    total+=size;if(total>limit)throw new Error(t('errArchiveLimit'));
+  }
+  return zip;
+}
+function readDocumentEntry(file,type,limit,budget){
+  // JSZip's async() accumulates an entire inflated entry. Stop its stream before
+  // collecting excess bytes, even when the ZIP size metadata is inaccurate.
+  const max=limit||32*1024*1024;
+  return new Promise((resolve,reject)=>{
+    const stream=file.internalStream('uint8array'),chunks=[];let size=0,stopped=false;
+    stream.on('data',chunk=>{
+      if(stopped)return;size+=chunk.length;
+      if(size>max||(budget&&chunk.length>budget.remaining)){stopped=true;stream.pause();reject(new Error(t('errArchiveLimit')));return;}
+      if(budget)budget.remaining-=chunk.length;
+      chunks.push(chunk);
+    }).on('error',error=>{if(!stopped){stopped=true;reject(error);}}).on('end',()=>{
+      if(stopped)return;const result=new Uint8Array(size);let offset=0;
+      chunks.forEach(chunk=>{result.set(chunk,offset);offset+=chunk.length;});
+      resolve(type==='string'?new TextDecoder('utf-8').decode(result):result);
+    });stream.resume();
+  });
+}
 async function odtToBook(arrayBuffer){
-  const zip=await JSZip.loadAsync(arrayBuffer);
+  const zip=await loadDocumentZip(arrayBuffer);
+  const budget={remaining:128*1024*1024},read=(file,type)=>readDocumentEntry(file,type,undefined,budget);
   const contentFile=zip.file('content.xml');
   if(!contentFile) throw new Error(t('errOdtBad'));
-  const contentXml=await contentFile.async('string');
+  const contentXml=await read(contentFile,'string');
   const doc=new DOMParser().parseFromString(contentXml,'application/xml');
   if(doc.querySelector('parsererror')) throw new Error(t('errOdtXml'));
 
@@ -1241,7 +1299,7 @@ async function odtToBook(arrayBuffer){
   let title='',author='',lang='';
   const metaFile=zip.file('meta.xml');
   if(metaFile){
-    const md=new DOMParser().parseFromString(await metaFile.async('string'),'application/xml');
+    const md=new DOMParser().parseFromString(await read(metaFile,'string'),'application/xml');
     const g=(t)=>{ const e=md.getElementsByTagName(t)[0]; return e?e.textContent.trim():''; };
     title=g('dc:title'); author=g('dc:creator'); lang=(g('dc:language')||'').split('-')[0];
   }
@@ -1258,7 +1316,10 @@ async function odtToBook(arrayBuffer){
   // pre-extract pictures
   const pics={};
   for(const n of Object.keys(zip.files)){
-    if(/^Pictures\//.test(n) && !zip.files[n].dir){ pics[n]={ u8:await zip.file(n).async('uint8array'), mime:mimeFromName(n) }; }
+    if(/^Pictures\//.test(n) && !zip.files[n].dir){
+      if(!passiveRasterMime(mimeFromName(n)))throw new Error(t('errUnsafeImage'));
+      pics[n]={ u8:await read(zip.file(n),'uint8array'), mime:mimeFromName(n) };
+    }
   }
   const images=[]; let imgCount=0; const usedPic={};
   function addImage(href){
@@ -2471,6 +2532,7 @@ async function cbzToBook(arrayBuffer){
   const maxImageBytes=128*1024*1024, maxPages=1000;
   if(arrayBuffer.byteLength>maxImageBytes) throw new Error(t('errCbzLarge'));
   const zip=await JSZip.loadAsync(arrayBuffer);
+  if(Object.keys(zip.files).length>10000)throw new Error(t('errCbzLarge'));
   const names=Object.keys(zip.files).filter(n=>!zip.files[n].dir
     && /\.(jpe?g|png|gif|bmp|webp)$/i.test(n)
     && !/(^|\/)__MACOSX\//.test(n) && !/(^|\/)\._/.test(n));
@@ -2482,9 +2544,9 @@ async function cbzToBook(arrayBuffer){
     imageBytes+=Number(zip.files[n]._data && zip.files[n]._data.uncompressedSize)||0;
     if(imageBytes>maxImageBytes) throw new Error(t('errCbzLarge'));
   }
-  const images=[], pages=[], pageDirs=[];
+  const images=[], pages=[], pageDirs=[],budget={remaining:maxImageBytes};
   for(let i=0;i<names.length;i++){
-    const u8=await zip.file(names[i]).async('uint8array');
+    const u8=await readDocumentEntry(zip.file(names[i]),'uint8array',maxImageBytes,budget);
     imageBytes+=u8.length-(Number(zip.files[names[i]]._data && zip.files[names[i]]._data.uncompressedSize)||0);
     if(imageBytes>maxImageBytes) throw new Error(t('errCbzLarge'));
     const nm='page_'+String(i).padStart(4,'0')+'.'+(extOf(names[i])||'jpg');
@@ -2503,7 +2565,8 @@ function loadMammoth(){
   if(mammothPromise) return mammothPromise;
   mammothPromise = new Promise((res,rej)=>{
     const s=document.createElement('script');
-    s.src='https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.9.0/mammoth.browser.min.js';
+    s.src='https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.11.0/mammoth.browser.min.js';
+    s.integrity='sha384-t9eMqh3OtJXZhvLtmol8r2+23t6vg1GDo1UeyP55BEQdCI67GW2u8Nso+Yzo5m9r';s.crossOrigin='anonymous';
     s.onload=()=>res(window.mammoth);
     s.onerror=()=>{ mammothPromise=null; rej(new Error('Could not load the DOCX helper. Check your connection, or convert the DOCX to HTML first.')); };
     document.head.appendChild(s);
@@ -2511,6 +2574,9 @@ function loadMammoth(){
   return mammothPromise;
 }
 async function docxToBody(arrayBuffer){
+  // Validate/inflate within a budget before passing the archive to Mammoth.
+  const checked=await loadDocumentZip(arrayBuffer);let total=0;
+  for(const entry of Object.values(checked.files))if(!entry.dir){total+=(await readDocumentEntry(entry,'uint8array')).length;if(total>128*1024*1024)throw new Error(t('errArchiveLimit'));}
   const m = await loadMammoth();
   const result = await m.convertToHtml({arrayBuffer}, {styleMap:[
     "p[style-name='Title'] => h1:fresh",
@@ -2782,7 +2848,190 @@ function epubQualityWarnings(book){
   });
   return out;
 }
+/* Export resources are prepared on a copy: source previews and saved corrections
+   remain untouched. Re-scan references instead of trusting a prepared flag. */
+async function prepareBookResources(book, options){
+  const opts=options||{},out=Object.assign({},book,{images:(book.images||[]).slice(),chapters:(book.chapters||[]).map(c=>Object.assign({},c))});
+  const mode=opts.mode||'include',cache=new Map(),names=new Set(out.images.map(im=>im.name));
+  const perImage=opts.maxImageBytes||8*1024*1024,totalLimit=opts.maxTotalBytes||32*1024*1024,countLimit=opts.maxImages||64;
+  let total=0,count=0;
+  const fail=reason=>new Error(t('errWebImages')+' '+t('webImageReason_'+reason));
+  function rasterMime(b){
+    if(b.length>=57&&[137,80,78,71,13,10,26,10].every((v,i)=>b[i]===v))return 'image/png';
+    if(b.length>=32&&b[0]===255&&b[1]===216&&b[2]===255)return 'image/jpeg';
+    if(b.length>=6&&/^GIF8[79]a$/.test(String.fromCharCode(...b.subarray(0,6))))return 'image/gif';
+    if(b.length>=2&&b[0]===66&&b[1]===77)return 'image/bmp';
+    if(b.length>=12&&String.fromCharCode(...b.subarray(0,4))==='RIFF'&&String.fromCharCode(...b.subarray(8,12))==='WEBP')return 'image/webp';
+    throw fail('format');
+  }
+  async function download(url){
+    const ctrl=typeof AbortController!=='undefined'?new AbortController():null;
+    let reader,timer;
+    const task=(async()=>{
+      const fetcher=opts.fetchFn||(typeof fetch==='function'?fetch:null);
+      if(!fetcher)throw fail('network');
+      const res=await fetcher(url,{mode:'cors',credentials:'omit',redirect:'follow',referrerPolicy:'no-referrer',...(ctrl?{signal:ctrl.signal}:{})});
+      if(!res||!res.ok)throw fail('network');
+      const length=Number(res.headers&&res.headers.get('content-length'));
+      if(length>perImage||length>totalLimit-total)throw fail('size');
+      if(res.body&&typeof res.body.getReader==='function'){
+        reader=res.body.getReader();const chunks=[];let size=0;
+        try{
+          while(true){
+            const part=await reader.read();if(part.done)break;
+            const chunk=new Uint8Array(part.value);size+=chunk.length;
+            if(size>perImage||size>totalLimit-total)throw fail('size');
+            chunks.push(chunk);
+          }
+        }catch(error){try{await reader.cancel();}catch(_){}throw error;}
+        finally{reader.releaseLock();reader=null;}
+        const bytes=new Uint8Array(size);let offset=0;
+        chunks.forEach(chunk=>{bytes.set(chunk,offset);offset+=chunk.length;});return bytes;
+      }
+      // Streaming is used in modern browsers; fallback checks the resulting size.
+      const bytes=new Uint8Array(await res.arrayBuffer());
+      if(bytes.length>perImage||bytes.length>totalLimit-total)throw fail('size');
+      return bytes;
+    })();
+    const timeout=new Promise((_,reject)=>{timer=setTimeout(()=>{
+      reject(fail('timeout'));if(ctrl)ctrl.abort();if(reader)reader.cancel().catch(()=>{});
+    },opts.timeoutMs||15000);});
+    try{return await Promise.race([task,timeout]);}
+    catch(error){if(ctrl)ctrl.abort();throw error;}
+    finally{clearTimeout(timer);}
+  }
+  for(const chapter of out.chapters){
+    if(!/<img\b/i.test(chapter.html||''))continue;
+    const doc=new DOMParser().parseFromString(chapter.html,'text/html');let changed=false;
+    for(const img of doc.querySelectorAll('img')){
+      if(img.hasAttribute('srcset')||img.hasAttribute('sizes')){img.removeAttribute('srcset');img.removeAttribute('sizes');changed=true;}
+      const raw=(img.getAttribute('src')||'').trim();
+      // Only imported web/data images are affected by the text-only choice.
+      if(!/^(?:https?:|\/\/|data:)/i.test(raw))continue;
+      changed=true;
+      if(mode==='omit'){img.remove();continue;}
+      let key=raw;
+      if(!/^data:/i.test(raw)){
+        try{const url=new URL(raw.startsWith('//')?'https:'+raw:raw);if(!/^https?:$/.test(url.protocol))throw 0;url.hash='';key=url.href;}
+        catch(_){throw fail('network');}
+      }
+      if(!cache.has(key)){
+        if(++count>countLimit)throw fail('size');
+        if(opts.onProgress)opts.onProgress(count);
+        let bytes,dataMime;
+        if(/^data:/i.test(key)){
+          const match=key.match(/^data:(image\/(?:png|jpe?g|gif|webp|bmp));base64,([a-z0-9+/=]+)$/i);
+          if(!match)throw fail('format');
+          dataMime=match[1].toLowerCase().replace('image/jpg','image/jpeg');
+          if(match[2].length>Math.ceil(perImage/3)*4)throw fail('size');
+          try{bytes=b64ToU8(match[2]);}catch(_){throw fail('format');}
+        }else{
+          try{bytes=await download(key);}catch(error){
+            if(String(error.message).startsWith(t('errWebImages')))throw error;
+            throw fail('network');
+          }
+        }
+        total+=bytes.length;if(bytes.length>perImage||total>totalLimit)throw fail('size');
+        let mime=rasterMime(bytes);
+        if(dataMime&&dataMime!==mime)throw fail('format');
+        try{
+          if(mime==='image/png')checkWebPng(bytes);
+          await (opts.decodeImage||decodeWebImage)(bytes,mime,opts.timeoutMs||15000);
+        }catch(_){throw fail('format');}
+        // WebP/BMP are not EPUB core image types. Re-encode without resizing or
+        // changing colour; the selected e-ink processing runs afterwards.
+        if(mime==='image/webp'||mime==='image/bmp'){
+          try{bytes=await webRasterToPng(bytes,mime,opts.timeoutMs||15000);}catch(_){throw fail('format');}
+          mime='image/png';if(bytes.length>perImage)throw fail('size');
+          // Count encoded size as well as downloaded size conservatively.
+          total+=bytes.length;if(total>totalLimit)throw fail('size');
+        }
+        const ext={'image/png':'png','image/jpeg':'jpg','image/gif':'gif'}[mime];
+        let serial=count,name;do{name='web_'+String(serial++).padStart(4,'0')+'.'+ext;}while(names.has(name));
+        names.add(name);out.images.push({name,mime,b64:u8ToB64(bytes)});cache.set(key,name);
+      }
+      img.setAttribute('src','images/'+cache.get(key));
+      ['srcset','sizes','loading','crossorigin','referrerpolicy'].forEach(attr=>img.removeAttribute(attr));
+    }
+    if(changed)chapter.html=doc.body.innerHTML;
+  }
+  return out;
+}
+function checkWebPng(bytes){
+  function crc(data){let value=0xffffffff;for(const byte of data){value^=byte;for(let i=0;i<8;i++)value=(value>>>1)^((value&1)?0xedb88320:0);}return (value^0xffffffff)>>>0;}
+  const view=new DataView(bytes.buffer,bytes.byteOffset,bytes.byteLength);let offset=8,idat=false,end=false;
+  while(offset<bytes.length){
+    if(offset+12>bytes.length)throw new Error('Truncated PNG');
+    const length=view.getUint32(offset),next=offset+length+12;
+    if(next>bytes.length)throw new Error('Truncated PNG payload');
+    const type=String.fromCharCode(...bytes.subarray(offset+4,offset+8));
+    if(crc(bytes.subarray(offset+4,next-4))!==view.getUint32(next-4))throw new Error('PNG checksum mismatch');
+    if(offset===8&&(type!=='IHDR'||length!==13||!view.getUint32(offset+8)||!view.getUint32(offset+12)))throw new Error('Invalid PNG header');
+    if(offset!==8&&type==='IHDR')throw new Error('Duplicate PNG header');
+    if(type==='IDAT')idat=true;
+    if(type==='IEND'){if(length||!idat||next!==bytes.length)throw new Error('Invalid PNG end');end=true;}
+    offset=next;
+  }
+  if(!end)throw new Error('Missing PNG end');
+}
+async function decodeWebImage(bytes,mime,timeoutMs){
+  const url=URL.createObjectURL(new Blob([bytes],{type:mime})),image=new Image();let timer;
+  try{
+    await new Promise((resolve,reject)=>{
+      timer=setTimeout(()=>reject(new Error('Image decoding timed out')),timeoutMs);
+      image.onerror=()=>reject(new Error('Image decoding failed'));
+      image.onload=()=>{
+        const w=image.naturalWidth,h=image.naturalHeight;
+        if(!w||!h||w*h>12000000){reject(new Error('Unsupported image dimensions'));return;}
+        resolve();
+      };
+      image.src=url;
+    });
+  }finally{clearTimeout(timer);image.onload=image.onerror=null;image.src='';URL.revokeObjectURL(url);}
+}
+async function webRasterToPng(bytes,mime,timeoutMs){
+  const url=URL.createObjectURL(new Blob([bytes],{type:mime})),image=new Image();let timer;
+  try{
+    return await new Promise((resolve,reject)=>{
+      timer=setTimeout(()=>reject(new Error('Image decoding timed out')),timeoutMs);
+      image.onerror=()=>reject(new Error('Image decoding failed'));
+      image.onload=()=>{
+        try{
+          const w=image.naturalWidth,h=image.naturalHeight;
+          if(!w||!h||w*h>12000000)throw new Error('Image dimensions exceed conversion limit');
+          const canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;
+          const context=canvas.getContext('2d');if(!context)throw new Error('Canvas unavailable');
+          context.drawImage(image,0,0);
+          canvas.toBlob(blob=>{
+            canvas.width=canvas.height=1;
+            if(!blob){reject(new Error('PNG encoding failed'));return;}
+            blob.arrayBuffer().then(buf=>resolve(new Uint8Array(buf)),reject);
+          },'image/png');
+        }catch(error){reject(error);}
+      };
+      image.src=url;
+    });
+  }finally{clearTimeout(timer);image.onload=image.onerror=null;image.src='';URL.revokeObjectURL(url);}
+}
+function passiveRasterMime(mime){return /^image\/(?:png|jpeg|gif|bmp|webp)$/i.test(String(mime||''));}
+function passiveRasterBytes(image){
+  try{
+    const b=b64ToU8(image.b64.slice(0,24));let mime='';
+    if(b.length>=8&&[137,80,78,71,13,10,26,10].every((v,i)=>b[i]===v))mime='image/png';
+    else if(b[0]===255&&b[1]===216&&b[2]===255)mime='image/jpeg';
+    else if(/^GIF8[79]a$/.test(String.fromCharCode(...b.subarray(0,6))))mime='image/gif';
+    else if(b[0]===66&&b[1]===77)mime='image/bmp';
+    else if(String.fromCharCode(...b.subarray(0,4))==='RIFF'&&String.fromCharCode(...b.subarray(8,12))==='WEBP')mime='image/webp';
+    return mime===String(image.mime).toLowerCase();
+  }catch(_){return false;}
+}
 async function buildEpub(book, onWarn){
+  book=await prepareBookResources(book);
+  const imageNames=new Set();
+  for(const image of book.images||[]){
+    if(!passiveRasterMime(image.mime)||!passiveRasterBytes(image)||typeof image.name!=='string'||!image.name||image.name==='.'||image.name==='..'||/[\\/\x00-\x1f]/.test(image.name)||imageNames.has(image.name)||!/^[a-z0-9+/]*={0,2}$/i.test(image.b64||''))throw new Error(t('errUnsafeImage'));
+    imageNames.add(image.name);
+  }
   const warn=onWarn||function(){};
   epubQualityWarnings(book).forEach(warn);
   const fixed = book.pdfMode === 'fixed';
@@ -3044,6 +3293,7 @@ async function processImageBytes(u8, mime, opts){
    and <stem>.dict (definitions concatenated). This turns a simple word<TAB>def
    list into those three files. Pure + round-trip tested. */
 function parseWordlist(text){
+  if(String(text||'').includes('\u0000'))throw new Error(t('errDictionaryUnsafe'));
   const rows = [];
   String(text || '').replace(/\r/g, '').split('\n').forEach(function(line){
     if(!line.trim()) return;
@@ -3068,8 +3318,10 @@ function buildStarDict(rows, opts){
   const order = [];
   rows.forEach(function(r){
     const w = r[0];
-    if(merged[w] == null){ merged[w] = r[1]; order.push(w); }
-    else merged[w] = merged[w] + (html ? '<br/>' : '\n') + r[1];
+    if(typeof w!=='string'||typeof r[1]!=='string'||!w||w.includes('\u0000')||r[1].includes('\u0000'))throw new Error(t('errDictionaryUnsafe'));
+    const definition=html?dictionaryHtml(r[1]):r[1];
+    if(merged[w] == null){ merged[w] = definition; order.push(w); }
+    else merged[w] = merged[w] + (html ? '<br/>' : '\n') + definition;
   });
   order.sort(function(a, b){
     const A = enc.encode(a), B = enc.encode(b), n = Math.min(A.length, B.length);
@@ -3081,6 +3333,7 @@ function buildStarDict(rows, opts){
   let offset = 0;
   order.forEach(function(w){
     const defBytes = enc.encode(merged[w]);
+    if(defBytes.length>0xffffffff||offset+defBytes.length>0xffffffff)throw new Error(t('errDictionaryUnsafe'));
     const wordBytes = enc.encode(w);
     const idxEntry = new Uint8Array(wordBytes.length + 1 + 8);
     idxEntry.set(wordBytes, 0);
@@ -3098,12 +3351,24 @@ function buildStarDict(rows, opts){
   const ifo =
     'StarDict\'s dict ifo file\n' +
     'version=2.4.2\n' +
-    'bookname=' + name.replace(/\n/g, ' ') + '\n' +
+    'bookname=' + String(name).replace(/[\x00-\x1f\x7f]/g, ' ') + '\n' +
     'wordcount=' + order.length + '\n' +
     'idxfilesize=' + idx.length + '\n' +
     'idxoffsetbits=32\n' +
     (html ? 'sametypesequence=h\n' : 'sametypesequence=m\n');
   return { ifo: enc.encode(ifo), idx: idx, dict: dict, wordcount: order.length };
+}
+function dictionaryHtml(value){
+  const doc=new DOMParser().parseFromString(String(value||''),'text/html');
+  doc.querySelectorAll('script,style,iframe,object,embed,svg,math,form,link,meta').forEach(node=>node.remove());
+  function visit(node){
+    if(node.nodeType===3)return escHtmlText(node.textContent);
+    if(node.nodeType!==1)return '';
+    const tag=node.tagName.toLowerCase();if(tag==='br')return '<br/>';
+    const body=Array.from(node.childNodes).map(visit).join('');
+    return /^(b|strong|em|i|u|s|sub|sup|p|ul|ol|li)$/.test(tag)?'<'+tag+'>'+body+'</'+tag+'>':body;
+  }
+  return Array.from(doc.body.childNodes).map(visit).join('');
 }
 
 /* ============================ sleep-screen BMP writer ============================ */
@@ -3305,7 +3570,7 @@ let parsed = null; // {source book fields, raw}
 let ingestToken = 0;
 let currentFileBase = 'book';
 let lastBuiltBlob=null, lastBuiltName='';
-let pdfReview=null,bookRevision=0;
+let pdfReview=null,bookRevision=0,xtcExportToken=0;
 function invalidateBookOutput(){bookRevision++;hideDeviceCard();if(parsed)setStatus(t('stReady'),'ok');}
 async function reparseCurrentPdf(){
   const previous=parsed,source=previous._sourceFile,token=++ingestToken;
@@ -3481,6 +3746,7 @@ function currentBook(){
 let galleyPage = 1;
 const GALLEY_PAGE_SIZE = 20;
 function resetGalleyView(){
+  xtcExportToken++;$('buildXtc').disabled=false;
   if(pdfReview)pdfReview.close(true);
   galleyPage = 1;
   $('chapterSearch').value = '';
@@ -3547,11 +3813,32 @@ function renderPreview(){
   const b=currentBook(), c=b.chapters[0];
   if(!c){ el.classList.remove('show'); el.innerHTML=''; return; }
   if(el.classList.contains('show')){
-    let body=normalizeForEngine(c.html||'<p>&nbsp;</p>');
-    (b.images||[]).forEach(function(im){ body=body.split('images/'+im.name).join('data:'+(im.mime||'image/png')+';base64,'+im.b64); });
-    el.innerHTML='<div class="preview-label">'+escXml(t('previewLabel'))+' · '+escXml(c.title)+'</div>'+body;
+    const label=document.createElement('div');label.className='preview-label';label.textContent=t('previewLabel')+' · '+c.title;
+    el.replaceChildren(label,safeBookPreview(normalizeForEngine(c.html||'<p>&nbsp;</p>'),b.images||[]));
     if(btn) btn.textContent=t('previewClose');
   } else if(btn) btn.textContent=t('previewBtn');
+}
+// Never insert source HTML or interpolate image metadata into live markup.
+// Preview is inert: no links, events, styles, SVG, forms or remote requests.
+function safeBookPreview(html,images){
+  const source=new DOMParser().parseFromString(String(html||''),'text/html');
+  const allowed=/^(p|div|span|h[1-6]|em|strong|b|i|u|s|sup|sub|br|hr|blockquote|ul|ol|li|a|img|pre|code|table|thead|tbody|tfoot|tr|td|th)$/;
+  function copy(node){
+    if(node.nodeType===3)return document.createTextNode(node.textContent);
+    if(node.nodeType!==1||!allowed.test(node.tagName.toLowerCase()))return document.createDocumentFragment();
+    const tag=node.tagName.toLowerCase(),result=document.createElement(tag);
+    if(tag==='img'){
+      const image=images.find(im=>'images/'+im.name===node.getAttribute('src'));
+      const inline=node.getAttribute('src')||'';
+      if(image&&passiveRasterMime(image.mime)&&/^[a-z0-9+/]*={0,2}$/i.test(image.b64||''))result.src='data:'+image.mime+';base64,'+image.b64;
+      else if(/^data:image\/(?:png|jpeg|gif|bmp|webp);base64,[a-z0-9+/]+={0,2}$/i.test(inline))result.src=inline;
+      else {const placeholder=document.createElement('span');placeholder.textContent=t('previewImagePending');return placeholder;}
+      result.alt=node.getAttribute('alt')||'';
+    }
+    if(tag==='td'||tag==='th')for(const attr of ['rowspan','colspan']){const n=Number(node.getAttribute(attr));if(Number.isInteger(n)&&n>0&&n<=100)result.setAttribute(attr,String(n));}
+    node.childNodes.forEach(child=>result.appendChild(copy(child)));return result;
+  }
+  const fragment=document.createDocumentFragment();source.body.childNodes.forEach(node=>fragment.appendChild(copy(node)));return fragment;
 }
 function togglePreview(){
   const el=$('preview'); if(!el) return;
@@ -3701,17 +3988,21 @@ function startBatch(files){
   setStatus(t('batchReady'), 'ok');
 }
 async function runBatch(){
-  const states = batchFiles.map(function(){ return t('batchWaiting'); });
+  const owner=batchFiles,token=ingestToken,revision=bookRevision,files=batchFiles.slice(),resourceMode=$('webImages').value;
+  const isCurrent=()=>owner===batchFiles&&token===ingestToken&&revision===bookRevision;
+  const states = files.map(function(){ return t('batchWaiting'); });
   const zip = new JSZip();
   let done = 0, failed = 0;
-  for(let i = 0; i < batchFiles.length; i++){
-    const f = batchFiles[i];
+  for(let i = 0; i < files.length; i++){
+    if(!isCurrent())return;
+    const f = files[i];
     states[i] = t('batchWorking'); renderBatchList(states);
     setStatus(t('batchWorking') + ' ' + (i+1) + '/' + batchFiles.length);
     try{
       const b = await parseToBook(f);
+      if(!isCurrent())return;
       const base = baseName(f.name);
-      const book = {
+      let book = {
         title: b.title || base,
         author: b.author || '',
         language: b.language || $('lang').value.trim() || (typeof LANG!=='undefined'?LANG:'en'),
@@ -3723,17 +4014,21 @@ async function runBatch(){
           : Array.isArray(b.outlineChapters) && ($('split').value==='auto'||$('split').value==='toc') ? b.outlineChapters
           : splitChapters(b.html, $('split').value)
       };
+      book=await prepareBookResources(book,{mode:resourceMode,onProgress:()=>{if(isCurrent())setStatus(t('stWebImages'));}});
+      if(!isCurrent())return;
       const check=validateOutputOptions(book);
       if(check.errors.length) throw new Error(check.errors.join(' '));
       check.warnings.forEach(function(w){ log('WARNING: '+w); });
       if(shouldProcessBookImages(book)) book.images = await processBookImages(book);
       const blob = await buildEpub(book);
+      if(!isCurrent())return;
       const stem = (book.title || base).replace(/[^\w\-. ]+/g,'_').trim().replace(/\s+/g,'_') || 'book';
       let name = stem + '.epub', suffix = 2;
       while(zip.file(name)) name = stem + '_' + suffix++ + '.epub';
       zip.file(name, await blob.arrayBuffer());   // arrayBuffer works everywhere Blob does
       states[i] = t('batchDone') + ' \u00b7 ' + book.chapters.length; done++;
     }catch(err){
+      if(!isCurrent())return;
       console.error(err);
       log(f.name + ': ' + err.message);
       states[i] = t('batchFailed'); failed++;
@@ -3743,15 +4038,16 @@ async function runBatch(){
   if(!done){ setStatus(t('batchNone'), 'err'); return; }
   setStatus(t('stBuilding'));
   const out = await zip.generateAsync({ type:'blob', mimeType:'application/zip' });
+  if(!isCurrent())return;
   const zipName = 'read-maker-' + done + '-books.zip';
   const a = document.createElement('a');
   a.href = URL.createObjectURL(out); a.download = zipName;
   document.body.appendChild(a); a.click();
   setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 1500);
-  lastBuiltBlob = out; lastBuiltName = zipName;
+  hideDeviceCard();
   log('Batch finished: ' + done + ' converted, ' + failed + ' failed');
-  setStatus(t('stSaved') + ' ' + zipName + (failed ? ' (' + failed + ' \u2717)' : ''), 'ok');
-  showDeviceCard(zipName);
+  setStatus(t('stSaved') + ' ' + zipName + (failed ? ' (' + failed + ' \u2717)' : '')+'. '+t('batchExtract'), 'ok');
+  log(t('batchExtract'));
 }
 
 async function makeSleepScreen(file, transparent){
@@ -3894,10 +4190,12 @@ function handleSleepPick(){
 
 window.__onLang = function(){ if(parsed){invalidateBookOutput();renderGalley();} };
 function showDeviceCard(name){ try{ $('deviceDone').textContent=t('devDone')+' '+name; $('deviceCard').classList.add('show'); }catch(e){} }
-function hideDeviceCard(){ try{ if(typeof currentSendXhr!=='undefined' && currentSendXhr){ try{ currentSendXhr.abort(); }catch(e){} currentSendXhr=null; } if(typeof currentSendWs!=='undefined' && currentSendWs){ try{ currentSendWs.__cancelled=true; currentSendWs.close(); }catch(e){} currentSendWs=null; } if(typeof currentSendTimer!=='undefined' && currentSendTimer){ clearTimeout(currentSendTimer); currentSendTimer=null; } $('deviceCard').classList.remove('show'); lastBuiltBlob=null; lastBuiltName=''; const bar=$('sendBar'); if(bar) bar.classList.remove('show'); const ss=$('sendStatus'); if(ss){ ss.textContent=''; ss.className='sendstatus'; } }catch(e){} }
+function hideDeviceCard(){ try{ if(typeof currentSendXhr!=='undefined' && currentSendXhr){ const xhr=currentSendXhr;currentSendXhr=null;try{ xhr.abort(); }catch(e){} } if(typeof currentSendWs!=='undefined' && currentSendWs){ const ws=currentSendWs;currentSendWs=null;try{ ws.__cancelled=true;ws.close(); }catch(e){} } if(typeof currentSendTimer!=='undefined')resetSendUi(); $('deviceCard').classList.remove('show'); lastBuiltBlob=null; lastBuiltName=''; const bar=$('sendBar'); if(bar) bar.classList.remove('show'); const ss=$('sendStatus'); if(ss){ ss.textContent=''; ss.className='sendstatus'; } }catch(e){} }
 
 async function exportComicToXtc(){
   if(!parsed || !parsed.comic || !parsed.images || !parsed.images.length) return;
+  const owner=parsed,revision=bookRevision,token=ingestToken,request=++xtcExportToken,images=parsed.images.slice();
+  const owns=()=>owner===parsed&&token===ingestToken&&request===xtcExportToken;
   const bx=$('buildXtc'); bx.disabled=true; hideDeviceCard(); logEl.textContent='';
   try{
     let sz=$('einkSize').value; if(sz==='none') sz='480x800';
@@ -3908,27 +4206,40 @@ async function exportComicToXtc(){
     const title=$('title').value.trim()||currentFileBase, author=$('author').value.trim();
     const chapters=comicChaptersFromDirs(parsed.pageDirs);
     if(chapters.length) log('Chapter table: '+chapters.length+' chapter(s) from archive folders');
-    const writer=createXtcWriter(parsed.images.map(()=>({w:W,h:H})), {twoBit, title, author, chapters});
-    for(let i=0;i<parsed.images.length;i++){
-      const im=parsed.images[i];
-      setStatus(t('stXtc')+' '+(i+1)+'/'+parsed.images.length);
-      writer.addPage(await imageToGrayPage(b64ToU8(im.b64), im.mime, W, H, levels, dither));
+    const writer=createXtcWriter(images.map(()=>({w:W,h:H})), {twoBit, title, author, chapters});
+    for(let i=0;i<images.length;i++){
+      if(!owns())return;if(revision!==bookRevision)throw new Error(t('pdfReviewRebuild'));
+      const im=images[i];
+      setStatus(t('stXtc')+' '+(i+1)+'/'+images.length);
+      const page=await imageToGrayPage(b64ToU8(im.b64), im.mime, W, H, levels, dither);
+      if(!owns())return;if(revision!==bookRevision)throw new Error(t('pdfReviewRebuild'));
+      writer.addPage(page);
     }
     const buf=writer.finish();
     const name=(title||currentFileBase).replace(/[^\w\-. ]+/g,'_').trim().replace(/\s+/g,'_')+(twoBit?'.xtch':'.xtc');
     const blob=new Blob([buf],{type:'application/octet-stream'});
     const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; document.body.appendChild(a); a.click();
     setTimeout(()=>{URL.revokeObjectURL(a.href); a.remove();},1500);
-    log('Wrote '+name+' ('+parsed.images.length+' pages, '+(twoBit?'2-bit XTCH':'1-bit XTC')+', '+W+'x'+H+', '+dither+', '+fmtSize(buf.length)+')');
+    log('Wrote '+name+' ('+images.length+' pages, '+(twoBit?'2-bit XTCH':'1-bit XTC')+', '+W+'x'+H+', '+dither+', '+fmtSize(buf.length)+')');
     lastBuiltBlob=blob; lastBuiltName=name;
     setStatus(t('stSaved')+' '+name,'ok'); showDeviceCard(name);
-  }catch(err){ console.error(err); log('Error: '+err.message); setStatus(t('errPrefix')+' '+err.message,'err'); }
-  finally{ bx.disabled=false; }
+  }catch(err){ if(owns()){console.error(err);log('Error: '+err.message);setStatus(t('errPrefix')+' '+err.message,'err');} }
+  finally{ if(request===xtcExportToken)bx.disabled=false; }
 }
 
 function normalizeDeviceIp(v){
-  v=(v||'').trim().replace(/^https?:\/\//i,'').replace(/\/.*$/,'');
-  return v;
+  try{return deviceAddress(v).host;}catch(_){return '';}
+}
+function deviceAddress(value){
+  let raw=String(value||'').trim();
+  if(!raw||/[\x00-\x20\\]/.test(raw))throw new Error('Invalid device address');
+  if(!/^https?:\/\//i.test(raw)){
+    if(raw[0]!=='['&&(raw.match(/:/g)||[]).length>1)raw='['+raw+']';
+    raw='http://'+raw;
+  }
+  const url=new URL(raw);
+  if(!/^https?:$/.test(url.protocol)||!url.hostname||url.username||url.password)throw new Error('Invalid device address');
+  return url;
 }
 function normalizeDevicePath(v){
   v=(v||'').trim().replace(/\\/g,'/');
@@ -3963,26 +4274,26 @@ function finishDeviceSend(statusEl, message, cls, logMessage){
   if(logMessage) log(logMessage);
 }
 function wsPortForHost(ip){
-  const m=String(ip||'').match(/^(?:\[[^\]]+\]|[^:]+):(\d+)$/);
-  return m ? ((parseInt(m[1],10)||80)+1) : 81;
+  const port=Number(deviceAddress(ip).port)||80;
+  if(port>=65535)throw new Error('No adjacent WebSocket port');return port+1;
 }
 function wsHostForDevice(ip){
-  const s=String(ip||'');
-  return s.indexOf(':')>=0 && s[0]!=='[' && !/^[^:]+:\d+$/.test(s) ? '['+s+']' : s.replace(/^\[|\]$/g,'');
+  return deviceAddress(ip).hostname;
 }
 function startHttpUpload(ip, dest, statusEl, bar, fill, blob, name){
   const fd=new FormData(); fd.append('file', blob, name);
   const xhr=new XMLHttpRequest(); currentSendXhr=xhr;
   touchSendActivity();
   xhr.open('POST', 'http://'+ip+'/upload?path=' + encodeURIComponent(dest), true);
-  xhr.upload.onprogress=function(e){ touchSendActivity(); if(e.lengthComputable) fill.style.width=Math.round(e.loaded/e.total*100)+'%'; };
+  xhr.upload.onprogress=function(e){ if(currentSendXhr!==xhr)return;touchSendActivity();if(e.lengthComputable)fill.style.width=Math.round(e.loaded/e.total*100)+'%'; };
   xhr.onload=function(){
+    if(currentSendXhr!==xhr)return;
     const st=xhr.status, body=xhr.responseText||'';
     if(st===200) finishDeviceSend(statusEl,t('sendOk'),'ok','Uploaded '+name+' to '+ip+dest);
     else if(st===400 && /already exists/i.test(body)) finishDeviceSend(statusEl,t('sendErrExists'),'err');
     else finishDeviceSend(statusEl,t('sendErrOther')+' '+(body||st),'err');
   };
-  xhr.onerror=function(){ finishDeviceSend(statusEl,t('sendErrNet'),'err'); };
+  xhr.onerror=function(){ if(currentSendXhr===xhr)finishDeviceSend(statusEl,t('sendErrNet'),'err'); };
   xhr.onabort=function(){ if(currentSendXhr===xhr) currentSendXhr=null; };
   xhr.send(fd);
 }
@@ -3994,7 +4305,7 @@ function startWebSocketUpload(ip, dest, statusEl, fill, blob, name, fallback){
   let offset=0, settled=false, fallbackStarted=false;
   const safeName=String(name).replace(/[:\r\n]/g,'_');
   const failToHttp=function(){
-    if(settled||fallbackStarted||ws.__cancelled) return;
+    if(settled||fallbackStarted||ws.__cancelled||currentSendWs!==ws) return;
     fallbackStarted=true; currentSendWs=null; try{ ws.close(); }catch(e){}
     fallback();
   };
@@ -4003,8 +4314,9 @@ function startWebSocketUpload(ip, dest, statusEl, fill, blob, name, fallback){
     const end=Math.min(offset+65536, blob.size);
     if(end>offset){ ws.send(blob.slice(offset,end)); offset=end; }
   };
-  ws.onopen=function(){ touchSendActivity(); ws.send('START:'+safeName+':'+blob.size+':'+dest); };
+  ws.onopen=function(){ if(currentSendWs!==ws||ws.__cancelled)return;touchSendActivity();ws.send('START:'+safeName+':'+blob.size+':'+dest); };
   ws.onmessage=function(ev){
+    if(currentSendWs!==ws||ws.__cancelled)return;
     touchSendActivity();
     const msg=typeof ev.data==='string' ? ev.data : '';
     if(msg==='READY'){ sendChunk(); return; }
@@ -4097,7 +4409,7 @@ if($('outputPreset')) $('outputPreset').addEventListener('change',applyOutputPre
   $('outputPreset').value='custom';
   await reparseCurrentPdf();
 }));
-['einkOn','einkLevels','einkDither','einkSize','fwProfile','pdfQuality'].forEach(id=>$(id).addEventListener('change',()=>{if(parsed)invalidateBookOutput();}));
+['einkOn','einkLevels','einkDither','einkSize','fwProfile','pdfQuality','webImages'].forEach(id=>$(id).addEventListener('change',()=>{if(parsed)invalidateBookOutput();else bookRevision++;}));
 document.addEventListener('change',event=>{if(event.target.id==='deviceTarget'&&parsed)invalidateBookOutput();});
 
 $('fetchBtn').addEventListener('click',()=>{ const u=$('url').value.trim(); if(u) fetchArticle(u); });
@@ -4128,7 +4440,7 @@ async function handle(file){
   parsed=null; hideDeviceCard();
   setStatus(t('stParsing'));
   try{ await parseFile(file, token); }
-  catch(err){ console.error(err); log('Error: '+err.message); setStatus(t('errPrefix')+' '+err.message,'err'); $('galley').innerHTML='<div class="empty"><div class="mk">&para;</div><p>'+escXml(err.message)+'</p></div>'; }
+  catch(err){ if(token!==ingestToken)return;console.error(err);log('Error: '+err.message);setStatus(t('errPrefix')+' '+err.message,'err');$('galley').innerHTML='<div class="empty"><div class="mk">&para;</div><p>'+escXml(err.message)+'</p></div>'; }
 }
 
 function ingestArticle(htmlStr, baseUrl, sourceLabel){
@@ -4174,13 +4486,14 @@ async function fetchArticle(url){
     const timer = ctrl ? setTimeout(()=>ctrl.abort(), 20000) : null;
     let res;
     try{
-      res = await fetch(url, ctrl ? {redirect:'follow', signal:ctrl.signal} : {redirect:'follow'});
+      res = await fetch(url, {redirect:'follow',credentials:'omit',referrerPolicy:'no-referrer',...(ctrl?{signal:ctrl.signal}:{})});
       if(!res) throw new Error(t('errTimeout'));
       if(!res.ok) throw new Error(t('errHttp')+' '+res.status+')');
-      html = await res.text();
+      html = await readArticleResponse(res);
     } finally{ if(timer) clearTimeout(timer); }
   }catch(err){
     if(token !== ingestToken) return;
+    if(err&&err.message===t('errArticleLarge')){setStatus(err.message,'err');log(err.message);return;}
     log('Direct fetch failed: '+err.message);
     const timedOut=!!(err && err.name==='AbortError');
     const httpFailure=/^Situs menolak permintaan|^The site refused the request/.test(String(err && err.message||''));
@@ -4192,6 +4505,21 @@ async function fetchArticle(url){
   if(token !== ingestToken) return;
   try{ ingestArticle(html, url, url); }
   catch(err){ if(token !== ingestToken) return; console.error(err); log('Error: '+err.message); setStatus(t('errPrefix')+' '+err.message,'err'); }
+}
+async function readArticleResponse(response,maxBytes){
+  const limit=maxBytes||8*1024*1024;
+  if(Number(response.headers&&response.headers.get('content-length'))>limit)throw new Error(t('errArticleLarge'));
+  if(response.body&&typeof response.body.getReader==='function'){
+    const reader=response.body.getReader(),decoder=new TextDecoder('utf-8'),parts=[];let size=0;
+    try{
+      while(true){const part=await reader.read();if(part.done)break;size+=part.value.byteLength;if(size>limit)throw new Error(t('errArticleLarge'));parts.push(decoder.decode(part.value,{stream:true}));}
+      parts.push(decoder.decode());return parts.join('');
+    }catch(error){try{await reader.cancel();}catch(_){}throw error;}
+    finally{reader.releaseLock();}
+  }
+  const text=await response.text();
+  if(text.length>limit||new Blob([text]).size>limit)throw new Error(t('errArticleLarge'));
+  return text;
 }
 
 $('buildXtc').addEventListener('click', exportComicToXtc);
@@ -4216,8 +4544,11 @@ $('build').addEventListener('click',async()=>{
   const owner=parsed,revision=bookRevision;
   const btn=$('build'); btn.disabled=true; setStatus(t('stBuilding'));
   try{
-    const book=currentBook();
+    let book=currentBook();
     book.chapters=book.chapters.map(copyChapter);
+    book=await prepareBookResources(book,{mode:$('webImages').value,onProgress:()=>{if(owner===parsed&&revision===bookRevision)setStatus(t('stWebImages'));}});
+    if(owner!==parsed)return;
+    if(revision!==bookRevision)throw new Error(t('pdfReviewRebuild'));
     const check=validateOutputOptions(book);
     if(check.errors.length) throw new Error(check.errors.join(' '));
     check.warnings.forEach(function(w){ log('WARNING: '+w); });
@@ -4235,8 +4566,8 @@ $('build').addEventListener('click',async()=>{
     log('Done: '+name+' ('+fmtSize(blob.size)+')');
     lastBuiltBlob=blob; lastBuiltName=name;
     setStatus(t('stSaved')+' '+name,'ok'); showDeviceCard(name);
-  }catch(err){ console.error(err); log('Error: '+err.message); setStatus(t('errPrefix')+' '+err.message,'err'); }
-  finally{ btn.disabled=!parsed||!!parsed._pdfReparsing; }
+  }catch(err){ if(owner===parsed){const message=revision===bookRevision?err.message:t('pdfReviewRebuild');console.error(err);log('Error: '+message);setStatus(t('errPrefix')+' '+message,'err');} }
+  finally{ if(owner===parsed)btn.disabled=!parsed||!!parsed._pdfReparsing; }
 });
 
 // sanity: JSZip present?

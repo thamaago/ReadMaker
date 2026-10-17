@@ -33,7 +33,7 @@ function ok(condition,message){
   else {failed++;console.log('  FAIL '+message);}
 }
 function bytesFrom(b64){return Buffer.from(b64,'base64');}
-const png=bytesFrom('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+M8AAAMBAQDJ/pLvAAAAAElFTkSuQmCC');
+const png=bytesFrom('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAAAAAA6fptVAAAACklEQVR4nGNgAAAAAgABSK+kcQAAAABJRU5ErkJggg==');
 
 function chapterBook(parsed,count){
   const images=[]; const chapters=[];

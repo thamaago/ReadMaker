@@ -1,5 +1,5 @@
 name: Validate EPUB fixtures
-description: Build representative ReadMaker EPUBs and enforce EPUBCheck without warnings.
+description: Build representative EPUBs and enforce raster MIME/PNG integrity plus EPUBCheck without warnings.
 runs:
   using: composite
   steps:

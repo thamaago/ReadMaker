@@ -2,6 +2,7 @@ const fs=require('fs');const {JSDOM,VirtualConsole}=require('jsdom');const JSZip
 const html=fs.readFileSync(require('path').join(__dirname,'..','index.html'),'utf8');
 const dom=new JSDOM('<!DOCTYPE html><body></body>');
 global.window=dom.window;global.document=dom.window.document;global.DOMParser=dom.window.DOMParser;global.XMLSerializer=dom.window.XMLSerializer;global.JSZip=JSZip;global.TextEncoder=require('util').TextEncoder;global.TextDecoder=require('util').TextDecoder;
+global.t=k=>k;
 let core=[...html.matchAll(/<script(?![^>]*src)[^>]*>([\s\S]*?)<\/script>/g)].map(x=>x[1]).pop();
 core=core.slice(0,core.indexOf('/* ============================ orchestration')).replace(/^\s*["']use strict["'];\s*/,'');(0,eval)(core);
 let p=0,f=0;const ok=(c,m)=>{c?(p++):(f++,0);console.log((c?'  ok  ':'  FAIL')+' '+m);};
@@ -54,6 +55,13 @@ ok(cur===d.dict.length,'offsets cover the whole .dict exactly');
 const dh=buildStarDict(parseWordlist('a\tone\na\ttwo'),{html:true});
 ok(/sametypesequence=h/.test(dec.decode(dh.ifo)),'html mode sets sametypesequence=h');
 ok(dec.decode(dh.dict).indexOf('<br/>')>=0,'html mode joins duplicates with <br/>');
+const assert=require('node:assert/strict');
+assert.throws(()=>parseWordlist('abc\u0000def\tReadable definition'),/errDictionaryUnsafe/);
+assert.throws(()=>buildStarDict([['abc\u0000def','definition']],{}),/errDictionaryUnsafe/);
+assert.throws(()=>buildStarDict([['abc','bad\u0000definition']],{}),/errDictionaryUnsafe/);
+const safeHtml=dec.decode(buildStarDict([['word','<b onclick="bad()">Bold</b><em>Italic</em><script>bad()</script><img src="https://tracker.invalid/pixel"/><a href="javascript:bad()">Text</a>']],{html:true}).dict);
+assert.match(safeHtml,/<b>Bold<\/b><em>Italic<\/em>/);assert.doesNotMatch(safeHtml,/script|onclick|<img|href=|tracker.invalid/);assert.match(safeHtml,/Text/);
+ok(true,'NUL entries rejected and dictionary HTML preserves formatting without active/network content');
 
 // ---- UI + zip layout ----
 const d2=new JSDOM(html,{runScripts:'dangerously',pretendToBeVisual:true,url:'http://localhost/',virtualConsole:new VirtualConsole(),

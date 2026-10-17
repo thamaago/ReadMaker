@@ -38,7 +38,7 @@ core=core.slice(0,core.indexOf('/* ============================ orchestration'))
   const meta=`<?xml version="1.0" encoding="UTF-8"?>
 <office:document-meta xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0" xmlns:dc="http://purl.org/dc/elements/1.1/">
 <office:meta><dc:title>Kisah Uji</dc:title><dc:creator>Penulis Uji</dc:creator><dc:language>id-ID</dc:language></office:meta></office:document-meta>`;
-  const png=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+M8AAAMBAQDJ/pLvAAAAAElFTkSuQmCC','base64');
+  const png=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAAAAAA6fptVAAAACklEQVR4nGNgAAAAAgABSK+kcQAAAABJRU5ErkJggg==','base64');
   const z=new JSZip();
   z.file('mimetype','application/vnd.oasis.opendocument.text');
   z.file('content.xml',content); z.file('meta.xml',meta); z.file('Pictures/pic1.png',png);

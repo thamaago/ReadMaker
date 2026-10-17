@@ -1,8 +1,9 @@
 const assert=require('node:assert/strict'),fs=require('fs'),{JSDOM,VirtualConsole}=require('jsdom'),JSZip=require('jszip');
+const png=fs.readFileSync(require('path').join(__dirname,'fixtures/validation-diagram.png'));
 const dom=new JSDOM(fs.readFileSync(require('path').join(__dirname,'..','index.html'),'utf8'),{runScripts:'dangerously',url:'http://localhost',virtualConsole:new VirtualConsole(),beforeParse(w){
   w.JSZip=JSZip;
   w.HTMLCanvasElement.prototype.getContext=function(){return {fillStyle:'',fillRect(){}};};
-  w.HTMLCanvasElement.prototype.toBlob=function(cb){cb(new w.Blob([new Uint8Array([1,2,3])],{type:'image/png'}));};
+  w.HTMLCanvasElement.prototype.toBlob=function(cb){cb(new w.Blob([png],{type:'image/png'}));};
 }});
 const w=dom.window,d=w.document;
 w.pdfjsLib={getDocument:()=>({promise:Promise.resolve({

@@ -20,7 +20,7 @@ ok(Buffer.from(d3).toString('latin1')==='xyz','PalmDOC literal run (0x03 + xyz)'
 function buildMobi(){
   const enc=new TextEncoder();
   const text=enc.encode('<html><body><h1>Bab Satu</h1><p>Halo <b>dunia</b> yang indah.</p><img recindex="00001"/><h1>Bab Dua</h1><p>Tamat.</p></body></html>');
-  const png=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+M8AAAMBAQDJ/pLvAAAAAElFTkSuQmCC','base64');
+  const png=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAAAAAA6fptVAAAACklEQVR4nGNgAAAAAgABSK+kcQAAAABJRU5ErkJggg==','base64');
   const author=enc.encode('Sang Penulis'); const stitle=enc.encode('Judul Uji'); const lang=enc.encode('id');
   // EXTH
   function exthRec(type,data){ const b=Buffer.alloc(8+data.length); b.writeUInt32BE(type,0); b.writeUInt32BE(8+data.length,4); Buffer.from(data).copy(b,8); return b; }
