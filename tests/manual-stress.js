@@ -50,7 +50,7 @@ async function measure(name, fn) {
     return { sourceMB: +(text.length / 1048576).toFixed(1), chapters: chapters.length };
   });
 
-  const tinyPng = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+M8AAAMBAQDJ/pLvAAAAAElFTkSuQmCC', 'base64');
+  const tinyPng = fs.readFileSync(path.join(__dirname, 'fixtures/validation-diagram.png'));
   const count = Number(process.env.STRESS_PAGES || 300);
   const cbz = new JSZip();
   for (let i = count; i >= 1; i--) cbz.file(`Chapter ${Math.ceil(i / 50)}/${i}.png`, tinyPng);

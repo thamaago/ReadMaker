@@ -10,6 +10,8 @@ const images=http.createServer((req,res)=>{
  if(!req.url.startsWith('/blocked'))res.setHeader('Access-Control-Allow-Origin','*');
  if(req.url==='/truncated.png'){res.end(png.subarray(0,8));return;}
  if(req.url==='/fake.jpg'){res.end(Buffer.concat([Buffer.from([255,216,255]),Buffer.alloc(64)]));return;}
+ if(req.url==='/fake.webp'){const data=Buffer.alloc(64);data.write('RIFF',0);data.writeUInt32LE(56,4);data.write('WEBP',8);res.end(data);return;}
+ if(req.url==='/fake.bmp'){res.end(Buffer.concat([Buffer.from('BM'),Buffer.alloc(62)]));return;}
  res.setHeader('Content-Type',req.url.startsWith('/colour')?'image/webp':'image/png');res.end(req.url.startsWith('/colour')?webp:png);
 });
 const server=http.createServer((req,res)=>{
@@ -59,16 +61,25 @@ const server=http.createServer((req,res)=>{
   const before=requests.length;await page.selectOption('#webImages','omit');zip=await exportBook('article-text-only');assert.equal(requests.length,before);
   const text=(await Promise.all(zip.file(/chap\d+\.xhtml$/).map(f=>f.async('string')))).join('');assert.match(text,/Text remains available/);assert.doesNotMatch(text,/<img/);
   checks.push('real CORS failure blocks export; explicit text-only retry makes a self-contained EPUB without another image request');
-  for(const file of ['truncated.png','fake.jpg']){
+  for(const file of ['truncated.png','fake.jpg','fake.webp','fake.bmp']){
    const error=await page.evaluate(async url=>{
     try{await prepareBookResources({images:[],chapters:[{html:'<p>Text</p><img src="'+url+'"/>'}]});return null;}
     catch(error){return error.message;}
    },imageBase+'/'+file);
    assert.match(error,/tidak didukung|not supported/);
   }
-  checks.push('signature-only PNG and JPEG with invalid pixel data are rejected, including with image processing disabled');
+  checks.push('signature-only PNG, JPEG, WebP and BMP with invalid pixel data are rejected, including with image processing disabled');
+  const archiveBoundary=await page.evaluate(async()=>{
+   const zip=new JSZip();zip.file('word/document.xml','x'.repeat(4*1024*1024));
+   const data=await zip.generateAsync({type:'uint8array',compression:'DEFLATE'}),view=new DataView(data.buffer,data.byteOffset,data.byteLength);
+   view.setUint32(22,1,true);for(let i=0;i<data.length-4;i++)if(view.getUint32(i,true)===0x02014b50){view.setUint32(i+24,1,true);break;}
+   const loaded=await JSZip.loadAsync(data);let rejection='';
+   try{await readDocumentEntry(loaded.file('word/document.xml'),'verify',32768,{remaining:32768});}catch(error){rejection=error.message;}
+   return {jszipVersion:JSZip.version,compressedBytes:data.length,actualFixtureBytes:4*1024*1024,declaredBytes:1,testStreamLimit:32768,rejection};
+  });
+  assert.match(archiveBoundary.rejection,/batas aman|safe limits/);checks.push('count-only DOCX preflight rejects forged ZIP size using actual streamed bytes and shared budget');
   assert.deepEqual(errors,[]);
-  const result={date:new Date().toISOString(),assetSha256:Object.fromEntries([...assets].map(([n,b])=>[n,crypto.createHash('sha256').update(b).digest('hex')])),checks,layouts,decoded,colourPixels,requests,errors,hardware:'not tested; device not ready'};
+  const result={date:new Date().toISOString(),assetSha256:Object.fromEntries([...assets].map(([n,b])=>[n,crypto.createHash('sha256').update(b).digest('hex')])),checks,layouts,decoded,colourPixels,archiveBoundary,requests,errors,hardware:'not tested; device not ready'};
   fs.writeFileSync(path.join(out,'browser-results.json'),JSON.stringify(result,null,2));console.log(JSON.stringify(result));
  }finally{await browser.close();await Promise.all([new Promise(r=>server.close(r)),new Promise(r=>images.close(r))]);}
 })().catch(error=>{console.error(error);server.close();images.close();process.exitCode=1;});

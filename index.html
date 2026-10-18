@@ -1278,9 +1278,9 @@ function readDocumentEntry(file,type,limit,budget){
       if(stopped)return;size+=chunk.length;
       if(size>max||(budget&&chunk.length>budget.remaining)){stopped=true;stream.pause();reject(new Error(t('errArchiveLimit')));return;}
       if(budget)budget.remaining-=chunk.length;
-      chunks.push(chunk);
+      if(type!=='verify')chunks.push(chunk);
     }).on('error',error=>{if(!stopped){stopped=true;reject(error);}}).on('end',()=>{
-      if(stopped)return;const result=new Uint8Array(size);let offset=0;
+      if(stopped)return;if(type==='verify'){resolve(size);return;}const result=new Uint8Array(size);let offset=0;
       chunks.forEach(chunk=>{result.set(chunk,offset);offset+=chunk.length;});
       resolve(type==='string'?new TextDecoder('utf-8').decode(result):result);
     });stream.resume();
@@ -1844,6 +1844,10 @@ function chaptersFromPdfOutline(entries, pages, pageImageRefs, sourceHtml){
   const cleanPages=pdfRemoveRunningEdges(pages);
   if(leaves[0].page>0)leaves.unshift({title:t('frontMatter'),page:0,level:1});
   const sourceDoc=sourceHtml ? new DOMParser().parseFromString(sourceHtml,'text/html') : null;
+  // Parse page provenance and serialize each block once, rather than once per bookmark.
+  const sourceBlocks=sourceDoc ? Array.from(sourceDoc.body.children).map(node=>({
+    pages:(node.getAttribute('data-rm-pages')||'').split(' ').map(Number),html:node.outerHTML
+  })) : null;
   const out=[]; let previous=-1;
   for(let i=0;i<leaves.length;i++){
     const entry=leaves[i];
@@ -1851,10 +1855,8 @@ function chaptersFromPdfOutline(entries, pages, pageImageRefs, sourceHtml){
     const next=i+1<leaves.length ? Math.max(entry.page+1,leaves[i+1].page) : pages.length;
     const slice=cleanPages.slice(entry.page,next);
     const refs=Array.isArray(pageImageRefs) ? pageImageRefs.slice(entry.page,next) : [];
-    let body=sourceDoc ? Array.from(sourceDoc.body.children).filter(node=>{
-      const numbers=(node.getAttribute('data-rm-pages')||'').split(' ').map(Number);
-      return numbers.some(n=>n>entry.page && n<=next);
-    }).map(node=>node.outerHTML).join('\n') : pdfItemsToHtml(slice,refs);
+    let body=sourceBlocks ? sourceBlocks.filter(block=>block.pages.some(n=>n>entry.page && n<=next))
+      .map(block=>block.html).join('\n') : pdfItemsToHtml(slice,refs);
     if(!body || !body.trim()) continue;
     body=promoteHeadings(body);
     out.push({title:entry.title,level:entry.level,html:body,sourcePages:Array.from({length:next-entry.page},(_,n)=>entry.page+n+1)});
@@ -2126,7 +2128,8 @@ async function pdfToBook(arrayBuffer, mode){
     });
     log('OCR recognized '+recognized+' of '+missingTextPages.length+' textless page(s)');
   }
-  const positionedRefs=pageImageRefs.map(refs=>(refs||[]).map(name=>{const im=images.find(i=>i.name===name);return im&&Number.isFinite(im._sourcePdfY)?{name,y:im._sourcePdfY}:name;}));
+  const imagesByName=new Map();images.forEach(im=>{if(!imagesByName.has(im.name))imagesByName.set(im.name,im);});
+  const positionedRefs=pageImageRefs.map(refs=>(refs||[]).map(name=>{const im=imagesByName.get(name);return im&&Number.isFinite(im._sourcePdfY)?{name,y:im._sourcePdfY}:name;}));
   let entries=[];try{entries=await pdfOutlineEntries(pdf);}catch(e){}
   const breakPages=entries.filter(e=>!e.hasChildren).map(e=>e.page);
   let html=pdfItemsToHtml(pdfRemoveRunningEdges(pages),positionedRefs,{breakPages});
@@ -2575,8 +2578,8 @@ function loadMammoth(){
 }
 async function docxToBody(arrayBuffer){
   // Validate/inflate within a budget before passing the archive to Mammoth.
-  const checked=await loadDocumentZip(arrayBuffer);let total=0;
-  for(const entry of Object.values(checked.files))if(!entry.dir){total+=(await readDocumentEntry(entry,'uint8array')).length;if(total>128*1024*1024)throw new Error(t('errArchiveLimit'));}
+  const checked=await loadDocumentZip(arrayBuffer),budget={remaining:128*1024*1024};
+  for(const entry of Object.values(checked.files))if(!entry.dir)await readDocumentEntry(entry,'verify',undefined,budget);
   const m = await loadMammoth();
   const result = await m.convertToHtml({arrayBuffer}, {styleMap:[
     "p[style-name='Title'] => h1:fresh",
@@ -2936,7 +2939,8 @@ async function prepareBookResources(book, options){
         if(dataMime&&dataMime!==mime)throw fail('format');
         try{
           if(mime==='image/png')checkWebPng(bytes);
-          await (opts.decodeImage||decodeWebImage)(bytes,mime,opts.timeoutMs||15000);
+          // WebP/BMP conversion below already decodes and checks dimensions.
+          if(mime!=='image/webp'&&mime!=='image/bmp')await (opts.decodeImage||decodeWebImage)(bytes,mime,opts.timeoutMs||15000);
         }catch(_){throw fail('format');}
         // WebP/BMP are not EPUB core image types. Re-encode without resizing or
         // changing colour; the selected e-ink processing runs afterwards.
@@ -2957,8 +2961,13 @@ async function prepareBookResources(book, options){
   }
   return out;
 }
+let webPngCrcTable;
 function checkWebPng(bytes){
-  function crc(data){let value=0xffffffff;for(const byte of data){value^=byte;for(let i=0;i<8;i++)value=(value>>>1)^((value&1)?0xedb88320:0);}return (value^0xffffffff)>>>0;}
+  if(!webPngCrcTable){
+    webPngCrcTable=new Uint32Array(256);
+    for(let n=0;n<256;n++){let v=n;for(let bit=0;bit<8;bit++)v=(v>>>1)^((v&1)?0xedb88320:0);webPngCrcTable[n]=v>>>0;}
+  }
+  function crc(data){let value=0xffffffff;for(let n=0;n<data.length;n++)value=(value>>>8)^webPngCrcTable[(value^data[n])&255];return (value^0xffffffff)>>>0;}
   const view=new DataView(bytes.buffer,bytes.byteOffset,bytes.byteLength);let offset=8,idat=false,end=false;
   while(offset<bytes.length){
     if(offset+12>bytes.length)throw new Error('Truncated PNG');
