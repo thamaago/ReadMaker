@@ -19,7 +19,7 @@ ok(/Winston Smith slipped quickly through the glass doors/.test(out),'second pag
 ok((out.match(/<p>/g)||[]).length===2,'two paragraphs total ('+((out.match(/<p>/g)||[]).length)+')');
 
 // de-hyphenation across OCR lines
-const hy=ocrTextToHtml(['the beauti-','ful morning came'].join('\n'));
+const hy=ocrTextToHtml(['the beauti\u00ad','ful morning came'].join('\n'));
 ok(/beautiful morning came/.test(hy),'hyphenated word rejoined');
 ok(/Tukang-tukangnya/.test(ocrTextToHtml('Tukang-\ntukangnya datang.')),'Indonesian repeated word with suffix keeps its hyphen and case');
 ok(/orang-orang/.test(ocrTextToHtml('orang-\norang datang.')),'Indonesian repeated word keeps its hyphen');

@@ -31,7 +31,7 @@ const page0=[
 const page1=[
   I("and finishes the thought.",72,800,190,12),  // continues para2 (prev ended 'here')
   I("Chapter Two",72,760,120,18),                // heading h2
-  I("An ordinary sentence about beauti-",72,740,260,12),
+  I("An ordinary sentence about beauti\u00ad",72,740,260,12),
   I("ful mornings and coffee.",72,724,190,12)     // de-hyphenate -> beautiful
 ];
 const out=pdfItemsToHtml([page0,page1]);

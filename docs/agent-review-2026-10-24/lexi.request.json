@@ -1,0 +1,22 @@
+{
+  "mode": "publishing",
+  "agent": "lexi",
+  "task": "Analisis mutu keluaran EPUB ReadMaker: keutuhan teks, paragraf, OCR, ilustrasi, metadata, navigasi, EPUBCheck dan kompatibilitas CrossPoint. Bedakan bukti tersedia dari klaim belum teruji; baca kode dan laporan saja, tanpa perubahan atau eksekusi.",
+  "capabilities": [
+    "read"
+  ],
+  "projectPath": "C:\\Users\\User\\OneDrive\\Dokumen\\GitHub\\ReadMaker",
+  "backend": "offline",
+  "resources": [
+    "index.html",
+    "pdf-review.js",
+    "device-compatibility.js",
+    "responsive.css",
+    "README.md",
+    "tests",
+    "docs",
+    ".github"
+  ],
+  "runtime": "codex",
+  "action": "read"
+}

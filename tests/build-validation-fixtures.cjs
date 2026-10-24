@@ -24,7 +24,9 @@ w.decodeWebImage=async()=>{}; // jsdom has no decoder; the gate and Pillow verif
   'rtl-reflow':{title:'RTL fixture',language:'ar',cssProfile:'universal',images:[],chapters:[{title:'الفصل الأول',html:'<h1>الفصل الأول</h1><p>هذا نص واضح للقراءة.</p>'}]},
   'web-article':{title:'Offline article fixture',author:'ReadMaker synthetic test',language:'en',images:[],chapters:[{title:'Article',html:'<h1>Offline article</h1><p>Text and image remain available offline.</p><img src="https://article.example/diagram.png" alt="Synthetic diagram"/>'}]},
   'fixed-pages':{title:'Fixed fixture',language:'en',cssProfile:'universal',pdfMode:'fixed',fixedViewport:{width:480,height:800},images:[image],chapters:[{title:'Page 1',html:'<div class="pdf-page" style="margin:0;padding:0"><img src="images/diagram.png" alt="Test" style="display:block;width:100%;height:auto"/></div>'}]},
-  'comic-pages':{title:'Comic fixture',language:'en',cssProfile:'crosspoint',comic:true,images:[image],chapters:[{title:'Page 1',html:'<p><img src="images/diagram.png" alt="Panel"/></p>'},{title:'Page 2',html:'<p><img src="images/diagram.png" alt="Panel"/></p>'}]}
+  'comic-pages':{title:'Comic fixture',language:'en',cssProfile:'crosspoint',comic:true,images:[image],chapters:[{title:'Page 1',html:'<p><img src="images/diagram.png" alt="Panel"/></p>'},{title:'Page 2',html:'<p><img src="images/diagram.png" alt="Panel"/></p>'}]},
+  'long-flow-notes':{title:'Long flow with notes',language:'id',images:[image],chapters:w.splitChapters(w.cleanHtmlFragment('<a id="start"></a><h1>Long chapter</h1><p>'+'Clear text. '.repeat(23000)+'</p>Free text<img src="images/diagram.png" alt="Diagram"/><p><a href="#note">Read note</a></p><h1>Notes</h1><p id="note">well-known &amp; self-esteem <a href="#start">Back</a></p>'),'h1')},
+  'mixed-viewports':{title:'Mixed page sizes',language:'en',pdfMode:'fixed',images:[image],chapters:[{title:'Landscape',fixedViewport:{width:1200,height:800},html:'<img src="images/diagram.png" alt="Landscape test"/>'},{title:'Portrait',fixedViewport:{width:800,height:1200},html:'<img src="images/diagram.png" alt="Portrait test"/>'}]}
  };
  for(const [name,data] of Object.entries(fixtures)){
   data.author=data.author||'ReadMaker synthetic test';
@@ -34,6 +36,10 @@ w.decodeWebImage=async()=>{}; // jsdom has no decoder; the gate and Pillow verif
    const zip=await JSZip.loadAsync(bytes),chapter=await zip.file('OEBPS/chap001.xhtml').async('string');
    assert.match(chapter,/Corrected text &amp; literal &lt;markup&gt;/);assert.doesNotMatch(chapter,/Incorrect OCR|data-rm-block|data-rm-pages/);assert.match(chapter,/<em>/);assert.ok(zip.file('OEBPS/images/diagram.png'));
   }
+  if(name==='long-flow-notes'){
+   const zip=await JSZip.loadAsync(bytes),files=zip.file(/OEBPS\/chap\d+\.xhtml$/),all=(await Promise.all(files.map(f=>f.async('string')))).join('');
+   assert.equal((all.match(/Clear text\./g)||[]).length,23000);assert.match(all,/Free text/);assert.equal((all.match(/src="images\/diagram.png"/g)||[]).length,1);assert.match(all,/href="chap\d+\.xhtml#note"/);assert.match(all,/id="start"/);
+  }
  }
- console.log('Built five EPUB validation fixtures, including a saved OCR correction and an offline article.');
+ console.log('Built seven EPUB validation fixtures, including lossless long flows, internal notes and mixed viewports.');
 })().catch(error=>{console.error(error);process.exitCode=1;}).finally(()=>w.close());

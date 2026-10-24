@@ -1,0 +1,22 @@
+{
+  "mode": "audit",
+  "agent": "ui-ux-craftsman",
+  "task": "Analisis pengalaman pengguna baru ReadMaker pada mobile dan desktop dari kode: alur impor sampai EPUB, preset kualitas, error recovery, pratinjau, aksesibilitas dan transfer perangkat. Temuan wajib menunjuk bukti kode; jangan klaim uji visual interaktif. Baca saja tanpa perubahan atau eksekusi.",
+  "capabilities": [
+    "read"
+  ],
+  "projectPath": "C:\\Users\\User\\OneDrive\\Dokumen\\GitHub\\ReadMaker",
+  "backend": "offline",
+  "resources": [
+    "index.html",
+    "pdf-review.js",
+    "device-compatibility.js",
+    "responsive.css",
+    "README.md",
+    "tests",
+    "docs",
+    ".github"
+  ],
+  "runtime": "codex",
+  "action": "read"
+}

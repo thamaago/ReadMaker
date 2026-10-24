@@ -1,0 +1,22 @@
+{
+  "mode": "threat-review",
+  "agent": "security-privacy-guardian",
+  "task": "Analisis keamanan dan privasi ReadMaker: impor arsip dan HTML, pemrosesan PDF, gambar, DOM preview, dependency CDN serta transfer perangkat. Berikan temuan berbukti, mitigasi dan prioritas; baca saja tanpa jaringan, perubahan atau eksekusi app.",
+  "capabilities": [
+    "read"
+  ],
+  "projectPath": "C:\\Users\\User\\OneDrive\\Dokumen\\GitHub\\ReadMaker",
+  "backend": "offline",
+  "resources": [
+    "index.html",
+    "pdf-review.js",
+    "device-compatibility.js",
+    "responsive.css",
+    "README.md",
+    "tests",
+    "docs",
+    ".github"
+  ],
+  "runtime": "codex",
+  "action": "read"
+}

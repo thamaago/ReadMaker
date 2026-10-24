@@ -1,6 +1,6 @@
 // Real-browser acceptance for untrusted documents and the pinned DOCX helper.
 const fs=require('fs'),path=require('path'),http=require('http'),assert=require('node:assert/strict'),crypto=require('crypto'),JSZip=require('jszip');
-const root=path.resolve(__dirname,'..'),out=path.join(root,'output/security/2026-10-18');fs.mkdirSync(out,{recursive:true});
+const root=path.resolve(__dirname,'..'),auditDate=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Jakarta',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date()),out=path.join(root,'output/security',auditDate);fs.mkdirSync(out,{recursive:true});
 const runtime=process.env.READMAKER_RUNTIME_MODULES,{chromium}=runtime?require(path.join(runtime,'playwright')):require('playwright');
 const names=['index.html','pdf-review.js','responsive.css','device-compatibility.js','jszip.min.js'],assets=new Map(names.map(n=>[n,fs.readFileSync(path.join(root,n))]));
 const png=fs.readFileSync(path.join(__dirname,'fixtures/validation-diagram.png'));

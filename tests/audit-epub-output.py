@@ -186,7 +186,7 @@ def main():
     audit_date=date.today().isoformat()
     out=ROOT/('output/epub/standardization-'+audit_date)/args.phase;out.mkdir(parents=True,exist_ok=True)
     selected=[]
-    for folder,group in [('output/epub/stress-lab','browser-corpus'),('output/epub/pdf-review','browser-correction'),('output/epub/web-resources','browser-article'),('output/epub/validation','gate-fixture'),('tests','unit-sample')]:
+    for folder,group in [('output/epub/stress-lab','browser-corpus'),('output/epub/pdf-review','browser-correction'),('output/epub/web-resources','browser-article'),('output/epub/review-fixes','browser-regressions'),('output/epub/validation','gate-fixture'),('tests','unit-sample')]:
       selected.extend((file,group) for file in sorted((ROOT/folder).glob('*.epub')))
     if args.phase=='security':selected.extend((file,'browser-security') for file in sorted((ROOT/'output/security'/audit_date).glob('*.epub')))
     results=[audit(file,group) for file,group in selected]

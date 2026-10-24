@@ -1,0 +1,22 @@
+{
+  "mode": "design",
+  "agent": "software-architect",
+  "task": "Analisis arsitektur dan efisiensi ReadMaker: tahap konversi, memori, pekerjaan berulang, batas file besar dan pemisahan modul. Susun prioritas pengembangan yang mempertahankan mutu dan keamanan, dengan bukti file/baris. Baca saja tanpa perubahan atau eksekusi.",
+  "capabilities": [
+    "read"
+  ],
+  "projectPath": "C:\\Users\\User\\OneDrive\\Dokumen\\GitHub\\ReadMaker",
+  "backend": "offline",
+  "resources": [
+    "index.html",
+    "pdf-review.js",
+    "device-compatibility.js",
+    "responsive.css",
+    "README.md",
+    "tests",
+    "docs",
+    ".github"
+  ],
+  "runtime": "codex",
+  "action": "read"
+}

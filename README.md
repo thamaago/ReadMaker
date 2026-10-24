@@ -121,6 +121,8 @@ Parsing and conversion happen locally in your browser; Read Maker has no convers
 
 ## Development & tests
 
+Perbaikan keutuhan isi, catatan kaki, PDF campuran, pembatalan batch dan integritas transfer dijelaskan dalam [laporan implementasi 24 Oktober 2026](docs/agent-review-2026-10-24/implementation.md).
+
 Pengukuran percepatan dan pemeriksaan paritas EPUB tersedia di [laporan performa 18 Oktober 2026](docs/performance-review-2026-10-18.md).
 
 Repo pembanding dan keputusan adopsi dicatat di [REPO_RESEARCH.md](REPO_RESEARCH.md); matriks fitur saat ini ada di [FEATURE_COMPARISON.md](FEATURE_COMPARISON.md); roadmap teknis ada di [DEVELOPMENT_PLAN.md](DEVELOPMENT_PLAN.md).

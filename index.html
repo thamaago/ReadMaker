@@ -455,6 +455,7 @@
     <p id="pdfAnalysis" class="help" hidden aria-live="polite"></p>
     <div id="reviewSummary" class="review" hidden aria-live="polite"></div>
     <button id="previewBtn" class="mini" type="button" hidden data-i18n="previewBtn">Pratinjau bab pertama</button>
+    <label id="previewChapterControl" hidden><span data-i18n="previewChapterLabel">Bab pratinjau</span> <input id="previewChapter" type="number" min="1" value="1" aria-label="Bab pratinjau" data-i18n-aria="previewChapterLabel" style="width:6em"/></label>
     <div id="preview" class="preview" aria-live="polite"></div>
     <button id="pdfReviewBtn" class="mini" type="button" hidden data-i18n="pdfReviewOpen">Bandingkan PDF &amp; perbaiki teks</button>
     <section id="pdfReviewPanel" class="pdf-review" hidden aria-labelledby="pdfReviewHeading">
@@ -495,7 +496,7 @@
     <div class="actions">
       <button id="build" class="go" disabled data-i18n="buildBtn">Buat EPUB</button>
       <button id="buildXtc" class="go alt" style="display:none" data-i18n="btnXtc">Ekspor .xtc</button>
-      <span id="status" class="status" data-i18n="stWaiting">Menunggu berkas.</span>
+      <span id="status" class="status" role="status" aria-live="polite" aria-atomic="true" data-i18n="stWaiting">Menunggu berkas.</span>
     </div>
 
     <div class="card" id="deviceCard">
@@ -742,6 +743,8 @@ Object.assign(T.en,{
   pdfReviewReparseBlocked:'Corrections are still saved. Build the corrected EPUB or restore all corrections before reloading the PDF with new settings.',
   pdfReviewNoFlags:'No OCR pages remain flagged for review.',pdfReviewRebuild:'Content changed during the build. Rebuild the EPUB to use the latest output.'
 });
+Object.assign(T.id,{errPixelBudget:'Gambar atau halaman terlalu besar untuk diproses dengan aman (maksimal 12 juta piksel). Pilih sumber beresolusi lebih kecil.',errSourceBudget:'Ukuran sumber atau hasil melebihi batas memori 128 MB. Pecah buku menjadi beberapa bagian.',stConversionCancelled:'Proses dibatalkan karena sumber atau pengaturan berubah. Mulai kembali untuk memakai pilihan terbaru.',previewChapterLabel:'Bab pratinjau',previewBtn:'Pratinjau bab',sendErrAck:'Konfirmasi perangkat tidak sesuai; transfer belum dapat dinyatakan berhasil.'});
+Object.assign(T.en,{errPixelBudget:'Image or page exceeds the safe processing limit (12 million pixels). Choose a lower-resolution source.',errSourceBudget:'Source or output exceeds the 128 MB memory budget. Split the book into smaller parts.',stConversionCancelled:'Conversion cancelled because the source or settings changed. Start again to use the latest choices.',previewChapterLabel:'Preview chapter',previewBtn:'Preview chapter',sendErrAck:'Device acknowledgement is inconsistent; transfer cannot be confirmed.'});
 function applyLang(lang){
   LANG = T[lang] ? lang : "id";
   document.documentElement.setAttribute("lang", LANG);
@@ -1044,20 +1047,22 @@ function cleanNode(node, baseUrl){
     if(ch.nodeType===3){ out+=escHtmlText(ch.nodeValue); return; }
     if(ch.nodeType!==1) return;
     const tag=ch.tagName;
+    const target=ch.getAttribute('id')||(tag==='A'?ch.getAttribute('name'):'');
+    const id=target&&target.length<=512&&!/[\s"'<>#\x00-\x1f]/.test(target)?' id="'+escAttr(target)+'"':'';
     if(tag==='IMG'){
       const src=ch.getAttribute('src')||ch.getAttribute('data-src')||'';
       const safe=safeImageUrl(src,baseUrl);
-      if(safe) out+='<img src="'+escAttr(safe)+'" alt="'+escAttr(ch.getAttribute('alt')||'')+'"/>';
+      if(safe) out+='<img'+id+' src="'+escAttr(safe)+'" alt="'+escAttr(ch.getAttribute('alt')||'')+'"/>';
       return;
     }
-    if(!CLEAN_ALLOW.has(tag)){ out+=cleanNode(ch,baseUrl); return; } // unwrap unknown containers (div/span/section…)
-    if(tag==='BR'){ out+='<br/>'; return; }
-    if(tag==='HR'){ out+='<hr/>'; return; }
+    if(!CLEAN_ALLOW.has(tag)){ const inner=cleanNode(ch,baseUrl);out+=id?'<span'+id+'>'+inner+'</span>':inner;return; }
+    if(tag==='BR'){ out+='<br'+id+'/>'; return; }
+    if(tag==='HR'){ out+='<hr'+id+'/>'; return; }
     const inner=cleanNode(ch,baseUrl);
-    if(tag==='A'){ const href=safeLinkUrl(ch.getAttribute('href')||'#',baseUrl); out+=href?'<a href="'+escAttr(href)+'">'+inner+'</a>':inner; return; }
+    if(tag==='A'){ const raw=ch.getAttribute('href'),href=raw?safeLinkUrl(raw,baseUrl):'';out+=href?'<a'+id+' href="'+escAttr(href)+'">'+inner+'</a>':(id?'<span'+id+'>'+inner+'</span>':inner);return; }
     const t=tag.toLowerCase();
-    if(!inner.replace(/<[^>]+>/g,'').trim() && !/<img/.test(inner) && t!=='hr' && t!=='br') return; // drop empties
-    out+='<'+t+'>'+inner+'</'+t+'>';
+    if(!id&&!inner.replace(/<[^>]+>/g,'').trim() && !/<img/.test(inner)) return;
+    out+='<'+t+id+'>'+inner+'</'+t+'>';
   });
   return out;
 }
@@ -1522,11 +1527,9 @@ function pdfAnalyzeLayout(pages, imageCount, pageCount){
   return {recommendedMode,confidence,textRatio,multiColumnPages,imageCount:imageCount||0,reasons};
 }
 function pdfJoinHyphenated(left,right){
-  const a=left.match(/([\p{L}]+)-$/u),b=right.match(/^([\p{L}]+)/u);
-  // Indonesian reduplication remains hyphenated, including a suffix on the
-  // second word (tukang-tukangnya). Ordinary wrapped words still rejoin.
-  const repeated=a && b && a[1].length>=3 && new RegExp('^'+a[1]+'(?:nya|lah|kah|ku|mu|an)?$','i').test(b[1]);
-  return (repeated?left:left.replace(/-$/,''))+right;
+  // A soft hyphen explicitly marks discretionary wrapping. A hard hyphen is
+  // ambiguous (well-known, self-esteem, reduplication); preserve source spelling.
+  return left.replace(/\u00ad$/,'')+right;
 }
 function pdfItemsToHtml(pages, pageImages, reviewOptions){
   let blockNo=0;
@@ -1675,7 +1678,7 @@ function pdfItemsToHtml(pages, pageImages, reviewOptions){
       else if(prev.page!==l.page && /[.!?:”"']\s*$/.test(para)) newp=true;
     }
     if(newp){ flush(); para=l.text; paraPages=[l.page]; }
-    else if(/-$/.test(para) && /^[a-z]/.test(l.text)) para=pdfJoinHyphenated(para,l.text);
+    else if(/[-\u00ad]$/.test(para) && /^[a-z]/.test(l.text)) para=pdfJoinHyphenated(para,l.text);
     else para+=(para?' ':'')+l.text;
     if(paraPages.indexOf(l.page)<0) paraPages.push(l.page);
     prev=l;
@@ -1698,7 +1701,7 @@ function ocrTextToHtml(pageTexts){
       if(!line){ flush(); return; }
       if(/^\d{1,4}$/.test(line)) return;                      // bare page number
       if(/^[ivxlcdm]{1,6}$/i.test(line) && line.length <= 4) return;
-      if(/-$/.test(cur) && /^[a-z]/.test(line)){               // word split across lines
+      if(/[-\u00ad]$/.test(cur) && /^[a-z]/.test(line)){
         cur = pdfJoinHyphenated(cur,line); return;
       }
       cur = cur ? cur + ' ' + line : line;
@@ -1873,35 +1876,54 @@ function loadTesseract(){
   tesseractPromise = new Promise(function(res, rej){
     const sc = document.createElement('script');
     sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/5.1.0/tesseract.min.js';
+    sc.integrity='sha384-1zP4ZOtlk2FXAOiUArpMuWf7INJJKe/ROfYFAVSeUa11DEfXdKWGiPI3dVma2Gt0';sc.crossOrigin='anonymous';
     sc.onload = function(){ res(window.Tesseract); };
     sc.onerror = function(){ tesseractPromise=null; rej(new Error(t('errOcrLoad'))); };
     document.head.appendChild(sc);
   });
   return tesseractPromise;
 }
-async function pdfPagesToOcrText(pdf, lang, pageIndexes){
+function checkConversion(job){if(job)job.check();}
+async function readConversionSource(file,method,job){checkConversion(job);const value=await file[method]();checkConversion(job);return value;}
+function assertCanvasSize(width,height){
+  if(!Number.isFinite(width)||!Number.isFinite(height)||width<1||height<1||width>16384||height>16384||width*height>12000000){const error=new Error(t('errPixelBudget'));error.name='ResourceLimitError';throw error;}
+}
+async function renderPdfPage(page,parameters,job){
+  checkConversion(job);const task=await page.render(parameters);
+  const cancel=()=>{if(task&&task.cancel)task.cancel();};
+  if(job)job.signal.addEventListener('abort',cancel,{once:true});
+  try{if(job&&job.signal.aborted)cancel();checkConversion(job);await task.promise;checkConversion(job);}finally{if(job)job.signal.removeEventListener('abort',cancel);}
+}
+async function pdfPagesToOcrText(pdf, lang, pageIndexes,job){
+  checkConversion(job);
   const Tesseract = await loadTesseract();
   const worker = await Tesseract.createWorker(ocrLangCode(lang));
+  const cancelWorker=()=>{try{Promise.resolve(worker.terminate()).catch(()=>{});}catch(_){}};
+  if(job)job.signal.addEventListener('abort',cancelWorker,{once:true});
   const indexes=Array.isArray(pageIndexes) ? pageIndexes : Array.from({length:pdf.numPages},(_,i)=>i);
   const results=Array(pdf.numPages).fill(null);
   try{
     if(worker.setParameters) await worker.setParameters({tessedit_pageseg_mode:'3',user_defined_dpi:'180'});
     for(let n=0;n<indexes.length;n++){
+      checkConversion(job);
       const pageIndex=indexes[n], pageNumber=pageIndex+1;
       setStatus(t('stOcr') + ' ' + pageNumber + '/' + pdf.numPages);
       const page = await pdf.getPage(pageNumber);
       const viewport = page.getViewport({ scale: 2.5 });        // extra source pixels help small print
+      assertCanvasSize(Math.round(viewport.width),Math.round(viewport.height));
       const cv = document.createElement('canvas');
+      let aligned=cv;try{
       cv.width = Math.round(viewport.width); cv.height = Math.round(viewport.height);
       const ctx = cv.getContext('2d');
       if(!ctx) throw new Error('Canvas is not available for OCR.');
       ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, cv.width, cv.height);
-      await page.render({ canvasContext: ctx, viewport: viewport }).promise;
+      await renderPdfPage(page,{canvasContext:ctx,viewport},job);
       const out = await worker.recognize(cv,{rotateAuto:true},{text:true,blocks:true,imageColor:true});
+      checkConversion(job);
       const data=out&&out.data||{};
-      let aligned=cv;
       if(data.imageColor){
         const img=await loadImage(data.imageColor);
+        assertCanvasSize(img.width,img.height);
         aligned=document.createElement('canvas');aligned.width=img.width;aligned.height=img.height;
         aligned.getContext('2d').drawImage(img,0,0);
       }
@@ -1910,6 +1932,7 @@ async function pdfPagesToOcrText(pdf, lang, pageIndexes){
       // Re-read a large isolated initial as an actual glyph image. Do not
       // guess a letter from the surrounding word or a book-specific dictionary.
       for(const line of ocrResultLines(data)){
+        checkConversion(job);
         const words=line.words||[],first=words[0],next=words[1];
         const size=median(words.slice(1).filter(w=>w.bbox).map(w=>w.bbox.y1-w.bbox.y0));
         if(!first?.bbox || !next?.bbox || !/^\S$/.test(first.text) || !/^[a-zà-ÿ]/.test(next.text) || first.bbox.y1-first.bbox.y0<=size*1.7 || !size)continue;
@@ -1923,9 +1946,10 @@ async function pdfPagesToOcrText(pdf, lang, pageIndexes){
         && (w.confidence<70 || (w.confidence<90 && /[A-Za-z]/.test(w.text)&&/\d/.test(w.text))))
         .sort((a,b)=>a.confidence-b.confidence).slice(0,3);
       for(const word of uncertain){
+        checkConversion(job);
         const b=word.bbox,left=Math.max(0,b.x0-4),top=Math.max(0,b.y0-4),width=Math.min(aligned.width,b.x1+4)-left,height=Math.min(aligned.height,b.y1+4)-top;
         if(width<=0||height<=0)continue;
-        const crop=document.createElement('canvas');crop.width=width*2;crop.height=height*2;
+        assertCanvasSize(width*2,height*2);const crop=document.createElement('canvas');crop.width=width*2;crop.height=height*2;
         const cctx=crop.getContext('2d');setHighQualityImageSampling(cctx);cctx.drawImage(aligned,left,top,width,height,0,0,crop.width,crop.height);
         const retry=await worker.recognize(crop,{tessedit_pageseg_mode:'8'},{text:true,blocks:false});
         crop.width=0;crop.height=0;result.reviewRequired=true;
@@ -1934,14 +1958,15 @@ async function pdfPagesToOcrText(pdf, lang, pageIndexes){
         }
       }
       result.illustrations=await ocrIllustrations(aligned,ocrResultLines(data));
+      checkConversion(job);
       results[pageIndex]=result;
-      if(aligned!==cv){aligned.width=0;aligned.height=0;}
-      cv.width=0; cv.height=0;
+      }finally{if(aligned!==cv){aligned.width=0;aligned.height=0;}cv.width=0;cv.height=0;}
     }
-  } finally { try{ await worker.terminate(); }catch(e){} }
+  } finally { if(job)job.signal.removeEventListener('abort',cancelWorker);try{ await worker.terminate(); }catch(e){} }
   return results;
 }
 function pdfBitmapCanvas(obj){
+  assertCanvasSize(obj.width,obj.height);
   const cv=document.createElement('canvas');cv.width=obj.width;cv.height=obj.height;
   const ctx=cv.getContext('2d');if(!ctx)throw new Error('Canvas is not available for PDF images.');
   if(obj.bitmap)ctx.drawImage(obj.bitmap,0,0);
@@ -2014,22 +2039,32 @@ function loadPdfjs(){
   pdfjsPromise=new Promise((res,rej)=>{
     const base='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/';
     const s=document.createElement('script'); s.src=base+'pdf.min.js';
+    s.integrity='sha384-/1qUCSGwTur9vjf/z9lmu/eCUYbpOTgSjmpbMQZ1/CtX2v/WcAIKqRv+U1DUCG6e';s.crossOrigin='anonymous';
     s.onload=()=>{ try{ window.pdfjsLib.GlobalWorkerOptions.workerSrc=base+'pdf.worker.min.js'; res(window.pdfjsLib); }catch(e){ rej(e); } };
     s.onerror=()=>{ pdfjsPromise=null; rej(new Error('Could not load the PDF helper. Check your connection.')); };
     document.head.appendChild(s);
   });
   return pdfjsPromise;
 }
-async function pdfToBook(arrayBuffer, mode){
+async function pdfToBook(arrayBuffer, mode,job){
+  checkConversion(job);
   const pdfjsLib=await loadPdfjs();
-  const pdf=await pdfjsLib.getDocument({data:new Uint8Array(arrayBuffer), isEvalSupported:false, enableScripting:false}).promise;
+  checkConversion(job);
+  const loading=pdfjsLib.getDocument({data:new Uint8Array(arrayBuffer),isEvalSupported:false,enableScripting:false});
+  const cancelLoading=()=>{if(loading.destroy)Promise.resolve(loading.destroy()).catch(()=>{});};
+  if(job)job.signal.addEventListener('abort',cancelLoading,{once:true});
+  let pdf;try{checkConversion(job);pdf=await loading.promise;}catch(error){checkConversion(job);throw error;}finally{if(job)job.signal.removeEventListener('abort',cancelLoading);}
+  const cancelPdf=()=>{if(pdf.destroy)Promise.resolve(pdf.destroy()).catch(()=>{});};if(job)job.signal.addEventListener('abort',cancelPdf,{once:true});
   try{
+  checkConversion(job);
   let title='',author='';
   try{ const meta=await pdf.getMetadata(); if(meta&&meta.info){ title=(meta.info.Title||'').trim(); author=(meta.info.Author||'').trim(); } }catch(e){}
   const fixed=mode==='fixed';
   const pages=[]; const metadataPages=[]; const pageImageRefs=[]; const chapters=[]; const images=[]; let imageNo=0; let fixedViewport=null;
   for(let i=1;i<=pdf.numPages;i++){
+    checkConversion(job);
     const page=await pdf.getPage(i);
+    checkConversion(job);
     const pageRefs=[];
     let pageItems=null;
     if((!fixed || i<=4) && typeof page.getTextContent==='function'){
@@ -2039,20 +2074,22 @@ async function pdfToBook(arrayBuffer, mode){
     }
     if(fixed){
       const viewport=page.getViewport({scale:1.5});
+      assertCanvasSize(Math.round(viewport.width),Math.round(viewport.height));
       if(!fixedViewport) fixedViewport={width:Math.max(1,Math.round(viewport.width)),height:Math.max(1,Math.round(viewport.height))};
       const cv=document.createElement('canvas'); cv.width=Math.max(1,Math.round(viewport.width)); cv.height=Math.max(1,Math.round(viewport.height));
-      const ctx=cv.getContext('2d'); if(!ctx) throw new Error('Canvas is not available for fixed PDF pages.');
+      try{const ctx=cv.getContext('2d'); if(!ctx) throw new Error('Canvas is not available for fixed PDF pages.');
       ctx.fillStyle='#fff'; ctx.fillRect(0,0,cv.width,cv.height);
-      await page.render({canvasContext:ctx,viewport}).promise;
+      await renderPdfPage(page,{canvasContext:ctx,viewport},job);
       const png=await new Promise(resolve=>cv.toBlob(resolve,'image/png'));
       if(!png) throw new Error('Could not render PDF page as PNG.');
+      checkConversion(job);if(job)job.retain(png.size);
       const nm='pdf_page_'+String(i).padStart(4,'0')+'.png';
       images.push({name:nm,mime:'image/png',b64:u8ToB64(new Uint8Array(await png.arrayBuffer()))});
       /* Keep the critical sizing inline as well as in style.css. ADE's legacy
          renderer has shipped builds that skip external CSS on pre-paginated
          XHTML, while inline width still gives it a visible page image. */
-      chapters.push({title:t('pageLabel')+' '+i,html:'<div class="pdf-page" data-rm-pages="'+i+'" data-rm-block="pdf-block-'+i+'" style="margin:0;padding:0"><img src="images/'+escAttr(nm)+'" alt="" style="display:block;width:100%;height:auto"/></div>',level:1,sourcePages:[i]});
-      cv.width=0;cv.height=0;
+      chapters.push({title:t('pageLabel')+' '+i,html:'<div class="pdf-page" data-rm-pages="'+i+'" data-rm-block="pdf-block-'+i+'" style="margin:0;padding:0"><img src="images/'+escAttr(nm)+'" alt="'+escAttr(t('pageLabel')+' '+i)+'" style="display:block;width:100%;height:auto"/></div>',level:1,sourcePages:[i],fixedViewport:{width:cv.width,height:cv.height}});
+      }finally{cv.width=0;cv.height=0;}
       if(i%2===0 || i===pdf.numPages) setStatus(t('stParsing')+' '+i+'/'+pdf.numPages);
       continue;
     }
@@ -2066,6 +2103,7 @@ async function pdfToBook(arrayBuffer, mode){
       const imageFns=[pdfjsLib.OPS.paintImageXObject,pdfjsLib.OPS.paintJpegXObject,pdfjsLib.OPS.paintImageMaskXObject];
       let matrix=[1,0,0,1,0,0];const matrices=[];
       for(let k=0;k<ops.fnArray.length;k++){
+        checkConversion(job);
         if(ops.fnArray[k]===pdfjsLib.OPS.save){matrices.push(matrix.slice());continue;}
         if(ops.fnArray[k]===pdfjsLib.OPS.restore){matrix=matrices.pop()||[1,0,0,1,0,0];continue;}
         if(ops.fnArray[k]===pdfjsLib.OPS.transform){
@@ -2079,12 +2117,13 @@ async function pdfToBook(arrayBuffer, mode){
         const png=await new Promise(resolve=>cv.toBlob(resolve,'image/png'));
         cv.width=0;cv.height=0;
         if(!png) continue;
+        checkConversion(job);if(job)job.retain(png.size);
         const nm='pdf_img_'+String(imageNo++).padStart(4,'0')+'.png';
         images.push({name:nm,mime:'image/png',b64:u8ToB64(new Uint8Array(await png.arrayBuffer())),_sourcePage:i,_sourceWidth:obj.width,_sourceHeight:obj.height,_pageWidth:pageSize.width,_pageHeight:pageSize.height,
           _sourcePdfY:Math.abs(matrix[3])>2?Math.max(matrix[5],matrix[5]+matrix[3]):undefined});
         pageRefs.push(nm);
       }
-    }catch(e){ /* image extraction is optional; retain text conversion */ }
+    }catch(e){if(e.name==='AbortError'||e.name==='ResourceLimitError')throw e; /* other image extraction failures retain text */ }
     pageImageRefs[i-1]=pageRefs;
     if(i%5===0 || i===pdf.numPages) setStatus(t('stParsing')+' '+i+'/'+pdf.numPages);
   }
@@ -2096,9 +2135,9 @@ async function pdfToBook(arrayBuffer, mode){
   const ocrEl=document.getElementById('ocrOn');
   const missingTextPages=pages.map((items,index)=>(items||[]).some(it=>String(it.str||'').trim())?-1:index).filter(index=>index>=0);
   let ocrResults=null;
-  if(ocrEl && ocrEl.value==='on' && missingTextPages.length){
+  if((job?job.options.ocrOn:ocrEl&&ocrEl.value)==='on' && missingTextPages.length){
     log('OCR running on '+missingTextPages.length+' page(s) without selectable text');
-    ocrResults=await pdfPagesToOcrText(pdf,document.getElementById('ocrLang').value,missingTextPages);
+    ocrResults=await pdfPagesToOcrText(pdf,job?job.options.ocrLang:document.getElementById('ocrLang').value,missingTextPages,job);
     let recognized=0;
     missingTextPages.forEach(function(index){
       const items=ocrResultToPdfItems(ocrResults[index]);
@@ -2145,7 +2184,7 @@ async function pdfToBook(arrayBuffer, mode){
   if(images.length && !inlineImages) html += '\n' + images.map(im=>'<p><img src="images/'+escAttr(im.name)+'" alt=""/></p>').join('\n');
   const pdfPageInfo=pages.map((items,index)=>({page:index+1,ocr:!!(ocrResults&&ocrResults[index]),needsReview:!!(ocrResults&&ocrResults[index]&&(!items.length||ocrNeedsReview(ocrResults[index])))}));
   return { html, outlineChapters:outlineChapters.length>=2 ? outlineChapters : null, title, author, lang:'', images, coverName:'', sourcePageCount:pdf.numPages, analysis,pdfPageInfo };
-  } finally { if(pdf.destroy)try{await pdf.destroy();}catch(e){} }
+  } finally { if(job)job.signal.removeEventListener('abort',cancelPdf);if(pdf.destroy)try{await pdf.destroy();}catch(e){} }
 }
 
 /* ============================ MOBI / AZW3 ============================ */
@@ -2691,7 +2730,10 @@ function splitChapters(bodyHtml, mode){
     const tmp=doc.createElement('div'); chapters[k].nodes.forEach(n=>tmp.appendChild(n.cloneNode(true)));
     const hasText=tmp.textContent.trim().length>0;
     const hasMedia=!!tmp.querySelector('img,svg,image');
-    if(!hasText && !hasMedia && chapters.length>1) chapters.splice(k,1);
+    if(!hasText && !hasMedia && chapters.length>1){
+      if(tmp.querySelector('[id]')){if(k+1<chapters.length)chapters[k+1].nodes=chapters[k].nodes.concat(chapters[k+1].nodes);else chapters[k-1].nodes.push(...chapters[k].nodes);}
+      chapters.splice(k,1);
+    }
   }
   // materialize html + fallback titles
   return chapters.map((c,idx)=>{
@@ -2732,14 +2774,14 @@ function isRtlLang(code){
    cannot render anyway. Lists: only <li> is honoured, so ordered lists show as
    bullets; we leave that cosmetic difference alone. */
 function normalizeForEngine(html){
-  return String(html || '').replace(/<pre>([\s\S]*?)<\/pre>/gi, function(m, inner){
+  return String(html || '').replace(/<pre(\s[^>]*)?>([\s\S]*?)<\/pre>/gi, function(m, attrs,inner){
     inner = inner.replace(/<\/?code[^>]*>/gi, '');   // <code> is unknown to the engine
     inner = inner.replace(/\r?\n/g, '<br/>');         // keep line breaks
-    return '<div>' + inner + '</div>';
+    return '<div'+(attrs||'')+'>' + inner + '</div>';
   });
 }
 
-function toXhtml(title, innerHtml, rtl, fixed, viewport){
+function toXhtml(title, innerHtml, rtl, fixed, viewport, language){
   const src = '<?xml version="1.0" encoding="utf-8"?>\n'+
     '<!DOCTYPE html>\n'+
     '<html xmlns="http://www.w3.org/1999/xhtml"><head>'+
@@ -2749,6 +2791,7 @@ function toXhtml(title, innerHtml, rtl, fixed, viewport){
   const htmlDoc = new DOMParser().parseFromString(src,'text/html');
   htmlDoc.querySelectorAll('[data-rm-pages],[data-rm-block]').forEach(node=>{node.removeAttribute('data-rm-pages');node.removeAttribute('data-rm-block');});
   const xdoc = document.implementation.createDocument('http://www.w3.org/1999/xhtml','html',null);
+  if(language){xdoc.documentElement.setAttribute('lang',language);xdoc.documentElement.setAttributeNS('http://www.w3.org/XML/1998/namespace','xml:lang',language);}
   if(rtl) xdoc.documentElement.setAttribute('dir','rtl');
   // head
   const head = xdoc.createElementNS('http://www.w3.org/1999/xhtml','head');
@@ -2814,8 +2857,8 @@ function bookCss(profile, fixed){
 function splitChapterFlow(html, maxChars){
   const limit=maxChars||240000, src=String(html||'');
   if(src.length<=limit) return [src];
-  const blocks=src.match(/<(?:p|div|h[1-6]|blockquote|ul|ol|table|hr)[^>]*>[\s\S]*?<\/(?:p|div|h[1-6]|blockquote|ul|ol|table)>|<hr\s*\/?>(?=\s|$)/gi)||[src];
-  if(blocks.join('').length < src.length * 0.95) return [src];
+  const doc=new DOMParser().parseFromString(src,'text/html');
+  const blocks=Array.from(doc.body.childNodes).map(node=>node.nodeType===3?escHtmlText(node.nodeValue):node.outerHTML||new XMLSerializer().serializeToString(node));
   const out=[]; let cur='';
   for(const block of blocks){
     if(cur && cur.length+block.length>limit){ out.push(cur); cur=''; }
@@ -2823,6 +2866,33 @@ function splitChapterFlow(html, maxChars){
   }
   if(cur) out.push(cur);
   return out.length ? out : [src];
+}
+
+function resolveFlowReferences(entries){
+  const byChapter=new Map(),globalTargets=new Map();
+  entries.forEach((entry,index)=>{
+    entry.filename='chap'+String(index+1).padStart(3,'0')+'.xhtml';
+    if(!/<a\b|\bid\s*=/i.test(entry.flow))return;
+    const doc=new DOMParser().parseFromString(entry.flow,'text/html');entry.doc=doc;
+    const ids=new Set(Array.from(doc.querySelectorAll('[id]'),n=>n.id)),seen=new Set();
+    let targets=byChapter.get(entry.source);if(!targets){targets=new Map();byChapter.set(entry.source,targets);}
+    doc.querySelectorAll('[id]').forEach(node=>{
+      const original=node.id;if(!original)return;
+      if(seen.has(original)){let n=2,next;do{next=original+'__'+n++;}while(ids.has(next));node.id=next;ids.add(next);}
+      seen.add(original);const target={filename:entry.filename,id:node.id};
+      if(!targets.has(original))targets.set(original,target);
+      if(!globalTargets.has(original))globalTargets.set(original,target);
+    });
+  });
+  entries.forEach(entry=>{
+    if(!entry.doc)return;
+    entry.doc.querySelectorAll('a[href^="#"]').forEach(link=>{
+      const raw=link.getAttribute('href').slice(1);let id;try{id=decodeURIComponent(raw);}catch(_){id=raw;}
+      const local=byChapter.get(entry.source),target=(local&&local.get(id))||globalTargets.get(id);
+      if(target)link.setAttribute('href',(target.filename===entry.filename?'':target.filename)+'#'+encodeURIComponent(target.id));
+    });
+    entry.flow=entry.doc.body.innerHTML;delete entry.doc;
+  });
 }
 
 /* ============================ EPUB builder ============================ */
@@ -3075,7 +3145,7 @@ async function buildEpub(book, onWarn){
   // cover page
   let coverItem=null, coverPageItem=null;
   if(book.coverName){
-    const coverXhtml = toXhtml(book.title, '<div style="text-align:center;margin:0;padding:0"><img src="images/'+escAttr(book.coverName)+'" alt="'+escAttr(book.title)+'"/></div>', rtl);
+    const coverXhtml = toXhtml(book.title, '<div style="text-align:center;margin:0;padding:0"><img src="images/'+escAttr(book.coverName)+'" alt="'+escAttr(book.title)+'"/></div>', rtl,false,null,book.language);
     oebps.file('cover.xhtml', coverXhtml, {compression:'DEFLATE'});
     coverPageItem = { id:'coverpage', href:'cover.xhtml' };
     coverItem = imageManifest.find(x=>x.isCover) || null;
@@ -3087,11 +3157,13 @@ async function buildEpub(book, onWarn){
   book.chapters.forEach((c,i)=>{
     splitChapterFlow(c.html && c.html.trim() ? normalizeForEngine(c.html) : '<p>\u00a0</p>').forEach((flow,j)=>flowChapters.push({source:c,flow,j}));
   });
+  resolveFlowReferences(flowChapters);
   flowChapters.forEach((entry,i)=>{
     const c=entry.source;
     const fname='chap'+String(i+1).padStart(3,'0')+'.xhtml';
     const inner = entry.flow;
-    const cx=toXhtml(c.title, inner, rtl, fixed, fixed ? {width:viewportWidth,height:viewportHeight} : null);
+    const pageViewport=c.fixedViewport||{width:viewportWidth,height:viewportHeight};
+    const cx=toXhtml(c.title, inner, rtl, fixed, fixed ? pageViewport : null,book.language);
     if(!xmlOK(cx,'application/xhtml+xml')) warn(fname);
     oebps.file(fname, cx, {compression:'DEFLATE'});
     chapItems.push({ id:'chap'+(i+1), href:fname, title:entry.j ? (c.title+' ('+(entry.j+1)+')') : c.title, level: c.level || 1 });
@@ -3132,7 +3204,7 @@ async function buildEpub(book, onWarn){
   const navBody = navList(tocTree);
   const navXhtml = '<?xml version="1.0" encoding="utf-8"?>\n'+
     '<!DOCTYPE html>\n'+
-    '<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops"'+(rtl?' dir="rtl"':'')+'><head>'+
+    '<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops" lang="'+escAttr(book.language||'en')+'" xml:lang="'+escAttr(book.language||'en')+'"'+(rtl?' dir="rtl"':'')+'><head>'+
     '<meta charset="utf-8"/><title>Contents</title></head><body>'+
     '<nav epub:type="toc" id="toc"><h1>Contents</h1>'+navBody+'</nav></body></html>';
   if(!xmlOK(navXhtml,'application/xhtml+xml')) warn('nav.xhtml');
@@ -3276,7 +3348,9 @@ async function processImageBytes(u8, mime, opts){
   try{
     const img=await loadImage(url);
     const sw=img.naturalWidth||img.width, sh=img.naturalHeight||img.height;
+    assertCanvasSize(sw,sh);
     const {w,h}=fitSize(sw,sh,opts.maxW,opts.maxH);
+    assertCanvasSize(w,h);
     const cv=document.createElement('canvas'); cv.width=w; cv.height=h;
     const ctx=cv.getContext('2d');
     ctx.fillStyle='#fff'; ctx.fillRect(0,0,w,h);
@@ -3580,14 +3654,27 @@ let ingestToken = 0;
 let currentFileBase = 'book';
 let lastBuiltBlob=null, lastBuiltName='';
 let pdfReview=null,bookRevision=0,xtcExportToken=0;
-function invalidateBookOutput(){bookRevision++;hideDeviceCard();if(parsed)setStatus(t('stReady'),'ok');}
+let activeConversionJob=null;
+function conversionOptions(){
+  const out={};['lang','split','pdfMode','ocrOn','ocrLang','einkOn','einkLevels','einkDither','einkSize','fwProfile','pdfQuality','webImages'].forEach(id=>out[id]=$(id).value);
+  return Object.freeze(out);
+}
+function cancelConversion(){if(activeConversionJob){activeConversionJob.controller.abort();activeConversionJob=null;}}
+function startConversionJob(){
+  cancelConversion();const controller=new AbortController();let retained=0;
+  const job={controller,signal:controller.signal,options:conversionOptions(),check(){if(controller.signal.aborted){const error=new Error(t('stConversionCancelled'));error.name='AbortError';throw error;}},retain(size){retained+=Number(size)||0;if(retained>128*1024*1024){const error=new Error(t('errSourceBudget'));error.name='ResourceLimitError';throw error;}}};
+  activeConversionJob=job;return job;
+}
+function finishConversionJob(job){if(activeConversionJob===job)activeConversionJob=null;}
+function invalidateBookOutput(){const running=!!activeConversionJob;cancelConversion();bookRevision++;hideDeviceCard();if(parsed)setStatus(t('stReady'),'ok');else if(running){if(batchFiles.length>1)renderBatchList(batchFiles.map(()=>t('batchWaiting')));setStatus(t('stConversionCancelled'),'err');}}
 async function reparseCurrentPdf(){
   const previous=parsed,source=previous._sourceFile,token=++ingestToken;
   invalidateBookOutput();const revision=bookRevision;
+  const job=startConversionJob();
   previous._pdfReparsing=true;if(pdfReview){pdfReview.close(true);pdfReview.sync();}
   $('build').disabled=true;setStatus(t('stParsing'));
   try{
-    const book=await parseToBook(source);book._sourceFile=source;
+    const book=await parseToBook(source,job);book._sourceFile=source;
     if(token!==ingestToken||parsed!==previous)return;
     if(revision!==bookRevision)throw new Error(t('pdfReviewRebuild'));
     finishIngest(book,currentFileBase);
@@ -3595,12 +3682,14 @@ async function reparseCurrentPdf(){
     Object.entries(previous._pdfParseSettings||{}).forEach(([id,value])=>{$(id).value=value;});
     $('outputPreset').value=previous._pdfPreset||'auto';$('build').disabled=false;
     log('Error: '+e.message);setStatus(t('errPrefix')+' '+e.message,'err');
-  }}finally{previous._pdfReparsing=false;if(pdfReview&&token===ingestToken)pdfReview.sync();}
+  }}finally{finishConversionJob(job);previous._pdfReparsing=false;if(pdfReview&&token===ingestToken)pdfReview.sync();}
 }
 
 // Parses one file into a book object. No UI writes, so it can be reused for
 // batch conversion as well as the single-file flow.
-async function parseToBook(file){
+async function parseToBook(file,job){
+  checkConversion(job);if(file.size>128*1024*1024){const error=new Error(t('errSourceBudget'));error.name='ResourceLimitError';throw error;}
+  const options=job?job.options:conversionOptions();
   const ext = extOf(file.name);
   log('Reading '+file.name+' ('+fmtSize(file.size)+')');
   const bigMB = deviceSizeWarnMB();
@@ -3610,56 +3699,56 @@ async function parseToBook(file){
   let fmtLabel = ext.toUpperCase();
 
   if(ext==='txt'||ext==='text'){
-    const t=await file.text(); book.html=txtToHtml(t); fmtLabel='Plain text';
+    const t=await readConversionSource(file,'text',job); book.html=txtToHtml(t); fmtLabel='Plain text';
   } else if(ext==='md'||ext==='markdown'){
-    const t=await file.text(); book.html=mdToHtml(t); fmtLabel='Markdown';
+    const t=await readConversionSource(file,'text',job); book.html=mdToHtml(t); fmtLabel='Markdown';
     const firstH1=/<h1>(.*?)<\/h1>/i.exec(book.html); if(firstH1) book.title=firstH1[1].replace(/<[^>]+>/g,'').trim();
   } else if(ext==='rtf'){
-    const t=await file.text(); const r=rtfToBook(t); book.html=r.html; book.title=r.title; book.author=r.author; book.language=r.lang; fmtLabel='Rich Text (RTF)';
+    const t=await readConversionSource(file,'text',job); const r=rtfToBook(t); book.html=r.html; book.title=r.title; book.author=r.author; book.language=r.lang; fmtLabel='Rich Text (RTF)';
   } else if(ext==='html'||ext==='htm'||ext==='xhtml'){
-    const t=await file.text(); const r=htmlToBody(t); book.html=r.html; book.title=r.title; book.author=r.author; book.language=r.lang; fmtLabel='HTML';
+    const t=await readConversionSource(file,'text',job); const r=htmlToBody(t); book.html=r.html; book.title=r.title; book.author=r.author; book.language=r.lang; fmtLabel='HTML';
   } else if(ext==='fb2'){
-    const t=await file.text(); const r=fb2ToBook(t); book.html=r.html; book.title=r.title; book.author=r.author; book.language=r.lang; book.images=r.images; book.coverName=r.coverName; fmtLabel='FictionBook 2';
+    const t=await readConversionSource(file,'text',job); const r=fb2ToBook(t); book.html=r.html; book.title=r.title; book.author=r.author; book.language=r.lang; book.images=r.images; book.coverName=r.coverName; fmtLabel='FictionBook 2';
     if(r.images.length) log('Extracted '+r.images.length+' embedded image(s)'+(r.coverName?', cover set':''));
   } else if(ext==='odt'){
-    const buf=await file.arrayBuffer(); const r=await odtToBook(buf); book.html=r.html; book.title=r.title; book.author=r.author; book.language=r.lang; book.images=r.images; book.coverName=r.coverName; fmtLabel='OpenDocument (ODT)';
+    const buf=await readConversionSource(file,'arrayBuffer',job); const r=await odtToBook(buf); book.html=r.html; book.title=r.title; book.author=r.author; book.language=r.lang; book.images=r.images; book.coverName=r.coverName; fmtLabel='OpenDocument (ODT)';
     if(r.images.length) log('Extracted '+r.images.length+' embedded image(s)');
   } else if(ext==='pdf'){
-    setStatus(t('stParsing')); const buf=await file.arrayBuffer(); let r;
-    const selectedPdfMode = (document.getElementById('pdfMode')||{}).value || 'reflow';
-    try { r=await pdfToBook(buf, selectedPdfMode); }
+    setStatus(t('stParsing')); const buf=await readConversionSource(file,'arrayBuffer',job); let r;
+    const selectedPdfMode = options.pdfMode || 'reflow';
+    try { r=await pdfToBook(buf, selectedPdfMode,job); }
     catch(err){ if(/encrypt|password|drm|security/i.test(String(err && err.message || err))) throw new Error(t('errPdfEncrypted')); throw err; }
     book.html=r.html; book.chapters=r.chapters; book.outlineChapters=r.outlineChapters||null; book.pdfMode=r.pdfMode || selectedPdfMode; book.pdfAnalysis=r.analysis||null; book.title=r.title; book.author=r.author; book.images=r.images; book.coverName=r.coverName; book.sourcePageCount=r.sourcePageCount; book.fixedViewport=r.fixedViewport || null; book.pdfPageInfo=r.pdfPageInfo||[]; fmtLabel='PDF';
     if(r.images.length) log('Extracted '+r.images.length+' embedded image(s) from PDF');
   } else if(ext==='mobi'||ext==='azw'||ext==='azw3'||ext==='prc'){
-    const buf=await file.arrayBuffer(); const r=mobiToBook(buf); book.html=r.html; book.title=r.title; book.author=r.author; book.language=r.lang; book.images=r.images; book.coverName=r.coverName; fmtLabel=ext==='mobi'?'Kindle (MOBI)':'Kindle ('+ext.toUpperCase()+')';
+    const buf=await readConversionSource(file,'arrayBuffer',job); const r=mobiToBook(buf); book.html=r.html; book.title=r.title; book.author=r.author; book.language=r.lang; book.images=r.images; book.coverName=r.coverName; fmtLabel=ext==='mobi'?'Kindle (MOBI)':'Kindle ('+ext.toUpperCase()+')';
     if(r.tocCount) log('Book contents found: '+r.tocCount+' chapters');
     if(r.images.length) log('Extracted '+r.images.length+' image(s)'+(r.coverName?', cover set':''));
   } else if(ext==='epub'){
     throw new Error(t('errEpubInput'));
   } else if(ext==='cbz'){
-    const buf=await file.arrayBuffer(); const r=await cbzToBook(buf); Object.assign(book,{comic:true,pages:r.pages,pageDirs:r.pageDirs,images:r.images,coverName:''}); fmtLabel='Comic (CBZ)'; log('Loaded '+r.pages.length+' page(s)');
+    const buf=await readConversionSource(file,'arrayBuffer',job); const r=await cbzToBook(buf); Object.assign(book,{comic:true,pages:r.pages,pageDirs:r.pageDirs,images:r.images,coverName:''}); fmtLabel='Comic (CBZ)'; log('Loaded '+r.pages.length+' page(s)');
   } else if(ext==='cbr'){
     throw new Error(t('errCbr'));
   } else if(ext==='docx'){
     fmtLabel='Word (DOCX)'; setStatus(t('stParsing'));
-    const buf=await file.arrayBuffer(); const r=await docxToBody(buf); book.html=r.html; fmtLabel='Word (DOCX)';
+    const buf=await readConversionSource(file,'arrayBuffer',job); const r=await docxToBody(buf); book.html=r.html; fmtLabel='Word (DOCX)';
   } else {
     throw new Error(t('errUnsupported')+' .'+ext);
   }
 
-  book.fmtLabel = fmtLabel;
+  checkConversion(job);book.fmtLabel = fmtLabel;
   return book;
 }
 
-async function parseFile(file, token){
+async function parseFile(file, token,job){
   logEl.textContent='';
   currentFileBase = baseName(file.name);
   $('fname').textContent=file.name;
   $('fformat').textContent = extOf(file.name).toUpperCase();
   $('fsize').textContent=fmtSize(file.size);
   $('filecard').classList.add('show');
-  const book = await parseToBook(file);
+  const book = await parseToBook(file,job);
   book._sourceFile = file;
   if(token !== ingestToken) return;
   $('fformat').textContent = book.fmtLabel || '';
@@ -3766,6 +3855,7 @@ function resetGalleyView(){
   const review=$('reviewSummary'); if(review){ review.hidden=true; review.textContent=''; }
   const preview=$('preview'); if(preview){ preview.classList.remove('show'); preview.innerHTML=''; }
   const previewBtn=$('previewBtn'); if(previewBtn) previewBtn.hidden=true;
+  $('previewChapter').value='1';$('previewChapterControl').hidden=true;
 }
 function renderPdfAnalysis(analysis){
   const el=$('pdfAnalysis');
@@ -3819,7 +3909,9 @@ function renderGalley(){
 function renderPreview(){
   const el=$('preview'), btn=$('previewBtn');
   if(!el || !parsed) return;
-  const b=currentBook(), c=b.chapters[0];
+  const b=currentBook(),picker=$('previewChapter');picker.max=String(b.chapters.length);
+  const index=Math.min(b.chapters.length-1,Math.max(0,(Number(picker.value)||1)-1));picker.value=String(index+1);
+  const c=b.chapters[index];$('previewChapterControl').hidden=!el.classList.contains('show');
   if(!c){ el.classList.remove('show'); el.innerHTML=''; return; }
   if(el.classList.contains('show')){
     const label=document.createElement('div');label.className='preview-label';label.textContent=t('previewLabel')+' · '+c.title;
@@ -3859,8 +3951,10 @@ function chapterTitleChanged(input){
   if(!Number.isInteger(i) || !chapters[i]) return;
   const value=input.value.trim();
   chapters[i].title=value || (t('chapterLabel')+' '+(i+1));
+  chapters[i].fallbackTitle=false;input.value=chapters[i].title;
+  const hint=input.parentElement.querySelector('small');if(hint)hint.remove();
   invalidateBookOutput();
-  renderGalley(); renderPreview();
+  renderPreview();if(pdfReview)pdfReview.refresh();
 }
 function moveChapter(index, direction){
   const chapters=editableChapters(), to=index+direction;
@@ -3882,7 +3976,7 @@ async function applyOutputPreset(skipReparse){
   if(!skipReparse && parsed && parsed._sourceFile && extOf(parsed._sourceFile.name)==='pdf' && pdfReview && pdfReview.hasChanges()){
     sel.value=parsed._pdfPreset||'auto';setStatus(t('pdfReviewReparseBlocked'),'err');return;
   }
-  if(!skipReparse&&parsed)invalidateBookOutput();
+  if(!skipReparse)invalidateBookOutput();
   let mode=sel.value;
   const b=parsed||{};
   if(mode==='auto') mode=b.comic ? 'comic' : 'text';
@@ -3950,27 +4044,30 @@ function shouldProcessBookImages(book){
   if(book.pdfMode==='fixed' && q && q.value==='source') return false;
   return true;
 }
-async function processBookImages(book){
-  const opts=einkOpts(book); const out=[]; const rename={}; let i=0;
+async function processBookImages(book,job){
+  const opts=einkOpts(book),out=[],rename=new Map(),reserved=new Set(book.images.map(im=>im.name));let i=0;
+  const chapterDocs=(book.chapters||[]).filter(chapter=>/<img\b/i.test(chapter.html)).map(chapter=>({chapter,doc:new DOMParser().parseFromString(chapter.html,'text/html')}));
+  const pageSizes=new Map();chapterDocs.forEach(({chapter,doc})=>{if(chapter.fixedViewport)doc.querySelectorAll('img[src]').forEach(img=>pageSizes.set(img.getAttribute('src'),chapter.fixedViewport));});
   for(const im of book.images){
+    checkConversion(job);
     i++;
     try{
       if(book.images.length>3) setStatus(t('stImages')+' '+i+'/'+book.images.length);
       const u8=b64ToU8(im.b64);
-      const r=await processImageBytes(u8, im.mime, opts);
-      const newName=im.name.replace(/\.[^.]+$/,'')+'.png';
-      rename[im.name]=newName;
+      const page=pageSizes.get('images/'+im.name),itemOpts=Object.assign({},opts);
+      if(page&&$('pdfQuality').value==='eink-detail'){itemOpts.maxW=page.width;itemOpts.maxH=page.height;}
+      const r=await processImageBytes(u8, im.mime, itemOpts);
+      checkConversion(job);if(job)job.retain(r.u8.length);
+      const stem=im.name.replace(/\.[^.]+$/,'');let newName=stem+'.png',suffix=2;
+      while(newName!==im.name&&reserved.has(newName))newName=stem+'_'+(suffix++)+'.png';reserved.add(newName);
+      rename.set(im.name,newName);
       if(book.coverName===im.name) book.coverName=newName;
       out.push({ name:newName, mime:'image/png', b64:u8ToB64(r.u8) });
       log('image '+im.name+' \u2192 '+newName+' ('+r.w+'\u00d7'+r.h+', '+fmtSize(r.u8.length)+')');
-    }catch(e){ rename[im.name]=im.name; log('image '+im.name+' kept as-is ('+e.message+')'); out.push(im); }
+    }catch(e){ if(e.name==='AbortError'||e.name==='ResourceLimitError')throw e;rename.set(im.name,im.name);log('image '+im.name+' kept as-is ('+e.message+')');out.push(im); }
   }
   // keep chapter <img> references in sync with renamed files
-  if(book.chapters){
-    for(const c of book.chapters){
-      for(const o in rename){ if(o!==rename[o]) c.html = c.html.split('images/'+o).join('images/'+rename[o]); }
-    }
-  }
+  chapterDocs.forEach(({chapter,doc})=>{let changed=false;doc.querySelectorAll('img[src]').forEach(img=>{const src=img.getAttribute('src');if(src.startsWith('images/')&&rename.has(src.slice(7))){const name=rename.get(src.slice(7));if(src!=='images/'+name){img.setAttribute('src','images/'+name);changed=true;}}});if(changed)chapter.html=doc.body.innerHTML;});
   return out;
 }
 
@@ -3987,6 +4084,7 @@ function renderBatchList(states){
     batchFiles.length + ' &middot; ' + escXml(t('batchFiles')) + '</span></div>';
 }
 function startBatch(files){
+  cancelConversion();
   ++ingestToken;
   resetGalleyView();
   batchFiles = files; parsed = null; logEl.textContent = ''; hideDeviceCard();
@@ -3997,47 +4095,49 @@ function startBatch(files){
   setStatus(t('batchReady'), 'ok');
 }
 async function runBatch(){
+  const job=startConversionJob(),options=job.options;
   const owner=batchFiles,token=ingestToken,revision=bookRevision,files=batchFiles.slice(),resourceMode=$('webImages').value;
   const isCurrent=()=>owner===batchFiles&&token===ingestToken&&revision===bookRevision;
   const states = files.map(function(){ return t('batchWaiting'); });
   const zip = new JSZip();
   let done = 0, failed = 0;
-  for(let i = 0; i < files.length; i++){
+  try{for(let i = 0; i < files.length; i++){
     if(!isCurrent())return;
     const f = files[i];
     states[i] = t('batchWorking'); renderBatchList(states);
     setStatus(t('batchWorking') + ' ' + (i+1) + '/' + batchFiles.length);
     try{
-      const b = await parseToBook(f);
+      const b = await parseToBook(f,job);
       if(!isCurrent())return;
       const base = baseName(f.name);
       let book = {
         title: b.title || base,
         author: b.author || '',
-        language: b.language || $('lang').value.trim() || (typeof LANG!=='undefined'?LANG:'en'),
-        images: b.images || [], coverName: b.coverName || '', comic: !!b.comic, pdfMode:b.pdfMode, cssProfile: fwProfile(),
+        language: b.language || options.lang.trim() || (typeof LANG!=='undefined'?LANG:'en'),
+        images: b.images || [], coverName: b.coverName || '', comic: !!b.comic, pdfMode:b.pdfMode, cssProfile:options.fwProfile,
         fixedViewport: b.pdfMode==='fixed' ? selectedFixedViewport(b.fixedViewport) : undefined,
         chapters: b.pdfMode==='fixed' && Array.isArray(b.chapters) ? b.chapters
           : b.comic
           ? (b.pages||[]).map(function(nm, k){ return { title: t('pageLabel')+' '+(k+1), html: '<div><img src="images/'+nm+'"/></div>' }; })
-          : Array.isArray(b.outlineChapters) && ($('split').value==='auto'||$('split').value==='toc') ? b.outlineChapters
-          : splitChapters(b.html, $('split').value)
+          : Array.isArray(b.outlineChapters) && (options.split==='auto'||options.split==='toc') ? b.outlineChapters
+          : splitChapters(b.html, options.split)
       };
       book=await prepareBookResources(book,{mode:resourceMode,onProgress:()=>{if(isCurrent())setStatus(t('stWebImages'));}});
       if(!isCurrent())return;
       const check=validateOutputOptions(book);
       if(check.errors.length) throw new Error(check.errors.join(' '));
       check.warnings.forEach(function(w){ log('WARNING: '+w); });
-      if(shouldProcessBookImages(book)) book.images = await processBookImages(book);
+      if(shouldProcessBookImages(book)) book.images = await processBookImages(book,job);
       const blob = await buildEpub(book);
       if(!isCurrent())return;
       const stem = (book.title || base).replace(/[^\w\-. ]+/g,'_').trim().replace(/\s+/g,'_') || 'book';
       let name = stem + '.epub', suffix = 2;
       while(zip.file(name)) name = stem + '_' + suffix++ + '.epub';
-      zip.file(name, await blob.arrayBuffer());   // arrayBuffer works everywhere Blob does
+      job.retain(blob.size);zip.file(name, await blob.arrayBuffer());
       states[i] = t('batchDone') + ' \u00b7 ' + book.chapters.length; done++;
     }catch(err){
-      if(!isCurrent())return;
+      if(!isCurrent()||err.name==='AbortError')return;
+      if(err.name==='ResourceLimitError')throw err;
       console.error(err);
       log(f.name + ': ' + err.message);
       states[i] = t('batchFailed'); failed++;
@@ -4056,6 +4156,7 @@ async function runBatch(){
   hideDeviceCard();
   log('Batch finished: ' + done + ' converted, ' + failed + ' failed');
   setStatus(t('stSaved') + ' ' + zipName + (failed ? ' (' + failed + ' \u2717)' : '')+'. '+t('batchExtract'), 'ok');
+  }finally{finishConversionJob(job);}
   log(t('batchExtract'));
 }
 
@@ -4137,7 +4238,8 @@ function loadJsQr(){
   if(jsqrPromise) return jsqrPromise;
   jsqrPromise = new Promise(function(res, rej){
     const sc = document.createElement('script');
-    sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js';
+    sc.src = 'https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js';
+    sc.integrity='sha384-b5Ya4Bq3qCyz39m2ISh+4DxjAIljdeFwK/BsXLuj9gugaNwAcj/ia15fxNZL9Nlx';sc.crossOrigin='anonymous';
     sc.onload = function(){ res(window.jsQR); };
     sc.onerror = function(){ jsqrPromise=null; rej(new Error(t('errQrLoad'))); };
     document.head.appendChild(sc);
@@ -4153,11 +4255,13 @@ function addressFromQr(text){
   return v.replace(/^https?:\/\//i,'').replace(/\/.*$/,'').trim();
 }
 async function decodeQrFromFile(file){
+  if(file.size>128*1024*1024)throw new Error(t('errSourceBudget'));
   const jsQR = await loadJsQr();
   const url = URL.createObjectURL(file);
   try{
     const img = await loadImage(url);
     const w = img.naturalWidth || img.width, h = img.naturalHeight || img.height;
+    assertCanvasSize(w,h);
     const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
     const ctx = cv.getContext('2d'); ctx.drawImage(img, 0, 0);
     const data = ctx.getImageData(0, 0, w, h);
@@ -4311,7 +4415,8 @@ function startWebSocketUpload(ip, dest, statusEl, fill, blob, name, fallback){
   let ws;
   try{ ws=new WebSocket('ws://'+wsHostForDevice(ip)+':'+wsPortForHost(ip)+'/'); }catch(e){ return false; }
   currentSendWs=ws; ws.binaryType='arraybuffer';
-  let offset=0, settled=false, fallbackStarted=false;
+  let offset=0, acknowledged=0, phase='connecting',settled=false, fallbackStarted=false;
+  const invalidAck=()=>{settled=true;currentSendWs=null;finishDeviceSend(statusEl,t('sendErrAck'),'err');try{ws.close();}catch(_){}};
   const safeName=String(name).replace(/[:\r\n]/g,'_');
   const failToHttp=function(){
     if(settled||fallbackStarted||ws.__cancelled||currentSendWs!==ws) return;
@@ -4321,21 +4426,25 @@ function startWebSocketUpload(ip, dest, statusEl, fill, blob, name, fallback){
   const sendChunk=function(){
     if(settled||!ws||ws.readyState!==1) return;
     const end=Math.min(offset+65536, blob.size);
-    if(end>offset){ ws.send(blob.slice(offset,end)); offset=end; }
+    if(end>offset){ const chunk=blob.slice(offset,end);offset=end;ws.send(chunk); }
   };
-  ws.onopen=function(){ if(currentSendWs!==ws||ws.__cancelled)return;touchSendActivity();ws.send('START:'+safeName+':'+blob.size+':'+dest); };
+  ws.onopen=function(){ if(currentSendWs!==ws||ws.__cancelled)return;phase='ready';touchSendActivity();ws.send('START:'+safeName+':'+blob.size+':'+dest); };
   ws.onmessage=function(ev){
     if(currentSendWs!==ws||ws.__cancelled)return;
     touchSendActivity();
     const msg=typeof ev.data==='string' ? ev.data : '';
-    if(msg==='READY'){ sendChunk(); return; }
+    if(msg==='READY'){if(phase!=='ready'){invalidAck();return;}phase='sending';sendChunk();return;}
     if(msg.indexOf('PROGRESS:')===0){
-      const p=msg.slice(9).split(':'); const got=Number(p[0]), total=Number(p[1])||blob.size;
+      const match=/^PROGRESS:(\d+):(\d+)$/.exec(msg);if(!match||phase!=='sending'){invalidAck();return;}
+      const got=Number(match[1]),total=Number(match[2]);
+      if(!Number.isSafeInteger(got)||!Number.isSafeInteger(total)||total!==blob.size||got<acknowledged||got>offset){invalidAck();return;}
+      if(got===acknowledged)return;acknowledged=got;
       if(total>0) fill.style.width=Math.round(Math.min(1,got/total)*100)+'%';
-      if(got<total) sendChunk();
+      if(got===offset&&got<total) sendChunk();
       return;
     }
     if(msg==='DONE'){
+      if(phase!=='sending'||offset!==blob.size){invalidAck();return;}
       settled=true; currentSendWs=null;
       finishDeviceSend(statusEl,t('sendOk'),'ok','Uploaded '+name+' to '+ip+dest+' (WebSocket)');
       try{ ws.close(); }catch(e){}
@@ -4390,6 +4499,7 @@ $('galley').addEventListener('click',e=>{
   moveChapter(Number(btn.getAttribute('data-index')), btn.getAttribute('data-chapter-action')==='up' ? -1 : 1);
 });
 $('previewBtn').addEventListener('click',togglePreview);
+$('previewChapter').addEventListener('change',renderPreview);
 const drop=$('drop'), fileInput=$('file');
 drop.addEventListener('click',()=>fileInput.click());
 drop.addEventListener('keydown',e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); fileInput.click(); }});
@@ -4405,21 +4515,21 @@ drop.addEventListener('drop',e=>{ if(e.dataTransfer.files.length){ fileInput.fil
 fileInput.addEventListener('change',()=>acceptFiles(fileInput.files));
 
 ['title','author','lang','split'].forEach(idn=>{
-  const changed=()=>{ if(parsed){invalidateBookOutput();renderGalley();} };
+  const changed=()=>{ invalidateBookOutput();if(parsed)renderGalley(); };
   $(idn).addEventListener('input',changed);
   $(idn).addEventListener('change',changed);
 });
 if($('outputPreset')) $('outputPreset').addEventListener('change',applyOutputPreset);
 ['pdfMode','ocrOn','ocrLang'].forEach(id=>$(id).addEventListener('change',async()=>{
-  if(!parsed||!parsed._sourceFile||extOf(parsed._sourceFile.name)!=='pdf')return;
+  if(!parsed||!parsed._sourceFile||extOf(parsed._sourceFile.name)!=='pdf'){invalidateBookOutput();return;}
   if(pdfReview&&pdfReview.hasChanges()){
     $(id).value=parsed._pdfParseSettings[id];setStatus(t('pdfReviewReparseBlocked'),'err');return;
   }
   $('outputPreset').value='custom';
   await reparseCurrentPdf();
 }));
-['einkOn','einkLevels','einkDither','einkSize','fwProfile','pdfQuality','webImages'].forEach(id=>$(id).addEventListener('change',()=>{if(parsed)invalidateBookOutput();else bookRevision++;}));
-document.addEventListener('change',event=>{if(event.target.id==='deviceTarget'&&parsed)invalidateBookOutput();});
+['einkOn','einkLevels','einkDither','einkSize','fwProfile','pdfQuality','webImages'].forEach(id=>$(id).addEventListener('change',invalidateBookOutput));
+document.addEventListener('change',event=>{if(event.target.id==='deviceTarget')invalidateBookOutput();});
 
 $('fetchBtn').addEventListener('click',()=>{ const u=$('url').value.trim(); if(u) fetchArticle(u); });
 $('url').addEventListener('keydown',e=>{ if(e.key==='Enter'){ const u=$('url').value.trim(); if(u) fetchArticle(u); }});
@@ -4435,7 +4545,7 @@ $('pasteBtn').addEventListener('click',()=>{
   const base=baseRaw ? normalizeArticleUrl(baseRaw) : '';
   if(baseRaw && !base){ setStatus(t('errUrlInvalid'),'err'); log(t('errUrlInvalid')); return; }
   if(base && $('pasteUrl')) $('pasteUrl').value=base;
-  ++ingestToken;
+  cancelConversion();++ingestToken;
   resetGalleyView();
   $('build').disabled=true; parsed=null; hideDeviceCard(); logEl.textContent='';
   try{ ingestArticle(html, base, base||'Pasted article'); }
@@ -4443,13 +4553,16 @@ $('pasteBtn').addEventListener('click',()=>{
 });
 
 async function handle(file){
+  cancelConversion();
   const token = ++ingestToken;
   resetGalleyView();
   $('build').disabled=true;
   parsed=null; hideDeviceCard();
   setStatus(t('stParsing'));
-  try{ await parseFile(file, token); }
+  const job=startConversionJob();
+  try{ await parseFile(file, token,job); }
   catch(err){ if(token!==ingestToken)return;console.error(err);log('Error: '+err.message);setStatus(t('errPrefix')+' '+err.message,'err');$('galley').innerHTML='<div class="empty"><div class="mk">&para;</div><p>'+escXml(err.message)+'</p></div>'; }
+  finally{finishConversionJob(job);}
 }
 
 function ingestArticle(htmlStr, baseUrl, sourceLabel){
@@ -4483,6 +4596,7 @@ async function fetchArticle(url){
   const normalized=normalizeArticleUrl(url);
   if(!normalized){ setStatus(t('errUrlInvalid'),'err'); log(t('errUrlInvalid')); return; }
   url=normalized;
+  cancelConversion();
   if($('url') && $('url').value.trim()!==url) $('url').value=url;
   const token = ++ingestToken;
   resetGalleyView();
@@ -4542,15 +4656,16 @@ $('deviceIp').addEventListener('keydown', function(e){ if(e.key==='Enter') sendT
 $('devicePath').addEventListener('keydown', function(e){ if(e.key==='Enter') sendToDevice(); });
 $('build').addEventListener('click',async()=>{
   if(batchFiles.length > 1){
-    const btn=$('build'); btn.disabled=true;
+    const btn=$('build'),owner=batchFiles,token=ingestToken; btn.disabled=true;
     try{ await runBatch(); }
-    catch(err){ console.error(err); setStatus(t('errPrefix')+' '+err.message,'err'); }
-    finally{ btn.disabled=false; }
+    catch(err){ if(owner===batchFiles&&token===ingestToken){console.error(err);setStatus(t('errPrefix')+' '+err.message,'err');} }
+    finally{if(owner===batchFiles&&token===ingestToken)btn.disabled=false;}
     return;
   }
   if(!parsed) return;
   if(pdfReview&&pdfReview.hasDraft()){setStatus(t('pdfReviewPending'),'err');return;}
   const owner=parsed,revision=bookRevision;
+  const job=startConversionJob();
   const btn=$('build'); btn.disabled=true; setStatus(t('stBuilding'));
   try{
     let book=currentBook();
@@ -4563,7 +4678,7 @@ $('build').addEventListener('click',async()=>{
     check.warnings.forEach(function(w){ log('WARNING: '+w); });
     if(shouldProcessBookImages(book)){
       setStatus(t('stImages'));
-      book.images = await processBookImages(book);
+      book.images = await processBookImages(book,job);
     }
     log('Building EPUB: '+book.chapters.length+' chapters, '+(book.images?book.images.length:0)+' images');
     let epubWarnings=0; const blob=await buildEpub(book, function(part){ epubWarnings++; log('WARNING: malformed '+part); });
@@ -4576,7 +4691,7 @@ $('build').addEventListener('click',async()=>{
     lastBuiltBlob=blob; lastBuiltName=name;
     setStatus(t('stSaved')+' '+name,'ok'); showDeviceCard(name);
   }catch(err){ if(owner===parsed){const message=revision===bookRevision?err.message:t('pdfReviewRebuild');console.error(err);log('Error: '+message);setStatus(t('errPrefix')+' '+message,'err');} }
-  finally{ if(owner===parsed)btn.disabled=!parsed||!!parsed._pdfReparsing; }
+  finally{finishConversionJob(job);if(owner===parsed)btn.disabled=!parsed||!!parsed._pdfReparsing;}
 });
 
 // sanity: JSZip present?
