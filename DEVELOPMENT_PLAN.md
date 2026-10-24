@@ -1,5 +1,7 @@
 # Rencana Pengembangan Read Maker
 
+> Pembaruan implementasi dan batas adopsi: [ReadMaker Engine 1.0, 25 Oktober 2026](docs/readmaker-engine-2026-10-25.md). Isi bertanggal sebelumnya di bawah merupakan catatan historis.
+
 Tanggal telaah: 25 September 2026
 
 Status implementasi awal: classifier PDF, rekomendasi mode, ringkasan alasan di galley, fallback metadata, pembersihan header/artefak, dan penempatan gambar PDF dekat halaman sumber sudah diterapkan. EPUBCheck, browser integration test, dan validasi hardware tetap menjadi pekerjaan berikutnya.

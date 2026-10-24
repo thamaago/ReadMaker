@@ -1,5 +1,7 @@
 # Riset Repo GitHub untuk Pengembangan EPUB
 
+> Pembaruan implementasi dan batas adopsi: [ReadMaker Engine 1.0, 25 Oktober 2026](docs/readmaker-engine-2026-10-25.md). Isi bertanggal sebelumnya di bawah merupakan catatan historis.
+
 Tanggal riset: 25 September 2026
 
 Dokumen ini memetakan repo yang relevan untuk Read Maker. Penilaian dibatasi pada tujuan Read Maker: konversi lokal, EPUB ringan untuk e-reader kecil/CrossPoint, dukungan PDF, dan privasi tanpa upload.

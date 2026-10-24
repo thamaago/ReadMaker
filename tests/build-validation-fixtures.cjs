@@ -26,11 +26,14 @@ w.decodeWebImage=async()=>{}; // jsdom has no decoder; the gate and Pillow verif
   'fixed-pages':{title:'Fixed fixture',language:'en',cssProfile:'universal',pdfMode:'fixed',fixedViewport:{width:480,height:800},images:[image],chapters:[{title:'Page 1',html:'<div class="pdf-page" style="margin:0;padding:0"><img src="images/diagram.png" alt="Test" style="display:block;width:100%;height:auto"/></div>'}]},
   'comic-pages':{title:'Comic fixture',language:'en',cssProfile:'crosspoint',comic:true,images:[image],chapters:[{title:'Page 1',html:'<p><img src="images/diagram.png" alt="Panel"/></p>'},{title:'Page 2',html:'<p><img src="images/diagram.png" alt="Panel"/></p>'}]},
   'long-flow-notes':{title:'Long flow with notes',language:'id',images:[image],chapters:w.splitChapters(w.cleanHtmlFragment('<a id="start"></a><h1>Long chapter</h1><p>'+'Clear text. '.repeat(23000)+'</p>Free text<img src="images/diagram.png" alt="Diagram"/><p><a href="#note">Read note</a></p><h1>Notes</h1><p id="note">well-known &amp; self-esteem <a href="#start">Back</a></p>'),'h1')},
-  'mixed-viewports':{title:'Mixed page sizes',language:'en',pdfMode:'fixed',images:[image],chapters:[{title:'Landscape',fixedViewport:{width:1200,height:800},html:'<img src="images/diagram.png" alt="Landscape test"/>'},{title:'Portrait',fixedViewport:{width:800,height:1200},html:'<img src="images/diagram.png" alt="Portrait test"/>'}]}
+  'mixed-viewports':{title:'Mixed page sizes',language:'en',pdfMode:'fixed',images:[image],chapters:[{title:'Landscape',fixedViewport:{width:1200,height:800},html:'<img src="images/diagram.png" alt="Landscape test"/>'},{title:'Portrait',fixedViewport:{width:800,height:1200},html:'<img src="images/diagram.png" alt="Portrait test"/>'}]},
+  'native-cjk-ruby':{title:'日本語の読書',language:'ja',images:[image],chapters:[{title:'本文',sourcePages:[1,2],html:'<p id="開始">'+('漢字 <em>強調 😀</em> '.repeat(14000))+'</p><p><ruby>漢<rp>(</rp><rt>かん</rt><rp>)</rp></ruby> <a href="#注">注</a></p><img src="images/diagram.png" alt="図"/>'},{title:'注釈',sourcePages:[3],html:'<p id="注">説明 <a href="#開始">戻る</a></p>'}]},
+  'native-atomic-table':{title:'Preserved table',language:'en',images:[],chapters:[{title:'Table',html:'<table><tr><td>'+'Preserved data. '.repeat(14000)+'</td></tr></table>'}]}
  };
  for(const [name,data] of Object.entries(fixtures)){
   data.author=data.author||'ReadMaker synthetic test';
-  let warnings=0;const blob=await w.buildEpub(data,()=>warnings++);assert.equal(warnings,0);
+  let warnings=0,report;const blob=await w.buildEpub(data,()=>warnings++,value=>report=value);assert.equal(warnings,0);
+  fs.writeFileSync(path.join(out,name+'.quality.json'),JSON.stringify(report,null,2));
   const bytes=Buffer.from(await blob.arrayBuffer());fs.writeFileSync(path.join(out,name+'.epub'),bytes);
   if(name==='corrected-reflow'){
    const zip=await JSZip.loadAsync(bytes),chapter=await zip.file('OEBPS/chap001.xhtml').async('string');
@@ -40,6 +43,8 @@ w.decodeWebImage=async()=>{}; // jsdom has no decoder; the gate and Pillow verif
    const zip=await JSZip.loadAsync(bytes),files=zip.file(/OEBPS\/chap\d+\.xhtml$/),all=(await Promise.all(files.map(f=>f.async('string')))).join('');
    assert.equal((all.match(/Clear text\./g)||[]).length,23000);assert.match(all,/Free text/);assert.equal((all.match(/src="images\/diagram.png"/g)||[]).length,1);assert.match(all,/href="chap\d+\.xhtml#note"/);assert.match(all,/id="start"/);
   }
+  if(name==='native-cjk-ruby'){assert.equal(report.status,'passed');assert.equal(report.checks.textAndEmphasis,true);assert.equal(report.checks.internalLinks,true);assert.ok(report.metrics.outputSections>2);}
+  if(name==='native-atomic-table'){assert.equal(report.status,'review');assert.ok(report.issues.some(issue=>issue.code==='atomic-section-large'));}
  }
- console.log('Built seven EPUB validation fixtures, including lossless long flows, internal notes and mixed viewports.');
+ console.log('Built nine EPUB validation fixtures with native quality reports, multilingual/ruby flows and preserved atomic tables.');
 })().catch(error=>{console.error(error);process.exitCode=1;}).finally(()=>w.close());

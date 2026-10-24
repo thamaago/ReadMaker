@@ -2,6 +2,8 @@
 
 This project bundles or loads the following third-party components. Their licenses apply to those components.
 
+Design references such as Calibre, Pandoc and Sigil are not bundled runtimes. The original ReadMaker Engine 1.0 implementation remains under this project's MIT license; this does not relicense those reference projects. See [adoption and evidence](docs/readmaker-engine-2026-10-25.md) for the distinction between dependencies, design references and unimplemented proposals.
+
 ## JSZip 3.10.1 — bundled (`jszip.min.js`)
 - License: MIT (dual MIT/GPLv3; used here under MIT)
 - Home: https://stuk.github.io/jszip/

@@ -1,0 +1,48 @@
+const assert=require('node:assert/strict'),fs=require('fs'),path=require('path'),{JSDOM,VirtualConsole}=require('jsdom'),JSZip=require('jszip');
+const dom=new JSDOM(fs.readFileSync(path.join(__dirname,'..','index.html'),'utf8'),{runScripts:'dangerously',url:'http://localhost/',virtualConsole:new VirtualConsole(),beforeParse(w){w.JSZip=JSZip;w.TextEncoder=TextEncoder;w.TextDecoder=TextDecoder;}}),w=dom.window,d=w.document;
+const tick=()=>new Promise(r=>setTimeout(r,0));
+(async()=>{
+ await tick();let downloads=0;w.URL.createObjectURL=()=> 'blob:test';w.URL.revokeObjectURL=()=>{};w.HTMLAnchorElement.prototype.click=()=>downloads++;
+ const tagx=new Uint8Array(16);tagx.set(Buffer.from('TAGX'));const view=new DataView(tagx.buffer);view.setUint32(4,40000,false);view.setUint32(8,1,false);
+ assert.equal(w.mobiParseTagx(tagx,0),null);view.setUint32(4,0xffffffff,false);assert.equal(w.mobiParseTagx(tagx,0),null);
+ assert.deepEqual(Object.keys(w.mobiEntryTagMap({controlByteCount:1,tags:[]},new Uint8Array(2),0,100)),[]);
+ assert.throws(()=>w.mobiReadVwi(Uint8Array.from([1,1,1,1,1,1]),0));assert.throws(()=>w.mobiReadVwi(new Uint8Array(0),0));assert.equal(w.mobiCountBits(-1),32);
+ for(const bytes of [[3,65],[0x80],[0x80,0],[0x80,8]])assert.throws(()=>w.palmDocDecompress(Uint8Array.from(bytes)));
+ assert.throws(()=>w.palmDocDecompress(Uint8Array.from([65,66,67,0x80,0x18]),4),/128 MB/);
+ assert.equal(Buffer.from(w.palmDocDecompress(Uint8Array.from([65,66,67,0x80,0x18]))).toString(),'ABCABC');
+ console.log('PASS forged Kindle index lengths, non-terminating integers, invalid backreferences and expanded-data budget are rejected');
+ assert.throws(()=>w.createXtcWriter(Array.from({length:3000},()=>({w:480,h:800})),{twoBit:false}),/128 MB/);
+ assert.throws(()=>w.createXtcWriter([{w:16000,h:16000}],{}),/12/);
+ console.log('PASS native XTC output and per-page allocations are bounded before buffers are allocated');
+ let read=false;
+ await assert.rejects(w.makeSleepScreen({size:129*1024*1024,arrayBuffer:async()=>{read=true;throw new Error('read unexpectedly');}},false),/128 MB/);assert.equal(read,false);
+ const input=d.getElementById('dictFile');Object.defineProperty(input,'files',{configurable:true,value:[{name:'large.txt',size:129*1024*1024,text:async()=>{read=true;return 'a\tb';}}]});
+ await w.makeDictionary();assert.equal(read,false);assert.equal(downloads,0);assert.match(d.getElementById('status').textContent,/128 MB/);
+ console.log('PASS wallpaper and dictionary reject oversized files before reading');
+ let resume;w.loadImage=()=>new Promise(r=>resume=r);
+ const wallpaper=w.makeSleepScreen({size:1,type:'image/png',arrayBuffer:async()=>new ArrayBuffer(1)},false);await tick();
+ await w.handle({name:'next.txt',size:8,text:async()=> 'New book'});const status=d.getElementById('status').textContent;
+ resume({naturalWidth:100,naturalHeight:100});await assert.rejects(wallpaper,error=>error.name==='AbortError');assert.equal(downloads,0);assert.equal(d.getElementById('status').textContent,status);assert.equal(w.eval('lastBuiltBlob'),null);
+ let resolveDictionary;Object.defineProperty(input,'files',{configurable:true,value:[{name:'old.tsv',size:3,text:()=>new Promise(r=>resolveDictionary=r)}]});
+ const dictionary=w.makeDictionary();await tick();await w.handle({name:'newer.txt',size:9,text:async()=> 'Newer book'});const newerStatus=d.getElementById('status').textContent;resolveDictionary('a\tb');await dictionary;assert.equal(downloads,0);assert.equal(d.getElementById('status').textContent,newerStatus);
+ console.log('PASS source replacement cancels obsolete wallpaper/dictionary downloads and status updates');
+ let rejectWallpaper;const failedWallpaper=w.makeSleepScreen({size:1,arrayBuffer:()=>new Promise((_,reject)=>rejectWallpaper=reject)},false);await tick();await w.handle({name:'active.txt',size:4,text:async()=> 'Active'});const activeStatus=d.getElementById('status').textContent;rejectWallpaper(new Error('Old decode failed'));await assert.rejects(failedWallpaper,error=>error.name==='AbortError');assert.equal(d.getElementById('status').textContent,activeStatus);
+ let rejectDictionary;Object.defineProperty(input,'files',{configurable:true,value:[{size:1,text:()=>new Promise((_,reject)=>rejectDictionary=reject)}]});const failedDictionary=w.makeDictionary();await tick();await w.handle({name:'active2.txt',size:4,text:async()=> 'Active2'});const activeStatus2=d.getElementById('status').textContent;rejectDictionary(new Error('Old file failed'));await failedDictionary;assert.equal(d.getElementById('status').textContent,activeStatus2);
+ console.log('PASS late auxiliary read/decode failures cannot overwrite the active book status');
+ d.getElementById('deviceIp').value='192.168.1.2';d.getElementById('deviceProfile').value='http';
+ for(const stage of ['construct','open','send']){
+  w.eval("lastBuiltBlob=new Blob(['x']);lastBuiltName='test.epub'");
+  w.XMLHttpRequest=function(){if(stage==='construct')throw new Error('Denied');this.upload={};this.open=()=>{if(stage==='open')throw new Error('Denied');};this.send=()=>{throw new Error('Denied');};};
+  assert.doesNotThrow(()=>w.sendToDevice());assert.equal(d.getElementById('deviceIp').disabled,false);assert.equal(w.currentSendXhr,null);assert.equal(w.currentSendTimer,null);assert.ok(d.getElementById('sendStatus').classList.contains('err'));
+ }
+ console.log('PASS synchronous HTTP construction/open/send errors restore transfer controls and clear timers');
+ const controller=new w.AbortController();let imageSignal;
+ const resources=w.prepareBookResources({chapters:[{html:'<p><img src="https://images.invalid/a.png"/></p>'}],images:[]},{signal:controller.signal,fetchFn:async(_,options)=>{imageSignal=options.signal;return new Promise(()=>{});}});
+ await tick();controller.abort();await assert.rejects(resources,error=>error.name==='AbortError');assert.equal(imageSignal.aborted,true);
+ console.log('PASS cancelling web-resource preparation aborts the active fetch without waiting for its timeout');
+ const qr=d.getElementById('qrFile');Object.defineProperty(qr,'files',{configurable:true,value:[{size:1}]});let oldQr,newQr;
+ w.decodeQrFromFile=()=>new Promise(r=>oldQr=r);const oldPick=w.handleQrPick();
+ w.decodeQrFromFile=()=>new Promise(r=>newQr=r);const newPick=w.handleQrPick();newQr('http://192.168.1.9/');await newPick;oldQr('http://192.168.1.8/');await oldPick;assert.equal(d.getElementById('deviceIp').value,'192.168.1.9');
+ w.decodeQrFromFile=async()=> 'http://user:secret@192.168.1.7/';await w.handleQrPick();assert.equal(d.getElementById('deviceIp').value,'192.168.1.9');
+ console.log('PASS obsolete QR results and credential-bearing device URLs cannot overwrite the current address');
+})().catch(error=>{console.error(error);process.exitCode=1;}).finally(()=>w.close());

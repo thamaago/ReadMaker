@@ -31,6 +31,10 @@ function mixedPdf(){
   const title=page.locator('input[data-chapter-title="1"]');await title.fill('Edited notes');await title.press('Tab');assert.equal(await title.inputValue(),'Edited notes');checks.push('chapter 2 preview and keyboard title editing');
   async function exportBook(name){const pending=page.waitForEvent('download');await page.click('#build');const download=await pending;const file=path.join(out,name+'.epub');await download.saveAs(file);return JSZip.loadAsync(fs.readFileSync(file),{checkCRC32:true});}
   const zip=await exportBook('lossless-notes'),all=(await Promise.all(zip.file(/chap\d+\.xhtml$/).map(f=>f.async('string')))).join('');
+  await page.locator('#qualityPanel').waitFor({state:'visible'});
+  for(const width of [360,480,1366]){await page.setViewportSize({width,height:1000});await page.locator('#qualityPanel').evaluate(node=>node.open=true);assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));}
+  const reportDownload=page.waitForEvent('download');await page.click('#qualityDownload');const reportFile=await reportDownload;await reportFile.saveAs(path.join(out,'downloaded-quality.json'));
+  const quality=JSON.parse(fs.readFileSync(path.join(out,'downloaded-quality.json'),'utf8'));assert.equal(quality.engine.version,'1.0.0');assert.equal(quality.status,'passed');assert.equal(quality.checks.textAndEmphasis,true);assert.equal(quality.metrics.imageReferences,1);assert.ok(quality.notAssessed.includes('ocr-accuracy'));assert.ok(await page.evaluate(()=>lastBuiltName.endsWith('.epub')));
   assert.equal((all.match(/Readable\./g)||[]).length,26000);assert.match(all,/FREE TEXT/);assert.equal((all.match(/<img /g)||[]).length,1);assert.match(all,/href="chap\d+\.xhtml#note"/);assert.match(all,/xml:lang="id"/);checks.push('real UI EPUB preserves 26000 phrases, standalone image, free text, note/back links and document language');
   await page.selectOption('#outputPreset','layout');await page.setInputFiles('#file',{name:'mixed.pdf',mimeType:'application/pdf',buffer:mixedPdf()});await page.waitForFunction(()=>!!parsed&&parsed.pdfMode==='fixed'&&!document.getElementById('build').disabled);
   const pdfZip=await exportBook('mixed-pages'),dimensions=[];
@@ -41,6 +45,9 @@ function mixedPdf(){
    assert.equal(decoded.width,width);assert.equal(decoded.height,height);assert.ok(decoded.bottomInk>100);dimensions.push(decoded);
   }
   checks.push('actual PDF.js renders mixed landscape/portrait pages; e-ink detail preserves both native dimensions and bottom content');assert.deepEqual(errors,[]);
+  await page.setInputFiles('#file',{name:'broken-link.html',mimeType:'text/html',buffer:Buffer.from('<h1>Broken link</h1><p><a href="#absent">Missing note</a></p>')});await page.waitForFunction(()=>!!parsed&&!document.getElementById('build').disabled);
+  let unexpectedDownloads=0;const countDownload=()=>unexpectedDownloads++;page.on('download',countDownload);await page.click('#build');await page.waitForFunction(()=>!document.getElementById('build').disabled&&document.getElementById('status').classList.contains('err'));assert.equal(unexpectedDownloads,0);assert.equal(await page.evaluate(()=>lastQualityReport.status),'blocked');assert.equal(await page.evaluate(()=>lastBuiltBlob),null);page.off('download',countDownload);
+  checks.push('native report export, mobile quality panel, and a broken internal link blocking the actual download');
   const report={date:new Date().toISOString(),sourceAssets:Object.fromEntries([...assets].map(([n,b])=>[n,crypto.createHash('sha256').update(b).digest('hex')])),checks,helpers,dimensions,errors,hardware:'not tested'};fs.writeFileSync(path.join(out,'browser-results.json'),JSON.stringify(report,null,2));console.log(JSON.stringify(report));
  }finally{await browser.close();server.close();}
 })().catch(e=>{console.error(e);server.close();process.exitCode=1;});

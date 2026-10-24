@@ -1,5 +1,9 @@
 # Read Maker
 
+ReadMaker Engine 1.0 menambahkan pemeriksaan integritas sebelum ekspor, pemisahan isi berdasarkan byte UTF-8, pelestarian ruby, dan laporan kualitas JSON. Lihat [telaah acuan dan implementasi](docs/readmaker-engine-2026-10-25.md). Status lolos membandingkan konten yang sudah diekstrak dengan hasil builder; ketepatan OCR dan pengujian perangkat tetap perlu dilakukan terpisah. EPUBCheck dijalankan dalam validasi lokal/CI, bukan pada setiap ekspor browser.
+
+[Audit lima putaran](docs/five-pass-audit-2026-10-25.md) mencatat perbaikan parser Kindle, batas keluaran native, pembatalan wallpaper/kamus/gambar web, penanganan transfer, dan batas keamanan yang masih perlu ditindaklanjuti.
+
 ReadMaker mengubah PDF, dokumen, artikel web, dan komik menjadi EPUB yang bersih serta nyaman dibaca di e-reader. Preset keluaran membantu pengguna memilih reflow, tata letak halaman asli, atau optimasi e-ink tanpa konfigurasi rumit.
 
 Metadata GitHub yang disarankan tersedia di [GITHUB_ABOUT.md](GITHUB_ABOUT.md).

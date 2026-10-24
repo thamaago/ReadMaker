@@ -1,5 +1,7 @@
 # Perbandingan Fitur Read Maker dengan Repo Pembanding
 
+> Pembaruan implementasi dan batas adopsi: [ReadMaker Engine 1.0, 25 Oktober 2026](docs/readmaker-engine-2026-10-25.md). Isi bertanggal sebelumnya di bawah merupakan catatan historis.
+
 > Audit ini merekam kondisi 25 September. Penelaahan terbaru beserta pro/kontra
 > dan batas bukti tersedia di [audit 16 Oktober 2026](docs/app-review-2026-10.md).
 

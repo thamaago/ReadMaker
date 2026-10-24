@@ -1,6 +1,6 @@
 const fs=require('fs');const {JSDOM}=require('jsdom');const JSZip=require('jszip');
 const dom=new JSDOM('<!DOCTYPE html><body></body>',{url:'https://localhost/'});
-global.window=dom.window;global.document=dom.window.document;global.DOMParser=dom.window.DOMParser;global.XMLSerializer=dom.window.XMLSerializer;global.JSZip=JSZip;global.crypto={randomUUID:()=>'77777777-8888-4999-8aaa-bbbbbbbbbbbb'};global.atob=s=>Buffer.from(s,'base64').toString('binary');global.btoa=s=>Buffer.from(s,'binary').toString('base64');global.Image=class{};global.URL={createObjectURL:()=>'',revokeObjectURL(){}};global.Blob=dom.window.Blob;
+global.window=dom.window;global.document=dom.window.document;global.DOMParser=dom.window.DOMParser;global.XMLSerializer=dom.window.XMLSerializer;global.JSZip=JSZip;global.crypto={randomUUID:()=>'77777777-8888-4999-8aaa-bbbbbbbbbbbb'};global.atob=s=>Buffer.from(s,'base64').toString('binary');global.btoa=s=>Buffer.from(s,'binary').toString('base64');global.Image=class{};global.URL=dom.window.URL;global.URL.createObjectURL=()=>'';global.URL.revokeObjectURL=()=>{};global.Blob=dom.window.Blob;
 global.t=(k)=>k; // i18n stub
 // DOM stubs so app top-level wiring doesn't crash
 const fake=()=>({addEventListener(){},classList:{add(){},remove(){}},style:{},textContent:'',value:'',appendChild(){},click(){},files:[],querySelectorAll:()=>[],setAttribute(){},getAttribute:()=>'' , innerHTML:''});

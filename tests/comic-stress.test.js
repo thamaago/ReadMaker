@@ -15,7 +15,7 @@ global.atob=s=>Buffer.from(s,'base64').toString('binary');
 global.btoa=s=>Buffer.from(s,'binary').toString('base64');
 global.Blob=dom.window.Blob;
 global.Image=class{};
-global.URL={createObjectURL:()=>'',revokeObjectURL(){}};
+global.URL=dom.window.URL;global.URL.createObjectURL=()=>'';global.URL.revokeObjectURL=()=>{};
 global.t=k=>k;
 
 const fake=()=>({addEventListener(){},classList:{add(){},remove(){},toggle(){}},style:{},textContent:'',value:'',appendChild(){},click(){},files:[],querySelectorAll:()=>[],setAttribute(){},getAttribute:()=>'',innerHTML:'',disabled:false});
