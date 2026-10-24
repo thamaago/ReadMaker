@@ -82,7 +82,7 @@
       $('pdfReviewPage').value=state.page;$('pdfReviewPage').max=book.sourcePageCount;
       $('pdfReviewPageCount').textContent='/ '+book.sourcePageCount;
       $('pdfReviewPrev').disabled=state.page<=1;$('pdfReviewNext').disabled=state.page>=book.sourcePageCount;
-      const flags=[t(book.pdfMode==='fixed'?'pdfReviewFixed':info.ocr?'pdfReviewOcr':'pdfReviewDigital')];
+      const flags=[t(book.pdfMode==='fixed'||info.rasterFallback?'pdfReviewFixed':info.ocr?'pdfReviewOcr':'pdfReviewDigital')];
       if(info.needsReview)flags.push(t('pdfReviewUncertain'));
       if(reviewed(book).has(state.page))flags.push(t('pdfReviewReviewed'));
       if(changes(book).size)flags.push(changes(book).size+' '+t('pdfReviewChanged'));

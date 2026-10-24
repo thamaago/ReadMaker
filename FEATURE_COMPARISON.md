@@ -7,7 +7,7 @@ Diperbarui: 25 Oktober 2026 berdasarkan kode, pengujian, dan workflow repo. **Te
 | TXT, Markdown, RTF, HTML, FB2, ODT | Tersedia | Parser lokal, sanitasi, metadata/struktur sesuai format. |
 | DOCX | Tersedia | Mammoth dimuat lewat jaringan; skenario browser tersedia. |
 | PDF reflow dan fixed | Tersedia | Rekomendasi mode, pembersihan header, metadata fallback, gambar dan pemetaan halaman. Layout kompleks perlu ditinjau. |
-| OCR PDF scan/campuran | Parsial | Halaman tanpa text layer; akurasi belum disahkan terhadap transkripsi manusia. |
+| OCR PDF scan/campuran | Parsial | Render aman sebelum OCR tanpa ekstraksi scan asli; fallback gambar untuk halaman tanpa hasil teks. Akurasi belum disahkan terhadap transkripsi manusia. |
 | Tinjauan dan koreksi PDF | Tersedia | Bandingkan halaman sumber dengan hasil; koreksi teks reflow selama sesi. Teks halaman raster tidak dapat diedit. |
 | MOBI/AZW3 | Parsial | Tanpa DRM, PalmDOC dan TOC bawaan; HUFF/CDIC belum didukung. |
 | CBZ / XTC / XTCH | Tersedia | Halaman gambar, urutan numerik, folder bab dan pipeline e-ink; native output belum diuji pada hardware. CBR tidak didukung. |

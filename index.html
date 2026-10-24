@@ -751,6 +751,8 @@ Object.assign(T.en,{
   pdfReviewReparseBlocked:'Corrections are still saved. Build the corrected EPUB or restore all corrections before reloading the PDF with new settings.',
   pdfReviewNoFlags:'No OCR pages remain flagged for review.',pdfReviewRebuild:'Content changed during the build. Rebuild the EPUB to use the latest output.'
 });
+Object.assign(T.id,{pdfScanNotice:'PDF memuat {n} halaman tanpa lapisan teks. Halaman dipertahankan sebagai gambar pada resolusi aman; aktifkan OCR untuk teks yang dapat diubah ukurannya.',pdfScanOcrNotice:'OCR memproses {n} halaman tanpa lapisan teks pada resolusi aman. Periksa hasil pengenalannya.',pdfRasterFallbackNotice:'{n} halaman tetap berupa gambar dan perlu ditinjau.',qualityRasterFallback:'Halaman tanpa teks dipertahankan sebagai gambar; tinjau halaman tersebut.'});
+Object.assign(T.en,{pdfScanNotice:'This PDF has {n} pages without a text layer. Pages are preserved as images at a safe resolution; enable OCR for resizable text.',pdfScanOcrNotice:'OCR processes {n} pages without a text layer at a safe resolution. Review the recognised text.',pdfRasterFallbackNotice:'{n} pages remain as images and need review.',qualityRasterFallback:'Pages without text were preserved as images; review those pages.'});
 Object.assign(T.id,{errPixelBudget:'Gambar atau halaman terlalu besar untuk diproses dengan aman (maksimal 12 juta piksel). Pilih sumber beresolusi lebih kecil.',errSourceBudget:'Ukuran sumber atau hasil melebihi batas memori 128 MB. Pecah buku menjadi beberapa bagian.',stConversionCancelled:'Proses dibatalkan karena sumber atau pengaturan berubah. Mulai kembali untuk memakai pilihan terbaru.',previewChapterLabel:'Bab pratinjau',previewBtn:'Pratinjau bab',sendErrAck:'Konfirmasi perangkat tidak sesuai; transfer belum dapat dinyatakan berhasil.'});
 Object.assign(T.en,{errPixelBudget:'Image or page exceeds the safe processing limit (12 million pixels). Choose a lower-resolution source.',errSourceBudget:'Source or output exceeds the 128 MB memory budget. Split the book into smaller parts.',stConversionCancelled:'Conversion cancelled because the source or settings changed. Start again to use the latest choices.',previewChapterLabel:'Preview chapter',previewBtn:'Preview chapter',sendErrAck:'Device acknowledgement is inconsistent; transfer cannot be confirmed.'});
 Object.assign(T.id,{qualityBlocked:'Hasil belum dapat diunduh karena pemeriksaan menemukan isi atau tautan yang tidak utuh. Lihat rincian pemeriksaan.',qualityPassed:'Hasil lolos pemeriksaan isi',qualityReview:'Hasil siap; ada bagian yang perlu ditinjau',qualityFailed:'Hasil perlu diperbaiki',qualityScope:'Pemeriksaan membandingkan isi yang sudah dibaca dengan hasil EPUB; akurasi OCR tetap perlu ditinjau.',qualityDownload:'Unduh laporan pemeriksaan',qualityCharacters:'karakter',qualitySections:'bagian',qualityImages:'gambar',qualityLinks:'tautan internal',qualitySection:'Bagian',qualityUnknown:'Ada bagian yang perlu ditinjau.',qualityText:'Teks, format penekanan atau tautan berubah saat penyusunan.',qualityImageOrder:'Urutan atau keterangan gambar berubah.',qualityMissingImage:'Gambar yang dirujuk belum tersedia.',qualityMissingLink:'Tujuan tautan internal tidak ditemukan.',qualityLarge:'Bagian berstruktur kompleks masih sangat besar; periksa pembacaannya di perangkat.',qualityOcr:'Ada halaman OCR yang belum ditinjau.',qualityXml:'Struktur bagian buku tidak valid.',qualityActive:'Isi aktif yang tidak aman ditemukan.',qualityTitle:'Judul buku belum terisi.',qualityLanguage:'Kode bahasa belum valid.'});
@@ -1898,6 +1900,30 @@ async function readConversionSource(file,method,job){checkConversion(job);const 
 function assertCanvasSize(width,height){
   if(!Number.isFinite(width)||!Number.isFinite(height)||width<1||height<1||width>16384||height>16384||width*height>12000000){const error=new Error(t('errPixelBudget'));error.name='ResourceLimitError';throw error;}
 }
+function safePdfViewport(page,scale){
+  const natural=page.getViewport({scale:1});
+  if(!Number.isFinite(scale)||scale<=0||!Number.isFinite(natural.width)||!Number.isFinite(natural.height)||natural.width<=0||natural.height<=0)assertCanvasSize(NaN,NaN);
+  // Fit before allocating a canvas. Leave room for rounding to whole pixels.
+  const safeScale=Math.min(scale,16383/natural.width,16383/natural.height,Math.sqrt(11960000/natural.width/natural.height));
+  const viewport=page.getViewport({scale:safeScale});
+  const width=Math.max(1,Math.round(viewport.width)),height=Math.max(1,Math.round(viewport.height));
+  assertCanvasSize(width,height);
+  return {viewport,width,height,scale:safeScale};
+}
+async function rasterizePdfPage(page,scale,job){
+  checkConversion(job);
+  const raster=safePdfViewport(page,scale),cv=document.createElement('canvas');
+  try{
+    cv.width=raster.width;cv.height=raster.height;
+    const ctx=cv.getContext('2d');if(!ctx)throw new Error('Canvas is not available for PDF pages.');
+    ctx.fillStyle='#fff';ctx.fillRect(0,0,cv.width,cv.height);
+    await renderPdfPage(page,{canvasContext:ctx,viewport:raster.viewport},job);
+    const blob=await new Promise(resolve=>cv.toBlob(resolve,'image/png'));
+    checkConversion(job);if(!blob)throw new Error('Could not render PDF page as PNG.');
+    if(job)job.retain(blob.size);
+    return {blob,width:raster.width,height:raster.height,scale:raster.scale};
+  }finally{cv.width=0;cv.height=0;}
+}
 async function renderPdfPage(page,parameters,job){
   checkConversion(job);const task=await page.render(parameters);
   const cancel=()=>{if(task&&task.cancel)task.cancel();};
@@ -1919,11 +1945,10 @@ async function pdfPagesToOcrText(pdf, lang, pageIndexes,job){
       const pageIndex=indexes[n], pageNumber=pageIndex+1;
       setStatus(t('stOcr') + ' ' + pageNumber + '/' + pdf.numPages);
       const page = await pdf.getPage(pageNumber);
-      const viewport = page.getViewport({ scale: 2.5 });        // extra source pixels help small print
-      assertCanvasSize(Math.round(viewport.width),Math.round(viewport.height));
+      const raster=safePdfViewport(page,2.5),viewport=raster.viewport;
       const cv = document.createElement('canvas');
       let aligned=cv;try{
-      cv.width = Math.round(viewport.width); cv.height = Math.round(viewport.height);
+      cv.width = raster.width; cv.height = raster.height;
       const ctx = cv.getContext('2d');
       if(!ctx) throw new Error('Canvas is not available for OCR.');
       ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, cv.width, cv.height);
@@ -1938,7 +1963,7 @@ async function pdfPagesToOcrText(pdf, lang, pageIndexes,job){
         aligned.getContext('2d').drawImage(img,0,0);
       }
       delete data.imageColor;
-      const result={data,width:cv.width,height:cv.height,scale:2.5};
+      const result={data,width:cv.width,height:cv.height,scale:raster.scale};
       // Re-read a large isolated initial as an actual glyph image. Do not
       // guess a letter from the surrounding word or a book-specific dictionary.
       for(const line of ocrResultLines(data)){
@@ -1970,7 +1995,7 @@ async function pdfPagesToOcrText(pdf, lang, pageIndexes,job){
       result.illustrations=await ocrIllustrations(aligned,ocrResultLines(data));
       checkConversion(job);
       results[pageIndex]=result;
-      }finally{if(aligned!==cv){aligned.width=0;aligned.height=0;}cv.width=0;cv.height=0;}
+      }finally{if(aligned!==cv){aligned.width=0;aligned.height=0;}cv.width=0;cv.height=0;if(page.cleanup)page.cleanup();}
     }
   } finally { if(job)job.signal.removeEventListener('abort',cancelWorker);try{ await worker.terminate(); }catch(e){} }
   return results;
@@ -2069,43 +2094,64 @@ async function pdfToBook(arrayBuffer, mode,job){
   checkConversion(job);
   let title='',author='';
   try{ const meta=await pdf.getMetadata(); if(meta&&meta.info){ title=(meta.info.Title||'').trim(); author=(meta.info.Author||'').trim(); } }catch(e){}
-  const fixed=mode==='fixed';
+  let fixed=mode==='fixed';
+  const ocrEl=document.getElementById('ocrOn');
+  const ocrEnabled=(job?job.options.ocrOn:ocrEl&&ocrEl.value)==='on';
+  const rasterFallbackPages=new Set();
   const pages=[]; const metadataPages=[]; const pageImageRefs=[]; const chapters=[]; const images=[]; let imageNo=0; let fixedViewport=null;
+  // Inspect text first: never expand the original full-resolution scan merely
+  // to discover that OCR or a page raster is the appropriate input.
+  if(!fixed){
+    for(let i=1;i<=pdf.numPages;i++){
+      checkConversion(job);const page=await pdf.getPage(i);checkConversion(job);
+      try{
+        const tc=await page.getTextContent();checkConversion(job);
+        const pageSize=page.getViewport({scale:1});
+        const items=tc.items.filter(it=>String(it.str||'').trim()).map(it=>({str:it.str,x:it.transform[4],y:it.transform[5],w:it.width||0,h:Math.abs(it.transform[3])||it.height||10,_pageHeight:pageSize.height}));
+        pages.push(items);if(i<=4)metadataPages.push(items);
+      }finally{if(page.cleanup)page.cleanup();}
+      if(i%5===0||i===pdf.numPages)setStatus(t('stParsing')+' '+i+'/'+pdf.numPages);
+    }
+  }
+  const scanPages=pages.filter(items=>!items.length).length;
+  const autoScanLayout=!fixed&&!ocrEnabled&&scanPages===pdf.numPages&&pdf.numPages>0;
+  if(autoScanLayout)fixed=true;
+  async function retainPageRaster(page,i){
+    const raster=await rasterizePdfPage(page,1.5,job);
+    const nm='pdf_page_'+String(i).padStart(4,'0')+'.png';
+    const bytes=new Uint8Array(await raster.blob.arrayBuffer());checkConversion(job);
+    images.push({name:nm,mime:'image/png',b64:u8ToB64(bytes),_sourcePage:i,_pageRaster:true});
+    return {name:nm,width:raster.width,height:raster.height};
+  }
   for(let i=1;i<=pdf.numPages;i++){
     checkConversion(job);
     const page=await pdf.getPage(i);
     checkConversion(job);
     const pageRefs=[];
-    let pageItems=null;
-    if((!fixed || i<=4) && typeof page.getTextContent==='function'){
-      const tc=await page.getTextContent();
-      pageItems=tc.items.filter(it=>it.str).map(it=>({ str:it.str, x:it.transform[4], y:it.transform[5], w:it.width||0, h:Math.abs(it.transform[3])||it.height||10 }));
-      if(i<=4) metadataPages.push(pageItems);
-    }
+    const pageItems=pages[i-1]||[];
     if(fixed){
-      const viewport=page.getViewport({scale:1.5});
-      assertCanvasSize(Math.round(viewport.width),Math.round(viewport.height));
-      if(!fixedViewport) fixedViewport={width:Math.max(1,Math.round(viewport.width)),height:Math.max(1,Math.round(viewport.height))};
-      const cv=document.createElement('canvas'); cv.width=Math.max(1,Math.round(viewport.width)); cv.height=Math.max(1,Math.round(viewport.height));
-      try{const ctx=cv.getContext('2d'); if(!ctx) throw new Error('Canvas is not available for fixed PDF pages.');
-      ctx.fillStyle='#fff'; ctx.fillRect(0,0,cv.width,cv.height);
-      await renderPdfPage(page,{canvasContext:ctx,viewport},job);
-      const png=await new Promise(resolve=>cv.toBlob(resolve,'image/png'));
-      if(!png) throw new Error('Could not render PDF page as PNG.');
-      checkConversion(job);if(job)job.retain(png.size);
-      const nm='pdf_page_'+String(i).padStart(4,'0')+'.png';
-      images.push({name:nm,mime:'image/png',b64:u8ToB64(new Uint8Array(await png.arrayBuffer()))});
+      if(!autoScanLayout&&i<=4&&typeof page.getTextContent==='function'){
+        const tc=await page.getTextContent();checkConversion(job);
+        metadataPages.push(tc.items.filter(it=>it.str).map(it=>({str:it.str})));
+      }
+      const raster=await retainPageRaster(page,i),nm=raster.name;
+      if(!fixedViewport)fixedViewport={width:raster.width,height:raster.height};
       /* Keep the critical sizing inline as well as in style.css. ADE's legacy
          renderer has shipped builds that skip external CSS on pre-paginated
          XHTML, while inline width still gives it a visible page image. */
-      chapters.push({title:t('pageLabel')+' '+i,html:'<div class="pdf-page" data-rm-pages="'+i+'" data-rm-block="pdf-block-'+i+'" style="margin:0;padding:0"><img src="images/'+escAttr(nm)+'" alt="'+escAttr(t('pageLabel')+' '+i)+'" style="display:block;width:100%;height:auto"/></div>',level:1,sourcePages:[i],fixedViewport:{width:cv.width,height:cv.height}});
-      }finally{cv.width=0;cv.height=0;}
+      chapters.push({title:t('pageLabel')+' '+i,html:'<div class="pdf-page" data-rm-pages="'+i+'" data-rm-block="pdf-block-'+i+'" style="margin:0;padding:0"><img src="images/'+escAttr(nm)+'" alt="'+escAttr(t('pageLabel')+' '+i)+'" style="display:block;width:100%;height:auto"/></div>',level:1,sourcePages:[i],fixedViewport:{width:raster.width,height:raster.height}});
+      if(page.cleanup)page.cleanup();
       if(i%2===0 || i===pdf.numPages) setStatus(t('stParsing')+' '+i+'/'+pdf.numPages);
       continue;
     }
-    pages.push(pageItems || []);
     const pageSize=page.getViewport({scale:1});
-    (pageItems||[]).forEach(it=>{it._pageHeight=pageSize.height;});
+    if(!pageItems.length){
+      // OCR consumes its own bounded page render. Without OCR, preserve the
+      // complete page rather than extracting an oversized compressed bitmap.
+      if(!ocrEnabled){const raster=await retainPageRaster(page,i);pageRefs.push(raster.name);rasterFallbackPages.add(i);}
+      pageImageRefs[i-1]=pageRefs;if(page.cleanup)page.cleanup();
+      continue;
+    }
     // Calibre preserves embedded illustrations when the source PDF exposes
     // them. PDF.js provides those objects through the operator list.
     try{
@@ -2135,17 +2181,18 @@ async function pdfToBook(arrayBuffer, mode,job){
       }
     }catch(e){if(e.name==='AbortError'||e.name==='ResourceLimitError')throw e; /* other image extraction failures retain text */ }
     pageImageRefs[i-1]=pageRefs;
+    if(page.cleanup)page.cleanup();
     if(i%5===0 || i===pdf.numPages) setStatus(t('stParsing')+' '+i+'/'+pdf.numPages);
   }
   const fallback=pdfMetadataFallback(metadataPages);
   if(!title) title=fallback.title;
   if(!author) author=fallback.author;
   const analysis=fixed ? {recommendedMode:'fixed',confidence:100,textRatio:0,multiColumnPages:0,imageCount:pdf.numPages,reasons:['images']} : pdfAnalyzeLayout(pages,images.length,pdf.numPages);
+  Object.assign(analysis,{scanPages,ocrEnabled,autoScanLayout});
   if(fixed) return {html:'',chapters,title,author,lang:'',images,coverName:'',sourcePageCount:pdf.numPages,pdfMode:'fixed',fixedViewport,analysis,pdfPageInfo:Array.from({length:pdf.numPages},(_,i)=>({page:i+1,ocr:false,needsReview:false}))};
-  const ocrEl=document.getElementById('ocrOn');
   const missingTextPages=pages.map((items,index)=>(items||[]).some(it=>String(it.str||'').trim())?-1:index).filter(index=>index>=0);
   let ocrResults=null;
-  if((job?job.options.ocrOn:ocrEl&&ocrEl.value)==='on' && missingTextPages.length){
+  if(ocrEnabled && missingTextPages.length){
     log('OCR running on '+missingTextPages.length+' page(s) without selectable text');
     ocrResults=await pdfPagesToOcrText(pdf,job?job.options.ocrLang:document.getElementById('ocrLang').value,missingTextPages,job);
     let recognized=0;
@@ -2159,24 +2206,18 @@ async function pdfToBook(arrayBuffer, mode,job){
         images.push({name,mime:part.mime,b64:part.b64,_sourcePage:index+1,_sourcePdfY:(ocrResults[index].height-part.bbox.y0)/ocrResults[index].scale});
         pageImageRefs[index]=(pageImageRefs[index]||[]).concat(name);
       });
-      /* A scanned page is usually stored as a single full-page bitmap. Once
-         its text has been OCR'd, omit that duplicate raster from reflow EPUB,
-         while retaining separate illustrations found on the same page. */
-      const pageRefs=pageImageRefs[index]||[];
-      const remove=new Set(pageRefs.filter(function(name){
-        const im=images.find(function(entry){return entry.name===name;});
-        if(!im) return false;
-        const aspect=Math.abs((im._sourceWidth/im._sourceHeight)-(im._pageWidth/im._pageHeight));
-        const fillsPage=im._sourceWidth>=im._pageWidth*.45 && im._sourceHeight>=im._pageHeight*.45;
-        return aspect<=.09 && fillsPage;
-      }));
-      if(remove.size){
-        pageImageRefs[index]=pageRefs.filter(name=>!remove.has(name));
-        for(let n=images.length-1;n>=0;n--) if(remove.has(images[n].name)) images.splice(n,1);
-      }
     });
     log('OCR recognized '+recognized+' of '+missingTextPages.length+' textless page(s)');
   }
+  if(ocrEnabled){
+    for(const index of missingTextPages){
+      if(pages[index].length)continue;
+      checkConversion(job);const page=await pdf.getPage(index+1);
+      try{const raster=await retainPageRaster(page,index+1);pageImageRefs[index]=[raster.name];rasterFallbackPages.add(index+1);}
+      finally{if(page.cleanup)page.cleanup();}
+    }
+  }
+  analysis.rasterFallbackPages=rasterFallbackPages.size;
   const imagesByName=new Map();images.forEach(im=>{if(!imagesByName.has(im.name))imagesByName.set(im.name,im);});
   const positionedRefs=pageImageRefs.map(refs=>(refs||[]).map(name=>{const im=imagesByName.get(name);return im&&Number.isFinite(im._sourcePdfY)?{name,y:im._sourcePdfY}:name;}));
   let entries=[];try{entries=await pdfOutlineEntries(pdf);}catch(e){}
@@ -2192,7 +2233,7 @@ async function pdfToBook(arrayBuffer, mode,job){
   if((!html || !html.trim())) throw new Error(ocrEl && ocrEl.value==='on' ? t('errOcrEmpty') : t('errScanned'));
   html=promoteHeadings(html);
   if(images.length && !inlineImages) html += '\n' + images.map(im=>'<p><img src="images/'+escAttr(im.name)+'" alt=""/></p>').join('\n');
-  const pdfPageInfo=pages.map((items,index)=>({page:index+1,ocr:!!(ocrResults&&ocrResults[index]),needsReview:!!(ocrResults&&ocrResults[index]&&(!items.length||ocrNeedsReview(ocrResults[index])))}));
+  const pdfPageInfo=pages.map((items,index)=>({page:index+1,ocr:!!(ocrResults&&ocrResults[index]),rasterFallback:rasterFallbackPages.has(index+1),needsReview:rasterFallbackPages.has(index+1)||!!(ocrResults&&ocrResults[index]&&(!items.length||ocrNeedsReview(ocrResults[index])))}));
   return { html, outlineChapters:outlineChapters.length>=2 ? outlineChapters : null, title, author, lang:'', images, coverName:'', sourcePageCount:pdf.numPages, analysis,pdfPageInfo };
   } finally { if(job)job.signal.removeEventListener('abort',cancelPdf);if(pdf.destroy)try{await pdf.destroy();}catch(e){} }
 }
@@ -2943,7 +2984,7 @@ function readMakerSignature(documents){
 
 function auditReadMakerOutput(book,entries,packageDocuments){
   const issues=[],documents=new Map(),usedAssets=new Set(),imageNames=new Set((book.images||[]).map(image=>'images/'+image.name));
-  const report={schema:READMAKER_ENGINE.reportSchema,engine:{name:READMAKER_ENGINE.name,version:READMAKER_ENGINE.version},scope:'prepared-book-to-xhtml',status:'passed',checks:{textAndEmphasis:true,imageOrderAndAlt:true,localResources:true,internalLinks:true,xml:true},metrics:{sourceChapters:book.chapters.length,outputSections:entries.length,characters:0,images:imageNames.size,imageReferences:0,internalLinks:0,largestSectionBytes:0,sourcePages:book.sourcePageCount||null,ocrPagesForReview:(book.pdfPageInfo||[]).filter(page=>page.needsReview&&!page.reviewed).length},issues,notAssessed:['original-source-extraction','ocr-accuracy','official-epubcheck','physical-device']};
+  const report={schema:READMAKER_ENGINE.reportSchema,engine:{name:READMAKER_ENGINE.name,version:READMAKER_ENGINE.version},scope:'prepared-book-to-xhtml',status:'passed',checks:{textAndEmphasis:true,imageOrderAndAlt:true,localResources:true,internalLinks:true,xml:true},metrics:{sourceChapters:book.chapters.length,outputSections:entries.length,characters:0,images:imageNames.size,imageReferences:0,internalLinks:0,largestSectionBytes:0,sourcePages:book.sourcePageCount||null,ocrPagesForReview:(book.pdfPageInfo||[]).filter(page=>page.needsReview&&!page.reviewed&&!page.rasterFallback).length},issues,notAssessed:['original-source-extraction','ocr-accuracy','official-epubcheck','physical-device']};
   const locations=new Map();entries.forEach(entry=>{locations.set(entry.filename,entry.source);if(!locations.has(entry.source.sourceId))locations.set(entry.source.sourceId,entry.source);});
   const sourceIndices=new Map(book.chapters.map((chapter,index)=>[chapter,index+1]));
   const add=(severity,code,section)=>{const source=locations.get(section);issues.push({severity,code,section,...(source?{sourceChapter:sourceIndices.get(source),sourcePages:(source.sourcePages||[]).slice()}:{})});};
@@ -2985,6 +3026,8 @@ function auditReadMakerOutput(book,entries,packageDocuments){
     });
   });
   if(report.metrics.ocrPagesForReview)add('warning','ocr-review-needed','');
+  const rasterPages=(book.pdfPageInfo||[]).filter(page=>page.rasterFallback&&!page.reviewed).map(page=>page.page);
+  if(rasterPages.length)issues.push({severity:'warning',code:'raster-page-review',section:'',sourcePages:rasterPages});
   report.status=issues.some(issue=>issue.severity==='error')?'blocked':issues.length?'review':'passed';return report;
 }
 window.ReadMakerEngine=Object.freeze({version:READMAKER_ENGINE.version,bookSchema:READMAKER_ENGINE.bookSchema,reportSchema:READMAKER_ENGINE.reportSchema,bookModel:readMakerBookModel,splitFlow:splitChapterFlow,audit:auditReadMakerOutput,utf8Bytes:readMakerUtf8Bytes,build:buildEpub});
@@ -3795,10 +3838,10 @@ function renderQualityReport(report){
   lastQualityReport=report;const panel=$('qualityPanel');if(!panel)return;panel.hidden=!report;panel.classList.toggle('show',!!report);if(!report)return;
   const metrics=report.metrics,label=report.status==='blocked'?'qualityFailed':report.status==='review'?'qualityReview':'qualityPassed';
   $('qualitySummary').textContent=t(label)+' · '+metrics.outputSections+' '+t('qualitySections')+' · '+metrics.characters.toLocaleString()+' '+t('qualityCharacters')+' · '+metrics.images+' '+t('qualityImages');
-  const labels={'text-or-emphasis-changed':'qualityText','image-order-or-alt-changed':'qualityImageOrder','missing-image':'qualityMissingImage','missing-link-target':'qualityMissingLink','atomic-section-large':'qualityLarge','ocr-review-needed':'qualityOcr','invalid-xhtml':'qualityXml','active-content':'qualityActive','missing-title':'qualityTitle','invalid-language':'qualityLanguage','invalid-image-data':'qualityDamagedImage','non-core-image':'qualityImageCompatibility'};
+  const labels={'text-or-emphasis-changed':'qualityText','image-order-or-alt-changed':'qualityImageOrder','missing-image':'qualityMissingImage','missing-link-target':'qualityMissingLink','atomic-section-large':'qualityLarge','ocr-review-needed':'qualityOcr','raster-page-review':'qualityRasterFallback','invalid-xhtml':'qualityXml','active-content':'qualityActive','missing-title':'qualityTitle','invalid-language':'qualityLanguage','invalid-image-data':'qualityDamagedImage','non-core-image':'qualityImageCompatibility'};
   $('qualityIssues').replaceChildren();report.issues.slice(0,40).forEach(issue=>{
     const li=document.createElement('li'),match=/^chap0*(\d+)\.xhtml$/.exec(issue.section||'');
-    const location=issue.sourceChapter?t('chapterLabel')+' '+issue.sourceChapter:match?t('qualitySection')+' '+match[1]:'';
+    const location=issue.sourceChapter?t('chapterLabel')+' '+issue.sourceChapter:match?t('qualitySection')+' '+match[1]:issue.sourcePages&&issue.sourcePages.length?t('pageLabel')+' '+issue.sourcePages.slice(0,20).join(', ')+(issue.sourcePages.length>20?'…':''):'';
     li.textContent=t(labels[issue.code]||'qualityUnknown')+(location?' ('+location+')':'');$('qualityIssues').appendChild(li);
   });
 }
@@ -4018,6 +4061,8 @@ function renderPdfAnalysis(analysis){
   const mode=analysis.recommendedMode==='fixed' ? t('pdfRecommendFixed') : t('pdfRecommendReflow');
   const reasons=(analysis.reasons||[]).map(r=>t('pdfReason'+r.charAt(0).toUpperCase()+r.slice(1))).filter(Boolean).join(', ');
   el.textContent=t('pdfAnalysis')+': '+mode+' ('+t('pdfConfidence')+' '+analysis.confidence+'%)'+(reasons?' — '+reasons+'.':'');
+  if(analysis.scanPages)el.textContent+=' '+t(analysis.ocrEnabled?'pdfScanOcrNotice':'pdfScanNotice').replace('{n}',String(analysis.scanPages));
+  if(analysis.rasterFallbackPages)el.textContent+=' '+t('pdfRasterFallbackNotice').replace('{n}',String(analysis.rasterFallbackPages));
   el.hidden=false;
 }
 function renderGalley(){

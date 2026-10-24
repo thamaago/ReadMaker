@@ -19,7 +19,7 @@ Untuk penggunaan lokal, simpan lima berkas aplikasi dalam folder yang sama: `ind
 | --- | --- |
 | TXT, Markdown, RTF, HTML | Teks, struktur bab, dan pemformatan dasar; HTML disanitasi. |
 | FB2, ODT, DOCX | Metadata, struktur, dan gambar sesuai hasil parser. DOCX menggunakan Mammoth yang dimuat saat diperlukan. |
-| PDF | Reflow untuk teks yang dapat disesuaikan, atau halaman raster untuk mempertahankan tampilan sumber. OCR opsional membaca halaman tanpa lapisan teks, termasuk PDF campuran. |
+| PDF | Reflow untuk teks yang dapat disesuaikan, atau halaman raster untuk mempertahankan tampilan sumber. OCR opsional membaca halaman tanpa lapisan teks, termasuk PDF campuran. PDF yang seluruh halamannya tanpa teks otomatis memakai halaman asli saat OCR mati. |
 | MOBI / AZW3 | Berkas tanpa DRM dengan kompresi yang didukung. HUFF/CDIC belum didukung. |
 | CBZ | Halaman gambar dengan urutan numerik dan bab berdasarkan folder. CBR/RAR perlu diubah ke CBZ terlebih dahulu. |
 | Artikel web / AO3 | Ambil URL atau tempel HTML. Akses jaringan dan gambar mengikuti kebijakan CORS situs sumber. |
@@ -59,6 +59,8 @@ Transfer langsung dan XTC/XTCH masih memerlukan validasi hardware. ZIP batch har
 Berkas lokal diproses di peramban tanpa server konversi atau akun. Permintaan jaringan terjadi ketika membuka situs, memuat pustaka tambahan, mengambil artikel/gambar web, atau mengirim hasil ke e-reader atas pilihan pengguna. Konversi berkas lokal tidak mengunggah sumber ke layanan konversi.
 
 Konversi mempertahankan metadata dan isi sumber; aplikasi **tidak otomatis menganonimkan dokumen**. Periksa judul, penulis, isi, gambar, dan laporan sebelum membagikannya. Panduan materi publik tersedia di [PRIVACY.md](PRIVACY.md).
+
+PDF scan beresolusi tinggi diproses melalui render halaman yang dibatasi sebelum alokasi canvas. Halaman campuran yang belum terbaca sebagai teks tetap disertakan sebagai gambar. Lihat [penanganan PDF scan](docs/pdf-scan-safety.md).
 
 ## Batasan
 

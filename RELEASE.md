@@ -20,3 +20,5 @@ Manual browser acceptance for the PDF correction workflow:
 Playwright, and Edge/Chromium; see `docs/pdf-stress-lab.md`).
 Real X4 Pro/CrossPoint acceptance remains separate; use
 `docs/x4-pro-acceptance.md` and record the firmware version and actual results.
+
+For high-resolution scanned PDFs, run `node tests/pdf-scan-browser.cjs <local-scan.pdf>` with a synthetic or privately held scan. Confirm automatic original-page mode with OCR off, unchanged page order, and a successful EPUB download. Never attach the private input to a public report. See [scan handling](docs/pdf-scan-safety.md).
