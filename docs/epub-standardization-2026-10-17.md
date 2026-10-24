@@ -10,7 +10,7 @@ Memeriksa paket EPUB, sumber gambar, navigasi, mutu teks dan batas kompatibilita
 untuk arah proyek: konversi mudah di browser dan hasil yang layak dibaca pada
 e-reader, terutama Xteink X4 Pro dengan CrossPoint.
 
-Profil pengguna dibaca dari `D:\Antigravity\AI Agent`:
+Profil peran audit dibaca dari konfigurasi alat lokal:
 
 - **Vera**, `agents/quality-assurance/agent.md`, mode `test`: menemukan celah
   auditor, membuat kontrol negatif, memperbaiki auditor Python, kemudian

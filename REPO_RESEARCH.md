@@ -2,6 +2,8 @@
 
 > Pembaruan implementasi dan batas adopsi: [ReadMaker Engine 1.0, 25 Oktober 2026](docs/readmaker-engine-2026-10-25.md). Isi bertanggal sebelumnya di bawah merupakan catatan historis.
 
+Status terkini (25 Oktober 2026): EPUBCheck 5.4.0 sudah menjadi gate fixture lokal/CI; BookModel, split UTF-8, laporan kualitas, serta tinjauan/koreksi PDF sudah diimplementasikan. Gunakan [matriks fitur](FEATURE_COMPARISON.md) dan [roadmap](DEVELOPMENT_PLAN.md) sebagai status aktif. Kajian pembanding di bawah tetap merupakan riset September, bukan evaluasi ulang seluruh repo upstream.
+
 Tanggal riset: 25 September 2026
 
 Dokumen ini memetakan repo yang relevan untuk Read Maker. Penilaian dibatasi pada tujuan Read Maker: konversi lokal, EPUB ringan untuk e-reader kecil/CrossPoint, dukungan PDF, dan privasi tanpa upload.

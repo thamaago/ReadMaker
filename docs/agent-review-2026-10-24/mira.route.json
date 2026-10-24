@@ -8,7 +8,7 @@
   "executionAllowed": false,
   "task": "Analisis pengalaman pengguna baru ReadMaker pada mobile dan desktop dari kode: alur impor sampai EPUB, preset kualitas, error recovery, pratinjau, aksesibilitas dan transfer perangkat. Temuan wajib menunjuk bukti kode; jangan klaim uji visual interaktif. Baca saja tanpa perubahan atau eksekusi.",
   "runtime": "codex",
-  "projectPath": "C:\\Users\\User\\OneDrive\\Dokumen\\GitHub\\ReadMaker",
+  "projectPath": ".",
   "project": "unregistered",
   "action": "read",
   "resources": [

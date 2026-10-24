@@ -12,7 +12,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <link rel="stylesheet" href="responsive.css">
 <meta charset="utf-8" />
-<title>Read Maker — EPUB untuk CrossPoint Reader</title>
+<title>ReadMaker — Konversi dokumen ke EPUB</title>
+<meta name="description" content="Konversi dokumen, PDF, artikel web, dan komik menjadi EPUB di peramban, dengan pratinjau, koreksi PDF, serta preset e-ink." />
 <script src="./jszip.min.js"></script>
 <style>
   :root{
@@ -232,14 +233,14 @@
     <div>
       <div class="eyebrow" data-i18n="brand">untuk CrossPoint Reader &middot; alat gratis</div>
       <h1 data-i18n-html="h1">Read Maker <span class="arrow">&rarr;</span> EPUB</h1>
-      <p class="sub" data-i18n="sub">Pilih sebuah berkas atau tempel tautan artikel, lalu dapatkan buku EPUB rapi yang siap dibaca di perangkatmu. Semua diproses di peramban — tidak ada yang diunggah ke mana pun.</p>
+      <p class="sub" data-i18n="sub">Konversi dokumen, artikel, dan komik menjadi EPUB. Berkas diproses di peramban; fitur web, pustaka tambahan, dan transfer perangkat menggunakan jaringan.</p>
     </div>
     <div style="display:flex;flex-direction:column;align-items:flex-end;gap:10px">
       <div class="langtoggle" role="group" aria-label="Bahasa">
         <button type="button" data-lang="id" aria-pressed="true">ID</button>
         <button type="button" data-lang="en" aria-pressed="false">EN</button>
       </div>
-      <div class="tag" data-i18n="tagOffline">tanpa internet &middot; EPUB</div>
+      <div class="tag" data-i18n="tagOffline">pemrosesan lokal &middot; EPUB</div>
     </div>
   </div>
 </header>
@@ -595,8 +596,8 @@ var T = {
     errCbzLarge:"Komik terlalu besar (maksimal 1.000 halaman dan 128 MB gambar). Bagi CBZ menjadi beberapa berkas.",
     brand:"untuk CrossPoint Reader · alat gratis",
     h1:'Read Maker <span class="arrow">&rarr;</span> EPUB',
-    sub:"Pilih sebuah berkas atau tempel tautan artikel, lalu dapatkan buku EPUB rapi yang siap dibaca di perangkatmu. Semua diproses di peramban — tidak ada yang diunggah ke mana pun.",
-    tagOffline:"tanpa internet · EPUB",
+    sub:"Konversi dokumen, artikel, dan komik menjadi EPUB. Berkas diproses di peramban; fitur web, pustaka tambahan, dan transfer perangkat menggunakan jaringan.",
+    tagOffline:"pemrosesan lokal · EPUB",
     how1t:"Masukkan tulisan", how1d:"Word, teks, Markdown, artikel web, dan lainnya.",
     how2t:"Tinjau hasil", how2d:"Read Maker memilih setelan aman; ubah judul bila perlu.",
     how3t:"Buat & salin ke perangkat", how3d:"Unduh EPUB, lalu salin ke e-reader-mu.",
@@ -660,8 +661,8 @@ var T = {
     errCbzLarge:"Comic is too large (maximum 1,000 pages and 128 MB of images). Split the CBZ into smaller files.",
     brand:"for CrossPoint Reader · free tool",
     h1:'Read Maker <span class="arrow">&rarr;</span> EPUB',
-    sub:"Choose a file or paste an article link, and get a clean EPUB ready to read on your device. Everything runs in your browser — nothing is uploaded anywhere.",
-    tagOffline:"offline · EPUB",
+    sub:"Convert documents, articles, and comics to EPUB. Files are processed in your browser; web features, additional libraries, and device transfer use the network.",
+    tagOffline:"local processing · EPUB",
     how1t:"Add your writing", how1d:"Word, text, Markdown, web articles and more.",
     how2t:"Review the result", how2d:"Read Maker chooses safe settings; edit the title if needed.",
     how3t:"Create & copy to device", how3d:"Download the EPUB, then copy it to your e-reader.",
@@ -1412,8 +1413,7 @@ function pdfStructuralNoise(text){
 }
 /* PDF metadata is often empty even when the title page contains the real
    book details. Keep this fallback conservative: it only recognizes a
-   clearly printed title and an explicitly labelled author (or the common
-   author line used by Indonesian books). */
+   clearly printed title and an explicitly labelled author. */
 function pdfMetadataFallback(pages){
   const vals=[];
   (pages||[]).slice(0,4).forEach(page=>(page||[]).forEach(it=>{
@@ -1429,7 +1429,6 @@ function pdfMetadataFallback(pages){
   let author='';
   const labelled=joined.match(/(?:penulis|oleh)\s*:\s*([A-ZÀ-Ý][A-Za-zÀ-ÿ.'-]*(?:\s+[A-ZÀ-Ý][A-Za-zÀ-ÿ.'-]*){0,4})/i);
   if(labelled) author=labelled[1].replace(/\s+(?:editor|proof|penata|desainer|ilustrator|illustrator|penerbit|isbn)\b.*$/i,'').trim();
-  if(!author){ const named=joined.match(/\bRaditya\s+Dika\b/i); if(named) author='Raditya Dika'; }
   return {title,author};
 }
 function pdfGeometryRows(items,size){

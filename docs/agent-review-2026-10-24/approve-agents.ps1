@@ -1,12 +1,22 @@
-# Run this yourself in an interactive PowerShell terminal.
-# Jev displays each scope and asks you to type a fresh challenge.
-# This script never supplies or automatically answers that challenge.
+# Historical preparation helper; see README.md before use.
+# Run in an interactive PowerShell terminal with a local Jev installation.
+# Each request still requires a fresh human challenge.
+param(
+    [Parameter(Mandatory = $true)]
+    [string]$JevPath,
+    [string]$PythonCommand = 'python'
+)
 $ErrorActionPreference = 'Stop'
-$python = 'C:\Users\User\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe'
-$jev = 'D:\Antigravity\AI Agent\jev.py'
-foreach ($name in @('vera', 'sera', 'lexi', 'mira', 'raka')) {
-    Write-Host "Review request for $name (read-only ReadMaker analysis)"
-    & $python -B $jev approve --request (Join-Path $PSScriptRoot "$name.request.json")
-    if ($LASTEXITCODE -ne 0) { throw "Approval for $name did not complete; stopping." }
+$jevScript = (Resolve-Path -LiteralPath $JevPath).Path
+$projectRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '../..')).Path
+Push-Location -LiteralPath $projectRoot
+try {
+    foreach ($name in @('vera', 'sera', 'lexi', 'mira', 'raka')) {
+        Write-Host "Review request for $name (read-only ReadMaker analysis)"
+        & $PythonCommand -B $jevScript approve --request (Join-Path $PSScriptRoot "$name.request.json")
+        if ($LASTEXITCODE -ne 0) { throw "Approval for $name did not complete; stopping." }
+    }
+} finally {
+    Pop-Location
 }
-Write-Host 'Approvals complete. Return to Codex promptly; receipts expire after 15 minutes.'
+Write-Host 'Approvals complete. Follow the local tool instructions for receipt validity.'

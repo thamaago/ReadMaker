@@ -58,22 +58,24 @@ ok(/images\/cover\.jpg/.test(pdfItemsToHtml([[]],[['cover.jpg']])), 'image-only 
 // become repeated chapter headings in the reflowed EPUB
 const headed=[];
 for(let i=0;i<4;i++) headed.push([
-  I('MARMUT MERAH JAMBU',72,800,180,14),
+  I('BUKU UJI SINTETIS',72,800,180,14),
   I('Body paragraph '+(i+1)+' remains readable.',72,760,240,12),
   I('A |',72,730,40,18),
   I(String(i+1),300,40,8,10)
 ]);
 const headedOut=pdfItemsToHtml(headed);
-ok(!/MARMUT MERAH JAMBU/.test(headedOut),'repeated edge header removed from reflow');
+ok(!/BUKU UJI SINTETIS/.test(headedOut),'repeated edge header removed from reflow');
 ok(!/>A \|<\/h[1-3]>/.test(headedOut),'fragment heading noise removed');
 ok((headedOut.match(/Body paragraph/g)||[]).length===4,'body text preserved after edge cleanup');
 
 const meta=pdfMetadataFallback([
-  [I('MARMUT',0,100,50,12),I('MERAH JAMBU',60,100,80,12)],
-  [I('Penulis:',0,100,50,12),I('Raditya Dika',60,100,80,12)]
+  [I('BUKU',0,100,50,12),I('UJI SINTETIS',60,100,80,12)],
+  [I('Penulis:',0,100,50,12),I('Penulis Contoh',60,100,80,12)]
 ]);
-ok(meta.title==='Marmut Merah Jambu','PDF title fallback from title page');
-ok(meta.author==='Raditya Dika','PDF author fallback from labelled metadata');
+ok(meta.title==='Buku Uji Sintetis','PDF title fallback from title page');
+ok(meta.author==='Penulis Contoh','PDF author fallback from labelled metadata');
+const unlabelled=pdfMetadataFallback([[I('BUKU UJI SINTETIS',0,100,180,12),I('Penulis Contoh',0,70,100,12)]]);
+ok(unlabelled.author==='', 'unlabelled names must not be inferred as PDF authors');
 
 const complex=pdfAnalyzeLayout(headed,4,4);
 ok(complex.recommendedMode==='fixed','PDF analysis recommends fixed when images are present');

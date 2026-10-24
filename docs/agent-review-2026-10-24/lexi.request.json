@@ -5,7 +5,7 @@
   "capabilities": [
     "read"
   ],
-  "projectPath": "C:\\Users\\User\\OneDrive\\Dokumen\\GitHub\\ReadMaker",
+  "projectPath": ".",
   "backend": "offline",
   "resources": [
     "index.html",

@@ -1,113 +1,35 @@
-# Perbandingan Fitur Read Maker dengan Repo Pembanding
+# Matriks kemampuan ReadMaker
 
-> Pembaruan implementasi dan batas adopsi: [ReadMaker Engine 1.0, 25 Oktober 2026](docs/readmaker-engine-2026-10-25.md). Isi bertanggal sebelumnya di bawah merupakan catatan historis.
+Diperbarui: 25 Oktober 2026 berdasarkan kode, pengujian, dan workflow repo. **Tersedia** berarti ada implementasi; **parsial** berarti ada batas format, jaringan, atau validasi. Status tidak menyatakan sertifikasi perangkat.
 
-> Audit ini merekam kondisi 25 September. Penelaahan terbaru beserta pro/kontra
-> dan batas bukti tersedia di [audit 16 Oktober 2026](docs/app-review-2026-10.md).
+| Area | Status | Kemampuan dan batas bukti |
+| --- | --- | --- |
+| TXT, Markdown, RTF, HTML, FB2, ODT | Tersedia | Parser lokal, sanitasi, metadata/struktur sesuai format. |
+| DOCX | Tersedia | Mammoth dimuat lewat jaringan; skenario browser tersedia. |
+| PDF reflow dan fixed | Tersedia | Rekomendasi mode, pembersihan header, metadata fallback, gambar dan pemetaan halaman. Layout kompleks perlu ditinjau. |
+| OCR PDF scan/campuran | Parsial | Halaman tanpa text layer; akurasi belum disahkan terhadap transkripsi manusia. |
+| Tinjauan dan koreksi PDF | Tersedia | Bandingkan halaman sumber dengan hasil; koreksi teks reflow selama sesi. Teks halaman raster tidak dapat diedit. |
+| MOBI/AZW3 | Parsial | Tanpa DRM, PalmDOC dan TOC bawaan; HUFF/CDIC belum didukung. |
+| CBZ / XTC / XTCH | Tersedia | Halaman gambar, urutan numerik, folder bab dan pipeline e-ink; native output belum diuji pada hardware. CBR tidak didukung. |
+| Artikel web / AO3 | Parsial | Fetch/paste HTML; gambar dikemas jika dapat diambil, pilihan teks saja bila diblokir. CORS tetap berlaku. |
+| Metadata dan TOC | Tersedia | Edit judul/penulis, edit/reorder bab, nested NAV/NCX, preview dan paging daftar bab. |
+| Keluaran EPUB | Tersedia | EPUB 3 dengan NCX fallback, fixed-layout viewport, profil universal/CrossPoint; tidak ada ekspor EPUB 2 terpisah. |
+| Engine 1.0.0 | Tersedia | BookModel, split target 192 KiB UTF-8, ruby dan guard isi/aset/tautan/XML. Blok atomik besar diberi peringatan. |
+| Laporan kualitas | Tersedia | JSON tunggal/batch; membandingkan konten siap-build dengan hasil, bukan akurasi sumber/OCR. |
+| EPUBCheck resmi | Tersedia untuk fixture | Versi 5.4.0 pada lokal/CI dengan fail-on-warnings; tidak dijalankan pada setiap ekspor browser. |
+| Validator JS/WASM browser | Belum tersedia | epubcheck-ts merupakan acuan riset, belum menjadi runtime. |
+| Perangkat umum | Parsial | Baseline universal; CrossPoint memiliki profil khusus. Pemilihan target bukan sertifikasi firmware. |
+| RTL dan CJK | Parsial | Arah baca, bahasa dan ruby tersedia; tipografi akhir bergantung pembaca. |
+| Batch / kamus / wallpaper | Tersedia | ZIP EPUB per item, StarDict, BMP/overlay; pembatalan dan batas sumber diuji. |
+| Transfer Wi-Fi | Parsial | WebSocket/HTTP, profil, QR, timeout/cancel; simulasi protokol bukan uji perangkat nyata. |
+| Pengujian browser | Tersedia | Skrip khusus terpisah dari suite headless; sebagian memerlukan fixture dan Playwright. |
+| Offline penuh | Parsial | Core lokal; PDF/DOCX/OCR/QR memuat dependensi on demand. |
+| Responsivitas proses berat | Parsial | Progress/cancel pada beberapa alur; parser sinkron dan decode dapat membebani main thread. |
+| Korpus fidelity | Parsial | Fixture sintetis dan auditor tersedia; benchmark akurasi OCR serta seluruh variasi layout belum lengkap. |
+| Uji hardware | Belum tervalidasi | Gunakan checklist perangkat dan catat firmware sebelum menaikkan status. |
 
-Tanggal audit: 25 September 2026
+## Posisi terhadap proyek acuan
 
-Dokumen ini membandingkan fitur yang benar-benar ada di Read Maker dengan kemampuan repo yang sudah diteliti. Status memakai tiga tingkat:
+Calibre dan Pandoc menjadi acuan pipeline; Sigil menjadi acuan review/edit; EPUBCheck memeriksa conformance; CrossPoint menjadi acuan profil perangkat. ReadMaker tidak menyertakan seluruh kemampuan proyek tersebut. epub.js, epub-gen-memory, epubcheck-ts, dan EbookLib belum diintegrasikan sebagai runtime.
 
-- **✅ Ada** — sudah tersedia dan memiliki jalur kode atau test di repo.
-- **◐ Parsial** — tersedia untuk sebagian sumber/perangkat, masih ada batasan atau belum tervalidasi penuh.
-- **❌ Belum ada** — belum menjadi fitur produk.
-
-## 1. Inventaris fitur Read Maker saat ini
-
-| Area | Fitur | Status | Bukti di repo / catatan |
-|---|---|---:|---|
-| Sumber | TXT, Markdown, RTF, HTML, FB2, ODT | ✅ | Parser lokal dan fixture test masing-masing format |
-| Sumber | DOCX | ◐ | Mammoth dimuat saat diperlukan; browser path belum tercakup penuh oleh test headless |
-| Sumber | PDF text-based | ✅ | pdf.js, reflow dan fixed-layout |
-| Sumber | PDF scan/campuran | ◐ | OCR Tesseract opt-in pada halaman tanpa text layer, 2.5× render, rekonstruksi baris berbasis bounding box, peringatan confidence rendah; tetap perlu pemeriksaan pengguna |
-| Sumber | MOBI/AZW3 non-DRM | ✅ | PalmDOC, gambar, cover, dan TOC bawaan |
-| Sumber | CBZ | ✅ | Halaman gambar, urutan numerik, filter metadata arsip, chapter dari folder, ekspor XTC/XTCH |
-| Sumber | CBR/RAR | ❌ | Pengguna diarahkan mengubahnya ke CBZ terlebih dahulu |
-| Sumber | Artikel web dan AO3 | ◐ | Fetch/paste HTML; fetch tetap dibatasi CORS dan jaringan |
-| Struktur | Deteksi chapter dan TOC bawaan | ✅ | TOC MOBI/HTML diprioritaskan, fallback heading/page-break/marker |
-| Struktur | Nested TOC | ✅ | `nav.xhtml` dan `toc.ncx` mendukung level bertingkat |
-| Struktur | Pencarian dan paging daftar chapter | ✅ | Galley memiliki pencarian, nomor halaman daftar, next/previous; export tetap memakai semua chapter |
-| Struktur | Koreksi judul/penulis | ✅ | Form metadata tersedia sebelum build |
-| Struktur | Edit/reorder TOC manual | ✅ | Galley menyediakan edit judul dan tombol naik/turun; urutan dipakai saat build |
-| PDF | Rekomendasi reflow/fixed | ✅ | Classifier memakai text layer, gambar, kolom, dan halaman kosong/sparse |
-| PDF | Pembersihan header/footer dan artefak | ✅ | Header berulang, nomor halaman, `A |`/`A .`, dan metadata fallback ditangani |
-| PDF | Penempatan gambar dekat halaman sumber | ✅ | Image reference menyimpan `sourcePage` dan disisipkan di HTML reflow |
-| PDF | Layout tabel, matematika, multi-kolom kompleks | ◐ | Multi-kolom dasar terdeteksi; rekonstruksi lanjutan belum tersedia |
-| PDF | Preview hasil reflow/fixed | ◐ | Preview bab pertama tersedia; side-by-side per halaman sumber belum ada |
-| EPUB | EPUB 2/3, OPF, spine, manifest | ✅ | Builder sendiri, termasuk `nav.xhtml` dan `toc.ncx` |
-| EPUB | Fixed-layout viewport | ✅ | Halaman PDF dirender sebagai chapter pre-paginated |
-| EPUB | Normalisasi markup untuk parser CrossPoint | ✅ | Tag dan CSS dibatasi; `<pre>/<code>` dinormalisasi ke blok + `<br/>` |
-| EPUB | Self-check XML dan warning kualitas | ✅ | XML parse check dan warning metadata/resource/chapter |
-| EPUB | EPUBCheck resmi | ❌ | Belum ada gate conformance resmi |
-| EPUB | Validator browser JS/WASM | ❌ | `epubcheck-ts` belum diintegrasikan |
-| EPUB | Memecah chapter XHTML besar | ◐ | Pemisahan berbasis chapter tersedia; split ukuran/byte untuk RAM firmware belum ada |
-| Gambar | Grayscale, fit panel, dithering | ✅ | 2/4 tone dan Floyd–Steinberg/ordered dithering |
-| Device | Target Adobe/Kobo/PocketBook/Kindle/Xteink/Sumi/Android | ◐ | Selector dilokalkan; hanya CrossPoint memiliki profil CSS khusus, target lain memakai EPUB universal; selector tidak mengubah format proprietary |
-| Device | XTC/XTCH native image pages | ✅ | Untuk CBZ/image pages; mengikuti panel, tone, fit, dan dithering terpilih; text-to-XTC memang di luar scope |
-| Device | Dictionary StarDict | ✅ | `.ifo`, `.idx`, `.dict` untuk CrossPoint/SUMI |
-| Device | Sleep screen BMP/overlay | ✅ | Indexed 4-tone dan BGRA overlay |
-| Device | Upload Wi-Fi langsung | ◐ | Profil otomatis/CrossPoint/stock/generic, WebSocket dengan fallback HTTP, QR, cancel, timeout; belum lulus uji hardware nyata |
-| Operasional | Batch conversion | ✅ | File rusak/unsupported dilewati dan dilaporkan per item |
-| UX | Preset hasil dan validasi sebelum build | ✅ | Preset teks, tata letak, komik, target perangkat, reparse PDF saat preset berubah, serta pemeriksaan isi/gambar sebelum EPUB dibuat |
-| Operasional | Worker/progress/cancel untuk parsing berat | ◐ | Progress/error UI ada di beberapa jalur; parser utama masih berjalan di main thread |
-| Operasional | Offline penuh tanpa dependensi jaringan | ◐ | Core offline; PDF.js, Mammoth, OCR, QR decoder dimuat saat diperlukan |
-| Kualitas | Corpus benchmark dan metrik fidelity | ❌ | Test fungsional banyak, tetapi belum ada expected word/chapter/image metrics lintas corpus |
-| Kualitas | Uji perangkat fisik | ❌ | Kompatibilitas dibaca dari source CrossPoint, belum ada matriks hardware pass |
-
-## 2. Dibandingkan dengan repo utama
-
-| Kemampuan | Read Maker | Repo pembanding | Penilaian |
-|---|---|---|---|
-| Pipeline konversi bertahap | Parser → normalizer → struktur → builder sudah ada, tetapi masih monolitik di `index.html` | [Calibre](https://github.com/kovidgoyal/calibre) dan [Pandoc](https://github.com/jgm/pandoc) memakai pipeline/intermediate model yang lebih eksplisit | Pertahankan builder khusus perangkat; ekstrak `BookModel`, diagnostics, dan tahap transform agar mudah diuji |
-| Heuristik PDF | Classifier mode, header cleanup, metadata fallback, inline image sudah ada | [Calibre conversion](https://manual.calibre-ebook.com/conversion.html), [pdf2epub](https://github.com/overcuriousity/pdf2epub), [pdftoepub](https://github.com/PiXeL16/pdftoepub) lebih luas pada layout/OCR/table/patch | Read Maker unggul pada privasi dan determinisme; masih tertinggal pada layout kompleks, OCR confidence, dan review patch |
-| Editor/review EPUB | Metadata form dan galley chapter tersedia | [Sigil](https://github.com/Sigil-Ebook/Sigil) punya editor XHTML/CSS, TOC editor, preview, reports | Ambil alur review ringan: edit judul/reorder TOC, warnings, preview; jangan meniru editor penuh |
-| Packaging EPUB | OPF, spine, nav, NCX, CSS CrossPoint, fixed layout | [epub-gen-memory](https://github.com/cpiber/epub-gen-memory), [epub-gen](https://github.com/cyrilis/epub-gen) adalah generator umum | Builder sendiri lebih sesuai karena output harus aman untuk parser e-ink; gunakan generator umum hanya sebagai oracle perbandingan |
-| Conformance | Self-check XML dan warning internal | [EPUBCheck](https://github.com/w3c/epubcheck) adalah validator resmi; [epubcheck-ts](https://github.com/likecoin/epubcheck-ts) menyediakan JS/WASM browser/Node | Tambahkan epubcheck-ts sebagai feedback lokal dan EPUBCheck Java sebagai CI/release gate |
-| Preview/pagination | Paging hanya untuk daftar chapter/galley, bukan render EPUB final | [epub.js](https://github.com/futurepress/epub.js) menyediakan render, navigation, dan pagination browser | Tambahkan preview terbatas untuk hasil reflow/fixed; jangan jadikan epub.js sebagai renderer CrossPoint |
-| Manipulasi EPUB | Build only, belum edit EPUB existing | [EbookLib](https://github.com/aerkalov/ebooklib) kuat untuk EPUB2/3 tetapi Python/AGPL | Tidak cocok sebagai dependency static; berguna untuk fixture/oracle di luar browser |
-| Fixed-layout PDF | Render PNG per halaman dan metadata viewport | [pdf2epubEX](https://github.com/dodeeric/pdf2epubEX) mempertahankan layout melalui pdf2htmlEX | Arah Read Maker sudah benar; perlu golden render dan pengukuran ukuran/ketajaman gambar |
-| Target e-ink | CSS, gambar, XTC, dictionary, sleep, Wi-Fi khusus CrossPoint | [CrossPoint Reader](https://github.com/crosspoint-reader/crosspoint-reader) mendokumentasikan parser, cache, layout, renderer, dan batas hardware | Ini keunggulan utama Read Maker; acceptance test harus mengacu parser/perangkat, bukan browser saja |
-
-## 3. Fitur yang sudah lebih kuat daripada generator EPUB umum
-
-Read Maker sudah memiliki kombinasi yang tidak diberikan oleh `epub-gen` atau `epub-gen-memory`: profil CSS CrossPoint, markup subset untuk parser ESP32, pengolahan gambar 2/4-tone, ekspor XTC/XTCH, dictionary StarDict, sleep screen, transfer Wi-Fi, RTL, serta penanganan PDF fixed/reflow. Karena itu mengganti builder dengan generator umum tidak otomatis meningkatkan kualitas.
-
-Keunggulan lain adalah pemrosesan lokal tanpa upload. Ini sesuai kebutuhan pemilik file resmi yang hanya ingin memindahkannya ke perangkat e-ink, sekaligus menjaga batas produk: file DRM tetap tidak dibuka atau dihapus proteksinya.
-
-## 4. Gap yang paling berdampak bagi pengguna
-
-1. **Preview masih terbatas.** Pengguna dapat melihat ringkasan dan bab pertama, tetapi belum ada perbandingan visual per halaman sumber vs hasil EPUB.
-2. **Validasi formal belum tersedia.** Self-check XML menangkap error dasar, tetapi belum menggantikan EPUBCheck.
-3. **PDF kompleks masih menjadi risiko utama.** Tabel, footnote, rumus, dua kolom tidak selalu dapat direflow dengan benar; fixed-layout harus dipilih saat confidence rendah.
-4. **Belum ada pengukuran fidelity lintas corpus.** Jumlah kata, urutan gambar, chapter, dan ukuran output perlu dibandingkan dengan expected fixture.
-5. **Belum ada bukti hardware.** Upload Wi-Fi dan pembukaan EPUB perlu diuji pada X3/X4/X4 Pro/papermono dan firmware yang relevan.
-
-## 5. Prioritas pengembangan berdasarkan perbandingan
-
-### P0 — validasi hasil
-
-- Tambahkan fixture PDF satu kolom, dua kolom, scan, ilustrasi, TOC, font non-Unicode.
-- Integrasikan `epubcheck-ts` sebagai pemeriksaan opsional setelah build.
-- Tambahkan report hasil: mode, confidence, chapter, kata, gambar, halaman sumber, warning.
-- Jadikan EPUBCheck Java gate CI untuk fixture rilis.
-
-### P1 — review yang bisa ditindaklanjuti
-
-- Preview reflow/fixed yang disanitasi.
-- Rename/reorder chapter dan edit judul TOC.
-- Tandai sumber metadata dan halaman asal gambar.
-- Tampilkan alasan rekomendasi PDF dan tombol paksa fixed/reflow/OCR.
-
-### P2 — keandalan perangkat
-
-- Pecah XHTML besar agar aman untuk RAM firmware.
-- Golden render untuk panel 480×800 dan ukuran target lain.
-- Uji fisik buka, TOC, font, page turn, resume/cache, gambar, RTL, fixed layout, dan Wi-Fi upload.
-- Pindahkan OCR/PDF besar ke Web Worker dengan progress dan cancel.
-
-## 6. Batas adopsi kode
-
-Gunakan repo pembanding sebagai referensi perilaku, fixture, dan desain alur. Jangan menyalin kode Calibre/Sigil/Pandoc/EbookLib ke bundle MIT tanpa audit lisensi; repo tersebut berlisensi GPLv3, GPL, atau AGPL. Kandidat yang paling aman untuk dievaluasi sebagai komponen terpisah adalah `epubcheck-ts` (BSD-3-Clause) dan, dengan golden test kompatibilitas, generator MIT seperti `epub-gen-memory`.
-
-Kesimpulan audit: Read Maker sudah memenuhi jalur inti “file lokal → EPUB ringan untuk e-ink”, tetapi belum mencapai kualitas “reviewable dan terukur” seperti Calibre/Sigil. Langkah paling bernilai bukan menambah banyak format, melainkan menutup preview, koreksi TOC, validasi EPUB, benchmark PDF, dan acceptance test perangkat.
+Daftar riset tersedia di [REPO_RESEARCH.md](REPO_RESEARCH.md). Pekerjaan terbuka tersedia di [roadmap](DEVELOPMENT_PLAN.md). Rincian implementasi serta batas hasil pengujian tersedia di [laporan engine](docs/readmaker-engine-2026-10-25.md) dan [audit lima putaran](docs/five-pass-audit-2026-10-25.md).

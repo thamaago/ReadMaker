@@ -8,7 +8,7 @@
   "executionAllowed": false,
   "task": "Analisis ReadMaker menyeluruh: bug konversi, regresi, kesenjangan pengujian, performa dan validitas EPUB. Laporkan bukti file/baris, dampak, prioritas serta batas bukti; baca saja, jangan ubah kode atau menjalankan proses.",
   "runtime": "codex",
-  "projectPath": "C:\\Users\\User\\OneDrive\\Dokumen\\GitHub\\ReadMaker",
+  "projectPath": ".",
   "project": "unregistered",
   "action": "read",
   "resources": [

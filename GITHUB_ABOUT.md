@@ -8,9 +8,7 @@ Create clean, readable EPUBs from PDFs, documents, web articles, and comics, wit
 
 ## Website
 
-Gunakan URL GitHub Pages yang ditampilkan pada deployment repositori. Format umumnya:
-
-`https://<username>.github.io/ReadMaker/`
+Gunakan URL GitHub Pages yang ditampilkan pada deployment repositori. Salin alamat deployment yang aktif tanpa mencantumkan identitas pengelola dalam deskripsi proyek. Jangan menebak alamat situs dari nama akun.
 
 ## Topics
 
