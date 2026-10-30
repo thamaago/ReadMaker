@@ -50,3 +50,21 @@ SHA-256 aset final:
 
 - `index.html`: `f70c9d8589d56177d95fa1634795baace87343ea62265ecab61c091bc3b015b4`
 - `pdf-review.js`: `1b0238157da7b3927fcf2e018ceb23ccd92c37e88729bc498b7968d0a46069ed`
+
+## Perbaikan struktur OCR — 30 Oktober 2026
+
+Audit EPUB hasil konversi menemukan bahwa margin kiri global membuat baris isi dianggap sebagai awal paragraf ketika halaman lain mempunyai margin lebih kecil. Tinggi kotak huruf OCR juga lebih kecil daripada jarak antarbaris, sehingga ambang jarak tetap memperparah pemecahan paragraf.
+
+Parser sekarang menggunakan margin per halaman/kolom dan memperkirakan jarak baris normal dari kelompok tersebut. Indentasi awal dan celah kosong tetap menjadi bukti awal paragraf. Judul OCR yang terdiri dari baris berdekatan dan sejajar digabung menjadi satu heading, sehingga satu judul tidak menghasilkan beberapa bab. Penggabungan ini mempertahankan kata hasil OCR; ejaan judul tidak ditebak.
+
+Tanda hubung keras pada akhir baris hanya dilepas jika ejaan tersambung ditemukan di dokumen yang sama dan ejaan bertanda hubung tidak ditemukan. Jika bukti tidak cukup atau bertentangan, tanda hubung dipertahankan. Soft hyphen tetap diperlakukan sebagai penanda pemenggalan. Koreksi judul melalui daftar bab juga memperbarui heading pertama di isi bab apabila heading tersebut cocok dengan judul sebelumnya.
+
+Verifikasi:
+
+- Seluruh 62 suite pengujian lulus, termasuk regresi margin lintas halaman, jarak baris OCR, indentasi, celah paragraf, judul beberapa baris, pemenggalan kata, serta koreksi judul sampai ekspor EPUB.
+- OCR ulang dua halaman sumber lokal dilakukan dengan worker Tesseract dan canvas browser asli. Hasil pengenalan yang sama dibandingkan menggunakan parser lama dan baru, dengan halaman pendamping bermargin kecil untuk mereproduksi masalah margin lintas halaman.
+- Halaman isi menghasilkan 5 paragraf dibandingkan 27 pada parser lama. Halaman judul menghasilkan 1 heading dibandingkan 2. Urutan karakter sama setelah normalisasi spasi, soft hyphen, dan tanda hubung keras yang diperbaiki; jumlah kata tidak harus sama karena kata terpenggal disambung.
+- EPUB contoh dua halaman lolos EPUBCheck 5.4.0 tanpa error atau peringatan; browser tidak mencatat error. Tampilan paragraf sebelum/sesudah diperiksa secara visual.
+- Bukti privat berada di `output/ocr-comparison/repair-validation/`; log pengujian di `tmp/ocr-repair-tests.log`. Keduanya diabaikan Git. Pengujian repo menggunakan teks sintetis tanpa identitas sumber.
+
+Verifikasi ini merupakan pengujian struktur pada dua halaman, bukan pengukuran ulang akurasi seluruh buku. Judul dekoratif yang tidak terbaca, kesalahan ejaan/tanda baca, format miring/tebal, dan ilustrasi yang tidak terdeteksi masih perlu ditinjau. EPUB lama tidak berubah otomatis; konversi perlu dijalankan ulang untuk memakai parser baru. Hasil serta hash pada bagian verifikasi sebelumnya merujuk versi 25 Oktober 2026.

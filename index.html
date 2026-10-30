@@ -1538,10 +1538,17 @@ function pdfAnalyzeLayout(pages, imageCount, pageCount){
   const confidence=Math.round(Math.min(.98,.55+score*.12)*100);
   return {recommendedMode,confidence,textRatio,multiColumnPages,imageCount:imageCount||0,reasons};
 }
-function pdfJoinHyphenated(left,right){
+function pdfJoinHyphenated(left,right,lexicon){
   // A soft hyphen explicitly marks discretionary wrapping. A hard hyphen is
   // ambiguous (well-known, self-esteem, reduplication); preserve source spelling.
-  return left.replace(/\u00ad$/,'')+right;
+  if(/\u00ad$/.test(left)) return left.slice(0,-1)+right;
+  const end=left.match(/([\p{L}]+)-$/u),start=right.match(/^([\p{L}]+)/u);
+  if(end && start && lexicon){
+    const joined=(end[1]+start[1]).toLocaleLowerCase();
+    const hyphenated=(end[1]+'-'+start[1]).toLocaleLowerCase();
+    if(lexicon.has(joined) && !lexicon.has(hyphenated)) return left.slice(0,-1)+right;
+  }
+  return left+right;
 }
 function pdfItemsToHtml(pages, pageImages, reviewOptions){
   let blockNo=0;
@@ -1592,7 +1599,7 @@ function pdfItemsToHtml(pages, pageImages, reviewOptions){
       text=text.replace(/\s+/g,' ').trim();
       const cap=li.find(i=>i._dropCap);
       return { page:pi,pageHeight:its[0]._pageHeight||0,region:ln.region,y:ln.y, x0:Math.min(...ln.items.map(i=>i.x)), x1:Math.max(...ln.items.map(i=>i.x+(i.w||0))), size:Math.round(Math.max(...ln.items.map(i=>i.h))), text,
-        dropCapEnd:cap ? cap.x+cap.w : 0 };
+        ocr:li.every(i=>i._ocr),dropCapEnd:cap ? cap.x+cap.w : 0 };
     }).filter(l=>l.text.length);
     // A centered final line is not an indented first line. Require several
     // differently sized lines sharing a center before changing the heuristic.
@@ -1648,10 +1655,42 @@ function pdfItemsToHtml(pages, pageImages, reviewOptions){
   allLines.length=0; Array.prototype.push.apply(allLines, kept);
   if(!allLines.length) return imagesOnlyHtml();
 
-  const bodyX=allLines.filter(l=>l.size<=bodyH*1.3).map(l=>l.x0);
-  const leftMargin=bodyX.length?Math.min(...bodyX):Math.min(...allLines.map(l=>l.x0));
   const regionMargins={};allLines.forEach(l=>{const k=l.page+':'+l.region;regionMargins[k]=Math.min(regionMargins[k]===undefined?Infinity:regionMargins[k],l.x0);});
+  // Margins and line spacing belong to a page/column. A cover or a narrow
+  // glyph on another page must not turn every body line into a new paragraph.
+  // OCR boxes measure visible ink, often much shorter than the line leading.
+  const regionGaps={},regionLeading={};
+  allLines.forEach((l,i)=>{
+    const previous=allLines[i-1],key=l.page+':'+l.region;
+    if(previous && previous.page===l.page && previous.region===l.region && previous.y>l.y){
+      (regionGaps[key]||(regionGaps[key]=[])).push(previous.y-l.y);
+    }
+  });
+  Object.entries(regionGaps).forEach(([key,gaps])=>{
+    if(gaps.length<3) return;
+    gaps.sort((a,b)=>a-b);
+    regionLeading[key]=median(gaps.slice(0,Math.max(1,Math.ceil(gaps.length*.7))));
+  });
+  // Only repair an ambiguous hard hyphen when the same document supplies an
+  // unbroken spelling, and does not also attest the hyphenated spelling.
+  const lexicon=new Set(allLines.flatMap(l=>l.text.match(/[\p{L}]+(?:-[\p{L}]+)*/gu)||[]).map(w=>w.toLocaleLowerCase()));
   const headingLevel=(s)=> s>=bodyH*1.8?1 : s>=bodyH*1.45?2 : 3;
+  const isHeading=l=>l.size>=bodyH*1.35 && l.text.length<=120 && !looksLikeProse(l.text);
+  // Decorative OCR headings can wrap into several lines. Keep adjacent,
+  // aligned heading lines together so navigation does not split one title
+  // into multiple chapters. Do not infer words that OCR did not recognise.
+  const readingLines=[];
+  for(const line of allLines){
+    const previous=readingLines[readingLines.length-1];
+    if(previous && previous.ocr && line.ocr && isHeading(previous) && isHeading(line)
+      && previous.page===line.page && previous.region===line.region
+      && previous.y-line.y<=Math.max(previous.size,line.size)*2.5
+      && (Math.abs(previous.x0-line.x0)<=bodyH || Math.abs((previous.x0+previous.x1)-(line.x0+line.x1))<=bodyH*4)
+      && previous.text.length+line.text.length<120){
+      previous.text+=' '+line.text;previous.y=line.y;
+      previous.x0=Math.min(previous.x0,line.x0);previous.x1=Math.max(previous.x1,line.x1);
+    }else readingLines.push(Object.assign({},line));
+  }
 
   const out=[]; let para='', prev=null, paraPages=[];const imageCursor={};
   const usedImages=new Set();
@@ -1667,7 +1706,7 @@ function pdfItemsToHtml(pages, pageImages, reviewOptions){
     });
   };
   const flush=()=>{ if(para.trim()) out.push('<p'+reviewAttrs(paraPages)+'>'+escHtmlText(para.trim())+'</p>'); addPageImages(paraPages); para=''; paraPages=[]; };
-  for(const l of allLines){
+  for(const l of readingLines){
     imageCursor[l.page]=l.y;
     if(prev && prev.page!==l.page && [...breakPages].some(page=>page>prev.page&&page<=l.page)) flush();
     const gapStart=prev?prev.page+1:0;
@@ -1678,19 +1717,21 @@ function pdfItemsToHtml(pages, pageImages, reviewOptions){
     // Large drop caps are often emitted by PDF.js as a one-line, oversized
     // text item. Treat prose-like lines as body text even when their glyph
     // height resembles a heading (for example: "Mthat they were...").
-    if(l.size>=bodyH*1.35 && l.text.length<=120 && !looksLikeProse(l.text)){
+    if(isHeading(l)){
       flush(); const lv=headingLevel(l.size); out.push('<h'+lv+reviewAttrs([l.page])+'>'+escHtmlText(l.text)+'</h'+lv+'>'); addPageImages([l.page]); prev=l; continue;
     }
     let newp=false;
     if(!para) newp=true;
     else if(prev){
-      if(prev.page===l.page && (prev.region!==l.region || (prev.y-l.y)>bodyH*1.8)) newp=true;
-      else if(!l.centered && l.x0-(l.region?regionMargins[l.page+':'+l.region]:leftMargin)>bodyH*0.8 && !(prev.dropCapEnd && l.x0>=prev.dropCapEnd-bodyH && l.x0<=prev.dropCapEnd+bodyH*2)) newp=true;
+      const key=l.page+':'+l.region;
+      const paragraphGap=Math.max(bodyH*1.8,(regionLeading[key]||0)*1.5);
+      if(prev.page===l.page && (prev.region!==l.region || (prev.y-l.y)>paragraphGap)) newp=true;
+      else if(!l.centered && l.x0-regionMargins[key]>bodyH*0.8 && !(prev.dropCapEnd && l.x0>=prev.dropCapEnd-bodyH && l.x0<=prev.dropCapEnd+bodyH*2)) newp=true;
       else if(l.centered && /^[“"]/.test(l.text) && /[”"]\s*$/.test(prev.text)) newp=true;
       else if(prev.page!==l.page && /[.!?:”"']\s*$/.test(para)) newp=true;
     }
     if(newp){ flush(); para=l.text; paraPages=[l.page]; }
-    else if(/[-\u00ad]$/.test(para) && /^[a-z]/.test(l.text)) para=pdfJoinHyphenated(para,l.text);
+    else if(/[-\u00ad]$/.test(para) && /^[a-z]/.test(l.text)) para=pdfJoinHyphenated(para,l.text,lexicon);
     else para+=(para?' ':'')+l.text;
     if(paraPages.indexOf(l.page)<0) paraPages.push(l.page);
     prev=l;
@@ -1819,7 +1860,7 @@ function ocrResultToPdfItems(result){
     const y0=box&&Number.isFinite(Number(box.y0)) ? Number(box.y0)/scale : index*8;
     const x1=box&&Number.isFinite(Number(box.x1)) ? Number(box.x1)/scale : Math.min(width,line.text.length*6);
     const y1=box&&Number.isFinite(Number(box.y1)) ? Number(box.y1)/scale : y0+6;
-    return {str:line.text,x:x0,y:height-y1,w:Math.max(1,x1-x0),h:Math.max(1,y1-y0),confidence:line.confidence,_pageHeight:height};
+    return {str:line.text,x:x0,y:height-y1,w:Math.max(1,x1-x0),h:Math.max(1,y1-y0),confidence:line.confidence,_pageHeight:height,_ocr:true};
   });
   return items.sort((a,b)=>(b.y-a.y)||(a.x-b.x));
 }
@@ -4150,7 +4191,14 @@ function chapterTitleChanged(input){
   const chapters=editableChapters();
   if(!Number.isInteger(i) || !chapters[i]) return;
   const value=input.value.trim();
+  const oldTitle=chapters[i].title;
   chapters[i].title=value || (t('chapterLabel')+' '+(i+1));
+  const doc=new DOMParser().parseFromString(chapters[i].html||'','text/html');
+  const heading=doc.body.querySelector('h1,h2,h3,h4,h5,h6');
+  if(heading && heading.textContent.replace(/\s+/g,' ').trim()===String(oldTitle||'').replace(/\s+/g,' ').trim()){
+    heading.textContent=chapters[i].title;
+    chapters[i].html=doc.body.innerHTML;
+  }
   chapters[i].fallbackTitle=false;input.value=chapters[i].title;
   const hint=input.parentElement.querySelector('small');if(hint)hint.remove();
   invalidateBookOutput();
